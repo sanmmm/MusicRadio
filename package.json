@@ -1,0 +1,19 @@
+{
+  "name": "music-radio",
+  "version": "0.0.1",
+  "description": "Inspired by [SyncMusic](https://github.com/kasuganosoras/SyncMusic)",
+  "scripts": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:sanmmm/MusicRadio.git"
+  },
+  "keywords": [
+    "music",
+    "radio",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "sanmmm",
+  "license": "MIT"
+}
