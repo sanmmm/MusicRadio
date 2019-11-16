@@ -1,1 +1,6 @@
 .history
+api
+node_modules
+backend/settings.ts
+backend/static
+build

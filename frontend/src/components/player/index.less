@@ -1,0 +1,123 @@
+@import '~@/base.less';
+
+.playerBox {
+    .progressOuter {
+        padding: 3px 0;
+        cursor: pointer;
+        user-select: none;
+        &:hover {
+            .progress {
+                .curcor {
+                    transform: scale(1);
+                }
+            }   
+        }
+        > .progress {
+            position: relative;
+            .base {
+                height: 100%;
+                width: 100%;
+                background-color: rgb(155, 155, 155);
+            }
+            .past {
+                .base();
+                position: absolute;
+                top: 0;
+                left: 0;
+                background-color: @themeColor;
+            }
+            .curcor {
+                background-color: @themeColor;
+                border-radius: 50%;
+                position: absolute;
+                top: 0;
+                // transition: all 0.3s;
+                transform: scale(0);
+            }
+        }
+    }
+}
+
+.picBox {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    overflow: hidden;
+    animation: picRotate 10s  linear infinite;
+    animation-play-state: paused;
+    &.rotate {
+        animation-play-state: running;
+    }
+    .noPic {
+        color: @themeColor;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+
+@keyframes picRotate {
+    from {
+        transform: rotate(0deg);
+    } to {
+        transform: rotate(360deg);
+    }
+}
+
+.volumeBox {
+    display: flex;
+    align-items: center;
+    .slider {
+        display: none;
+        width: 70px;
+    }
+    
+    &:hover {
+        .slider {
+            display: block;
+        }
+    }
+    .actionIcon {
+        cursor: pointer;
+    }
+}
+
+
+.lyricBox {
+    overflow: hidden;
+    position: relative;
+    @itemHeight: 1.4em;
+    height: @itemHeight * 4;
+    // &::before {
+    //     content: "";
+    //     display: block;
+    //     height: @itemHeight / 3;
+    //     width: 100%;
+    //     background: linear-gradient(180deg,hsla(0,0%,100%,0) 0,hsla(0,0%,100%,.8));
+    //     position: absolute;
+    //     top: 0;
+    //     left: 0;
+    // }
+    &::after {
+        content: "";
+        display: block;
+        height: @itemHeight * 1;
+        width: 100%;
+        background: linear-gradient(180deg,hsla(0,0%,100%,0) 0,hsla(0,0%,100%, .7));
+        position: absolute;
+        bottom: 0;
+        left: 0;
+    }
+    .itemsBox {
+        transition: all 0.4s;
+        .item {
+            height: @itemHeight;
+            box-sizing: border-box;
+            &.focus {
+                color: @themeColor;
+            }
+        }
+    }
+}
