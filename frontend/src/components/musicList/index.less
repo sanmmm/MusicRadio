@@ -1,0 +1,128 @@
+.textOverflow {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+@baseColor: rgba(225,225,225,.8);
+.musicList {
+    text-align: left;
+    background-color: rgba(155, 155, 155, 0.7);
+    color: @baseColor;
+    :global(.ant-checkbox-inner) {
+        background-color: transparent !important;
+        border-color: rgba(225,225,225,.5) !important;
+        :hover, :focus {
+            border-color: white !important;
+        }
+    }
+    :global(.ant-checkbox-checked) {
+        &::after {
+            border-color: white !important;
+        }
+    }
+    .itemListBox {
+        height: 100%;
+        overflow-y: scroll;
+    }
+  
+}
+
+
+.actionsBox {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    line-height: 1.8em;
+    > * {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-basis: 0;
+        flex-grow: 1;
+        max-width: 100px;
+        margin: 0 .3rem;
+        border: 1px solid;
+        border: 1px solid rgba(225,225,225,.3);
+        border-radius: 2px;
+        text-align: center;
+        > :global(.iconfont) {
+            display: inline-block;
+            margin-right: .3rem;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+        :hover {
+            cursor: pointer;
+            color: white;
+            border-color: white;
+        }
+    }
+}
+
+
+@normalTdPadding: 16px;
+@mobileTdPadding: .5rem;
+.tableHeader {
+    display: flex;
+    align-items: center;
+    &.mobile {
+        > .left {
+            padding: @mobileTdPadding;
+        }
+        > .right {
+            > * {
+                padding: @mobileTdPadding;
+            }
+        }
+    }
+
+    > .left {
+        text-align: center;
+        padding: @normalTdPadding;
+    }
+    > .right {
+        flex-grow: 1;
+        display: flex;
+        align-items: center;
+        > * {
+            padding: @normalTdPadding;
+        }
+   }
+}
+
+
+.popoverActions {
+    .item {
+        cursor: pointer;
+        text-align: center;
+        color: black;
+        & + .item {
+            margin-top: .5rem;
+        }
+        > * {
+            margin: 0 .3rem;
+            white-space: nowrap;
+        }
+    }
+}
+
+
+.tableRow {
+    color: @baseColor !important;
+   
+    td {
+        border-width: 0 !important;
+        background-color: transparent !important;
+    }
+    :hover {
+        td {
+            background-color: transparent !important;
+        }
+    }
+    &.mobile {
+        td {
+            padding: @mobileTdPadding !important;
+        }
+    }
+}

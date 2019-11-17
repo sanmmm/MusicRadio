@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react'
+import React, { useEffect, useState } from 'react'
 import bindClass from 'classnames'
 
 import styles from './index.less'
@@ -24,16 +24,16 @@ interface LyricItem {
 
 
 const LyricBox: React.FC<LyricBoxProps> = function (props) {
-    
+
     const [state, setState] = useState({
         focusItemIndex: -2
     } as {
-        focusItemIndex: number 
+        focusItemIndex: number
     })
     const [freshLyricItems, setLyricItems] = useState([] as LyricItem[])
 
     useEffect(() => {
-        const {lyric} = props
+        const { lyric = '' } = props
         const items: LyricItem[] = lyric.split('\n').map(s => {
             const parsed = /^\[(.*)\](.*)$/.exec(s)
             if (!parsed) {
@@ -47,7 +47,7 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
             const timeUnitArr = pre.split(':').filter(i => !!i)
             const time = timeUnitArr.reduce((time, v, i) => {
                 const scale = [60, 1, 0.01][i]
-                return time +  Number(v) * scale
+                return time + Number(v) * scale
             }, 0)
             return {
                 type: LyricItemTypes.content,
@@ -63,14 +63,14 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
 
     useEffect(() => {
         const nowFocusItemIndex = freshLyricItems.findIndex((item, index) => {
-            if (item.time <=  props.nowTime) {
+            if (item.time <= props.nowTime) {
                 const nextItem = freshLyricItems[index + 1]
                 if (!nextItem || props.nowTime < nextItem.time) {
                     return true
                 }
             }
             return false
-        })  
+        })
         if (nowFocusItemIndex === state.focusItemIndex) {
             return
         }
@@ -82,12 +82,19 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
 
     const lyricOffsetValue = freshLyricItems.length && (state.focusItemIndex / freshLyricItems.length) * 100
     return <div className={styles.lyricBox}>
-        <div style={{transform: `translate(0, -${lyricOffsetValue}%)`}} className={styles.itemsBox}>
-            {
-                freshLyricItems.map(item => <div key={item.index} className={bindClass(styles.item, item.index === state.focusItemIndex && styles.focus)}>
-                    {item.content}
-                </div>)}
-        </div>
+        {
+            freshLyricItems.length ?
+                <div style={{ transform: `translate(0, -${lyricOffsetValue}%)` }} className={styles.itemsBox}>
+                    {
+                        freshLyricItems.map(item => <div key={item.index} className={bindClass(styles.item, item.index === state.focusItemIndex && styles.focus)}>
+                            {item.content}
+                        </div>)}
+                </div> :
+                <div className={styles.noLrc}>   
+                    暂无字幕
+                </div>
+        }
+
     </div>
 }
 

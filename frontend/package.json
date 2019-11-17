@@ -10,10 +10,19 @@
   },
   "dependencies": {
     "@material-ui/core": "^4.6.1",
+    "@material-ui/icons": "^4.5.1",
+    "antd": "^3.25.2",
     "aplayer": "^1.10.1",
     "classnames": "^2.2.6",
+    "dayjs": "^1.8.17",
+    "dva-logger": "^1.0.0",
     "react": "^16.8.6",
-    "react-dom": "^16.8.6"
+    "react-dnd": "^9.4.0",
+    "react-dnd-html5-backend": "^9.4.0",
+    "react-dom": "^16.8.6",
+    "react-perfect-scrollbar": "^1.5.3",
+    "react-responsive": "^8.0.1",
+    "umi-plugin-react": "^1.13.3"
   },
   "devDependencies": {
     "@types/jest": "^23.3.12",

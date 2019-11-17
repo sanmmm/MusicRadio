@@ -1,0 +1,60 @@
+.chatListBox {
+    padding: 0 1rem;
+    .messageItemSubArr {
+        margin-bottom: .8rem;   
+    }
+    .messageItem {
+        color: white;
+        text-align: left; 
+
+        & + .messageItem {
+            margin-top: .6rem;
+        }
+        .contentBase {
+            background-color: rgba(0,0,0,0.5);
+            color: white;
+            font-size: 1.2rem;
+            border-radius: 6px;
+            padding: .4rem .8rem;
+            text-align: left;
+            display: inline-block;
+        }
+        &.time {
+            text-align: center;
+            > span {
+                .contentBase();
+                font-size: 1rem;
+                padding: 3px .6rem;
+            }
+        }
+        &.response {
+            text-align: center;
+            > span {
+                .contentBase();
+                padding: 3px .6rem;
+            }
+        }
+
+        .header {
+            font-size: 14px;
+            margin-bottom: .3rem;
+        }
+        .content {
+            .contentBase();
+            &.notice {
+                color: #ec7259;
+            }
+            &.advanced {
+                color: goldenrod;
+            }
+        }
+    }
+}
+
+
+.sendMessageBox {
+    .box {
+        display: flex;
+        align-items: center;
+    }
+}

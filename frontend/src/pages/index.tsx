@@ -3,7 +3,7 @@ import APlayer from 'aplayer'
 import 'aplayer/dist/APlayer.min.css';
 import styles from './index.css';
 import MyPlayer from '../components/player'
-
+import Index from './index/index'
 const lyric = `
 [00:04.050]
 [00:12.570]难以忘记初次见你
@@ -81,10 +81,14 @@ export default function () {
   // }, [])
   return (
     <div className={styles.normal}>
+      <div className={styles.mask}>
+
+      </div>
       <div className={styles.playerBackground}>
 
       </div>
-      <MyPlayer src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"}/> 
+      <Index/>
+      {/* <MyPlayer name="情不得已" artist="庾澄庆" src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"}/>  */}
       {/* <div id="player">
 
       </div>

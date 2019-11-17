@@ -2,6 +2,11 @@ html, body, #root {
   height: 100%;
 }
 
+p {
+  margin: 0;
+  margin-block-start: 0;
+}
+
 body {
   margin: 0;
 }
