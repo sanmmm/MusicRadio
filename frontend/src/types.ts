@@ -10,6 +10,7 @@ enum MessageTypes {
     response, // 系统响应
 }
 interface MessageItem {
+    fromId?: string;
     from: string;
     tag?: string; // 发送者的头衔
     content: string;
@@ -17,6 +18,10 @@ interface MessageItem {
     type: MessageTypes;
 }
 
+interface DanmuItem extends MessageItem {
+    levelValue: number;
+    offset: number; // 位置偏移量 如:0.34 === 34%
+}
 
 interface PlayListItem {
     id: string; // 歌曲id

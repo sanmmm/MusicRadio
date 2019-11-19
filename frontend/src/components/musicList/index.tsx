@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useDrag, useDrop, DropTargetMonitor } from 'react-dnd'
 import { XYCoord } from 'dnd-core'
 import { DndProvider } from 'react-dnd'
@@ -7,17 +7,14 @@ import { connect } from 'dva'
 import { useMediaQuery } from 'react-responsive'
 import ScrollBar from 'react-perfect-scrollbar'
 import { Popover, Table, Checkbox } from 'antd'
+import { PopoverProps } from 'antd/lib/popover'
 import bindClass from 'classnames'
 
 import { ConnectProps, ConnectState } from '@/models/connect'
+import ListShow from './list'
 import configs from '@/config'
 import styles from './index.less'
 
-
-interface MusicListProps extends ConnectProps {
-    isEditMode: boolean; // 管理员模式
-    musicList: PlayListItem[];
-}
 
 const formatMusicDuration = (t: number) => {
     const m = `0${Math.floor((t / 1000 / 60))}`.slice(-2)
@@ -25,13 +22,28 @@ const formatMusicDuration = (t: number) => {
     return `${m}:${s}`
 }
 
+interface MusicListProps extends ConnectProps {
+    isEditMode: boolean; // 管理员模式
+    musicList: PlayListItem[];
+}
+
+enum BlockActionBtnType {
+    showBlock = 1,
+    showUnblock = 2,
+}
+
+const radioSignalAnimationDuration = 2 // s
+const getRandomDelayValue = () => {
+    return [1, 2, 3, 4].map(_ => Math.random() * radioSignalAnimationDuration)
+}
 
 const MusicList: React.FC<MusicListProps> = function (props) {
     const { isEditMode, musicList, dispatch } = props
 
-    const isAdmin = true
+    const [selectedItems, setSelectedItem] = useState([] as PlayListItem[])
+    const [randomArr, _] = useState(getRandomDelayValue())
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
-    const [selectedIds, setSelectedIds] = useState([] as string[])
+
     const handleMoveItem = (fromIndex, toIndex) => {
         dispatch({
             type: 'playList/moveItem',
@@ -42,76 +54,115 @@ const MusicList: React.FC<MusicListProps> = function (props) {
         })
     }
 
-    return <div className={styles.musicList}>
-        {
-            isEditMode && <div>可通过拖拽调整列表顺序</div>
+    const selectedIds = useMemo(() => {
+        return selectedItems.map(i => i.id)
+    }, [selectedItems])
+
+    const blockBtnType: BlockActionBtnType = useMemo(() => {
+        if (!selectedItems.length) {
+            return null
         }
-        <div className={styles.actionsBox}>
-            <div><span className="iconfont icon-delete"></span><span>删除</span></div>
-            <div><span className="iconfont icon-block"></span><span>屏蔽</span></div>
-            <div><span className="iconfont icon-add"></span><span>添加</span></div>
-            <div><span className="iconfont icon-clear"></span><span>全部删除</span></div>
-        </div>
-        <div className={bindClass(styles.tableHeader, isMobile && styles.mobile)}>
-            <div className={styles.left}>
-                <Checkbox checked={selectedIds.length === musicList.length}
-                    onChange={(e) => {
-                        const isChecked = e.target.checked
-                        if (!isChecked) {
-                            setSelectedIds([])
-                        } else {
-                            setSelectedIds(musicList.map(i => i.id))
-                        }
-                    }}
-                />
-            </div>
-            <div className={styles.right}> 
-            <div style={{width: '40%'}}>歌名</div>
-            <div style={{width: '30%'}}>歌手</div>
-            <div style={{width: '15%'}}>时长</div>
-            <div style={{width: '15%'}}>操作</div>
-            </div>
-        </div>
-        <Table
-            columns={[
-                {
-                    dataIndex: 'name',
-                    title: '歌曲',
-                    width: '40%'
-                },
-                {
-                    dataIndex: 'artist',
-                    title: '歌手',
-                    width: '30%'
-                },
-                {
-                    render: (item) => formatMusicDuration(item.duration),
-                    title: '时长',
-                    width: '15%'
-                },
-                {
-                    width: '15%',
-                    render: (item: PlayListItem) => <Popover trigger={isMobile ? 'click' : 'hover'}
-                        content={
-                            <div className={styles.popoverActions}>
-                                {
-                                    isEditMode &&
-                                    <div className={styles.item}><span className="iconfont icon-delete"></span><span>删除</span></div>
-                                }
-                                <div className={styles.item}><span className="iconfont icon-block"></span><span>{item.isBlock ? '取消屏蔽' : '屏蔽'}</span></div>
-                            </div>}>
-                        <span className="iconfont icon-menu"></span>
-                    </Popover>
+        let type = null
+        let initBlockStatus = selectedItems[0].isBlock
+        const flag = selectedItems.every((item => item.isBlock === initBlockStatus))
+        if (flag) {
+            type = selectedItems[0].isBlock ? BlockActionBtnType.showUnblock : BlockActionBtnType.showBlock
+        }
+        return type
+    }, [selectedItems])
+
+    const actions = [
+        {
+            icon: 'add',
+            label: '添加',
+            onClick: () => { }
+        },
+        {
+            icon: 'delete',
+            label: '删除',
+            onClick: () => { }
+        },
+        {
+            icon: 'clear',
+            label: '全部删除',
+            onClick: () => { }
+        },
+    ]
+    if (blockBtnType) {
+        actions.push({
+            icon: 'block',
+            label: blockBtnType === BlockActionBtnType.showBlock ? '屏蔽' : '取消屏蔽',
+            onClick: () => { }
+        })
+    }
+
+    return <ListShow
+        actions={actions}
+        moveAble={true}
+        onMove={handleMoveItem}
+        columns={[
+            {
+                title: '歌曲',
+                render: (_, item, index) => <div className={styles.musicNameTd}>
+                    <span>{item.name}</span>
+                    {
+                        item.isBlock && <span className="iconfont icon-block"></span>
+                    }
+                    {
+                        index === 0 && <span className={styles.radioRandomSignalIcon}>
+                           {randomArr.map(t => <span 
+                            style={{
+                                animationDelay: `${t}s`,
+                                animationDuration: `${radioSignalAnimationDuration}s`,
+                            }}
+                           ></span>)}
+                        </span>}
+                </div>,
+                width: '40%'
+            },
+            {
+                dataIndex: 'artist',
+                title: '歌手',
+                width: '30%'
+            },
+            {
+                render: (item) => formatMusicDuration(item.duration),
+                title: '时长',
+                width: '15%'
+            },
+            {
+                width: '15%',
+                title: '',
+                render: (item: PlayListItem) => <CustomPopover trigger={isMobile ? 'click' : 'hover'}
+                    content={
+                        <div className={styles.popoverActions}>
+                            {
+                                isEditMode &&
+                                <div className={styles.item}><span className="iconfont icon-delete"></span><span>删除</span></div>
+                            }
+                            <div className={styles.item}><span className="iconfont icon-block"></span><span>{item.isBlock ? '取消屏蔽' : '屏蔽'}</span></div>
+                        </div>}>
+                    <span className="iconfont icon-menu"></span>
+                </CustomPopover>
+            }
+        ]}
+        dataSource={musicList}
+        rowSelection={{
+            selectedRowKeys: selectedIds,
+            onSelect: (item) => {
+                const findIndex = selectedItems.findIndex(i => i === item)
+                if (findIndex > -1) {
+                    selectedItems.splice(findIndex, 1)
+                } else {
+                    selectedItems.push(item)
                 }
-            ]}
-            dataSource={musicList} showHeader={false} pagination={false} rowKey={item => item.id}
-            rowSelection={{
-                selectedRowKeys: selectedIds,
-                onChange: (ids: string[]) => setSelectedIds(ids)
-            }}
-            rowClassName={bindClass(styles.tableRow, isMobile && styles.mobile)}
-        />
-    </div>
+                setSelectedItem([...selectedItems])
+            },
+            onChange: (_, items: any[]) => setSelectedItem(items),
+        }}
+        rowKey={item => item.id}
+        rowClassName={(_, index) => index === 0 && styles.focusMusicRow}
+    />
 }
 
 export default connect(({ playList }: ConnectState) => {
@@ -120,3 +171,19 @@ export default connect(({ playList }: ConnectState) => {
         isEditMode: true
     }
 })(MusicList)
+
+
+const CustomPopover: React.FC<PopoverProps> = function (props) {
+    const [isVisible, setVisible] = useState(false)
+    const { content } = props
+    return <Popover visible={isVisible} onVisibleChange={visible => setVisible(visible)} content={<div onClick={e => {
+        e.stopPropagation()
+        setVisible(false)
+    }}>
+        {content}
+    </div>}>
+        <div onClick={e => e.stopPropagation()} style={{ display: 'inline-block' }}>
+            {props.children}
+        </div>
+    </Popover>
+}

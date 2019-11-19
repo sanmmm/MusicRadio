@@ -1,0 +1,39 @@
+@import '~@/base.less';
+
+.damuListBox {
+    position: relative;
+    overflow: hidden;
+    margin: 1rem;
+    > .item {
+        width: 100%;
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        position: absolute;
+        left: 0;
+        transition: all 0.3s ease-in-out;
+        &.highLight {
+            > .content {
+                color: white;
+                filter: none;
+            }
+        }
+        &.mobile {
+            font-size: 12px;
+        }
+        > .placeholder {
+            flex-basis: 0;
+            flex-grow: 1;
+        }
+        > .content {
+            .textOverflow();
+            max-width: 100%;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 0 1rem;
+            cursor: pointer;
+            filter: brightness(50%);
+        }
+    }
+}

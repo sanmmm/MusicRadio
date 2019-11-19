@@ -1,7 +1,34 @@
 @import '~@/base.less';
 
+
+.mask {
+    background-color: rgba(0,0,0,.5);
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+}
+
+.playerBackground {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: -4;
+    width: 100%;
+    height: 100%;
+    background-image: url("https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000");
+    background-position: 50%;
+    background-size: cover;
+    background-repeat: no-repeat;
+    opacity: .6;
+    filter: blur(60px);
+}
+
 .playerBox {
     display: flex;
+    color: @normalTextColor;
     > * {
         flex-shrink: 0;
     }
@@ -11,6 +38,7 @@
     >.main {
         flex-grow: 1;
         flex-basis: 0;
+        margin-left: 2rem;
         .controlBox {
             display: flex;
             align-items: center;
@@ -21,13 +49,22 @@
             }
             > .right {
                 flex-shrink: 0;
+                :global(.iconfont) {
+                    font-size: 18px;
+                }
+                > * {
+                    + * {
+                        margin-right: .4rem;
+                    }
+                }
             }
         }
     }
 }
 
 .commentBox {
-    height: 200px;
+    height: 240px;
+    margin: 0 0 1rem;
     .noData {
         height: 100%;
         width: 100%;
@@ -35,35 +72,48 @@
         align-items: center;
         justify-content: center;
         font-weight: bold;
-        color: white;
     }
-    .top {
-        text-align: left;
-        :global(.icon-quoteleft) {
-            font-size: 28px !important;
-            color: rgba(155, 155, 155, 1) !important;
-        }
-    }
-    .content {
-        color: white;
-        font-weight: bold;
-        text-align: left;
-    }
-    .bottom {
+    .showData {
+        height: 100%;
         display: flex;
-        justify-content: flex-end;
-        align-items: center;
-        > img {
-            @size: 24px;
-            width: @size;
-            height: @size;
-            border-radius: 50%;
-            margin-right: .8rem;
+        flex-direction: column;
+        justify-content: center;
+        > * {
+            width: 100%;
         }
-        .nickName {
-            cursor: pointer;
+        .top {
+            text-align: left;
+            :global(.icon-quoteleft) {
+                font-size: 28px !important;
+                color: rgba(155, 155, 155, 1) !important;
+            }
+        }
+        .content {
+            color: white;
+            font-weight: bold;
+            text-align: left;
+            margin: 0;
+            min-height: 0;
+            overflow: hidden;
+        }
+        .bottom {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding-top: .5rem;
+            > img {
+                @size: 24px;
+                width: @size;
+                height: @size;
+                border-radius: 50%;
+                margin-right: .8rem;
+            }
+            .nickName {
+                cursor: pointer;
+            }
         }
     }
+   
 }
 
 .musicBaseInfo {
@@ -100,7 +150,7 @@
             transform: translateY(0);
         } 
         50%{
-            transform: translateY(100%);
+            transform: translateY(90%);
         }
         100% {
             transform: translateY(0%);
@@ -112,6 +162,7 @@
     padding: 3px 0;
     cursor: pointer;
     user-select: none;
+    margin: .5rem 0;
     &:hover {
         .progress {
             .curcor {
@@ -145,18 +196,19 @@
 }
 
 .picBox {
-    width: 200px;
-    height: 200px;
+    width: 220px;
+    height: 220px;
     border-radius: 50%;
     overflow: hidden;
     animation: picRotate 10s  linear infinite;
     animation-play-state: paused;
     background-color: white;
+    margin: 1rem 0 2rem 0;
     &.rotate {
         animation-play-state: running;
     }
     .noPic {
-        color: @themeColor;
+        color: @highLightColor;
         height: 100%;
         display: flex;
         align-items: center;
@@ -176,11 +228,30 @@
 .volumeBox {
     display: flex;
     align-items: center;
+    :global(.ant-slider) {
+        width: 30% !important;
+        max-width: 70px;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
+        > * {
+            height: 2px !important;
+        }
+        :global(.ant-slider-handle) {
+            display: none !important;
+        }
+        
+        :global(.ant-slider-rail) {
+            background-color: rgb(155, 155, 155);
+        }
+        :global(.ant-slider-track) {
+            background-color: white;
+        }
+    }
     .slider {
         display: none;
         width: 70px;
+        
     }
-    
     &:hover {
         .slider {
             display: block;
@@ -195,7 +266,7 @@
 .lyricBox {
     overflow: hidden;
     position: relative;
-    @itemHeight: 1.4em;
+    @itemHeight: 2em;
     height: @itemHeight * 4;
     // &::before {
     //     content: "";
@@ -210,9 +281,11 @@
     &::after {
         content: "";
         display: block;
-        height: @itemHeight * 1;
+        height: @itemHeight * 0.2;
         width: 100%;
-        background: linear-gradient(180deg,hsla(0,0%,100%,0) 0,hsla(0,0%,100%, .7));
+        // background: linear-gradient(0deg, rgba(0, 0, 0, 0.5),rgba(0, 0, 0, .8));
+
+        // background: linear-gradient(180deg,hsla(0,0%,100%,0) 0,hsla(0,0%,100%, .7));
         position: absolute;
         bottom: 0;
         left: 0;
@@ -229,7 +302,7 @@
             height: @itemHeight;
             box-sizing: border-box;
             &.focus {
-                color: @themeColor;
+                color: @highLightColor;
             }
         }
     }

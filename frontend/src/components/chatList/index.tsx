@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import bindClass from 'classnames'
-import { Slider } from '@material-ui/core'
-import { PlayArrow, Pause, VolumeUp, VolumeOff } from '@material-ui/icons'
+import ScorllBar from 'react-perfect-scrollbar'
 import dayjs, { Dayjs } from 'dayjs'
 
 import InputBox from './input'
@@ -73,6 +72,10 @@ const ChatList: React.FC<ChatListProps> = function (props) {
                     {
                         m.type === MessageTypes.send && '[已发送] '
                     }
+                    {
+                        m.type === MessageTypes.notice && '[系统消息] '
+
+                    }
                     {m.from}
                 </div>
                 <div className={bindClass(styles.content, m.type === MessageTypes.advanced && styles.advanced,
@@ -83,27 +86,29 @@ const ChatList: React.FC<ChatListProps> = function (props) {
     }
     const nowDate = dayjs().date(), nowMonth = dayjs().month(), nowYear = dayjs().year()
     return <div className={styles.chatListBox}>
-        {
-            renderMessages.map((msgs, i) => {
-                const msgDate = dayjs(msgs[0].time)
-                // TODO 日期更精细化格式化
-                let formatStr = 'YYYY-MM-DD HH:mm'
-                if (msgDate.year() === nowYear) {
-                    formatStr = 'MM-DD HH:mm'
-                    if (msgDate.month() === nowMonth && msgDate.date() === nowDate) {
-                        formatStr = 'HH:mm'
+        <ScorllBar style={{height: '100%'}}>
+            {
+                renderMessages.map((msgs, i) => {
+                    const msgDate = dayjs(msgs[0].time)
+                    // TODO 日期更精细化格式化
+                    let formatStr = 'YYYY-MM-DD HH:mm'
+                    if (msgDate.year() === nowYear) {
+                        formatStr = 'MM-DD HH:mm'
+                        if (msgDate.month() === nowMonth && msgDate.date() === nowDate) {
+                            formatStr = 'HH:mm'
+                        }
                     }
-                }
 
-                const startDateStr = dayjs(msgs[0].time).format(formatStr)
-                return <div key={i} className={styles.messageItemSubArr}>
-                    <div className={bindClass(styles.messageItem, styles.time)}><span>{startDateStr}</span></div>
-                    {
-                        msgs.map(renderItem)
-                    }
-                </div>
-            })
-        }
+                    const startDateStr = dayjs(msgs[0].time).format(formatStr)
+                    return <div key={i} className={styles.messageItemSubArr}>
+                        <div className={bindClass(styles.messageItem, styles.time)}><span>{startDateStr}</span></div>
+                        {
+                            msgs.map(renderItem)
+                        }
+                    </div>
+                })
+            }
+        </ScorllBar>
     </div>
 }
 

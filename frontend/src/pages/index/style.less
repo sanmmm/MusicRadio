@@ -1,0 +1,34 @@
+.radioPage {
+    &.normal {
+        display: flex;
+        align-items: flex-start;
+        width: 90%;
+        min-width: 960px;
+        max-width: 1300px;
+        margin: 0 auto;
+        > * {
+            + * {
+                margin-left: 3rem;
+            }
+        }
+        > .left {
+            flex-basis: 0;
+            flex-grow: 6;
+        }      
+        > .right {
+            flex-basis: 0;
+            flex-grow: 3;
+            .chatTabContent {
+                display: flex;
+                flex-direction: column;
+                flex-shrink: 0;
+                > * {
+                    width: 100%;
+                    box-sizing: border-box;
+                    min-height: 0;
+                }
+            }
+        } 
+    }
+ 
+}

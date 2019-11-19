@@ -1,14 +1,48 @@
-.textOverflow {
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+@import '~@/base.less';
+
+.actionBtnBase {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100px;
+    margin: 0 .3rem;
+    border: 1px solid;
+    border: 1px solid rgba(225,225,225,.3);
+    border-radius: 2px;
+    text-align: center;
+    line-height: 1.8em;
+    > :global(.iconfont) {
+        display: inline-block;
+        margin: 0 .3rem;
+    }
+    > * {
+        white-space: nowrap;
+    }
+    &:hover {
+        cursor: pointer;
+        color: white;
+        border-color: white;
+    }
 }
 
+
+
+
 @baseColor: rgba(225,225,225,.8);
-.musicList {
+.listShowBox {
     text-align: left;
-    background-color: rgba(155, 155, 155, 0.7);
     color: @baseColor;
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    height: 500px;
+    width: 100%;
+    > * {
+        width: 100%;
+        box-sizing: border-box;
+        flex-shrink: 0;
+    }
     :global(.ant-checkbox-inner) {
         background-color: transparent !important;
         border-color: rgba(225,225,225,.5) !important;
@@ -21,48 +55,53 @@
             border-color: white !important;
         }
     }
-    .itemListBox {
-        height: 100%;
-        overflow-y: scroll;
+
+    .actionsBox {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        margin-bottom: .8rem;
+        &.normal {
+            > * {
+                .actionBtnBase();
+                flex-basis: 0;
+                flex-grow: 1;
+            }
+        }
+        &.mobile {
+            text-align: center;
+            justify-content: space-around;
+            > * {
+                > * {
+                    display: block;
+                    line-height: 1.4em;
+                    color: white;
+                }
+            }
+        }
     }
-  
-}
-
-
-.actionsBox {
-    display: flex;
-    flex-wrap: nowrap;
-    align-items: center;
-    line-height: 1.8em;
-    > * {
+    .selectActionsBox {
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end;
+        padding: .5rem;
+        > * {
+            .actionBtnBase();
+            flex-basis: 0;
+            flex-grow: 1;
+        }
+    }
+    .tableBox {
+        min-height: 0;
         flex-basis: 0;
         flex-grow: 1;
-        max-width: 100px;
-        margin: 0 .3rem;
-        border: 1px solid;
-        border: 1px solid rgba(225,225,225,.3);
-        border-radius: 2px;
-        text-align: center;
-        > :global(.iconfont) {
-            display: inline-block;
-            margin-right: .3rem;
-            white-space: nowrap;
-            cursor: pointer;
-        }
-        :hover {
-            cursor: pointer;
-            color: white;
-            border-color: white;
-        }
     }
 }
 
 
-@normalTdPadding: 16px;
-@mobileTdPadding: .5rem;
+
+@normalTdPadding: 8px;
+@mobileTdPadding: .4rem;
 .tableHeader {
     display: flex;
     align-items: center;
@@ -91,6 +130,41 @@
    }
 }
 
+.tableRow {
+    color: @baseColor !important;
+    box-sizing: border-box;
+    td {
+        border-width: 0 !important;
+        background-color: transparent !important;
+        padding: @normalTdPadding !important;
+    }
+    :hover {
+        td {
+            background-color: transparent !important;
+        }
+    }
+    &.mobile {
+        td {
+            padding: @mobileTdPadding !important;
+            font-size: 12px !important;
+        }
+    }
+    &.bottomHighLight {
+        td {
+            border-bottom: 1px dashed white !important;
+        }
+    }
+    &.topHighLight {
+        td {
+            border-top: 1px dashed white !important;
+        }
+    }
+}
+
+.focusMusicRow {
+    color: white !important;
+}
+
 
 .popoverActions {
     .item {
@@ -107,22 +181,42 @@
     }
 }
 
-
-.tableRow {
-    color: @baseColor !important;
-   
-    td {
-        border-width: 0 !important;
-        background-color: transparent !important;
-    }
-    :hover {
-        td {
-            background-color: transparent !important;
+.musicNameTd {
+    display: flex;
+    align-items: center;
+    > * {
+        & + * {
+            margin-left: .7rem;
         }
     }
-    &.mobile {
-        td {
-            padding: @mobileTdPadding !important;
+    :global(.icon-block) {
+        color: red !important;
+        font-size: 14px !important;
+        line-height: 1;
+    }
+}
+
+.radioRandomSignalIcon {
+    display: flex;
+    overflow: hidden;
+    > * {
+        width: 2px;
+        height: .8rem;
+        margin: 0 1px;
+        background-color: white;
+        border-radius: 25%;
+        animation: updown 2s ease-in-out infinite;
+    }
+
+    @keyframes updown {
+        0% {
+            transform: translateY(0);
+        } 
+        50%{
+            transform: translateY(80%);
+        }
+        100% {
+            transform: translateY(0%);
         }
     }
 }

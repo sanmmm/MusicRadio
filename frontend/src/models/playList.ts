@@ -1,4 +1,5 @@
 import {Reducer} from 'redux'
+import {Effect} from 'dva'
 
 const playList =  [
     {
@@ -7,6 +8,7 @@ const playList =  [
         artist: 'string',// 演唱者
         album: 'string',// 专辑
         duration: 323907,// 时长
+        isBlock: false,
         from: 'string',// 点歌人
     },
     {
@@ -15,6 +17,7 @@ const playList =  [
         artist: 'string',// 演唱者
         album: 'string',// 专辑
         duration: 323907,// 时长
+        isBlock: false,
         from: 'string',// 点歌人
     },
     {
@@ -23,17 +26,36 @@ const playList =  [
         artist: 'string',// 演唱者
         album: 'string',// 专辑
         duration: 323907,// 时长
+        isBlock: false,
         from: 'string',// 点歌人
     },
 ]
 
+export interface NowPlayingInfo {
+    name: string;
+    artist: string;
+    src: string;
+    lyric: string;
+    pic: string;
+    comment: {
+        content: string;
+        userId: number;
+        avatarUrl: string;
+        nickName: string;
+    };
+}
+
 export interface PlayListModelState {
-    playList: PlayListItem[]
+    playList: PlayListItem[];
+    nowPlaying: NowPlayingInfo;
 }
 
 export interface PlayListModelType {
     namespace: 'playList';
     state: PlayListModelState;
+    effects: {
+        fetchNowPlaying: Effect
+    };
     reducers: {
         moveItem: Reducer<PlayListModelState>;
         deleteItem: Reducer<PlayListModelState>;
@@ -41,13 +63,16 @@ export interface PlayListModelType {
     };
 }
 
-export default {
+const PlayListModel: PlayListModelType = {
     namespace: 'playList',
     state: {
-        playList: playList
+        playList: playList,
+        nowPlaying: null
     },
     effects: {  
-
+        * fetchNowPlaying ({payload}, _) {
+            
+        },
     },
     reducers: {
         moveItem (state, {payload}) {
@@ -81,3 +106,4 @@ export default {
         }
     }
 }
+export default PlayListModel

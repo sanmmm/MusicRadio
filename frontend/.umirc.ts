@@ -32,6 +32,10 @@ const config: IConfig =  {
   chainWebpack: (config,webpack) => {
     config.resolve.alias.set('@', path.join(__dirname, './src'))
   },
+  theme: {
+    "primary-color": 'white',
+    "text-color": 'rgba(225,225,225,.8)',
+  }
 }
 
 export default config;

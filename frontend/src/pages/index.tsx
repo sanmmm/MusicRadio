@@ -81,12 +81,12 @@ export default function () {
   // }, [])
   return (
     <div className={styles.normal}>
-      <div className={styles.mask}>
+      {/* <div className={styles.mask}>
 
       </div>
       <div className={styles.playerBackground}>
 
-      </div>
+      </div> */}
       <Index/>
       {/* <MyPlayer name="情不得已" artist="庾澄庆" src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"}/>  */}
       {/* <div id="player">

@@ -1,10 +1,17 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
+import { useMediaQuery } from 'react-responsive'
+import bindClass from 'classnames'
+import { Tabs } from 'antd'
+
+import configs from '@/config'
 import styles from './style.less'
 import MyPlayer from '@/components/player'
-import ChatList, {InputMessageBox} from '@/components/chatList'
+import ChatList, { InputMessageBox } from '@/components/chatList'
 import MusicList from '@/components/musicList'
+import DanmuBox from '@/components/danmu'
 
-const comment = '昨天上班时间，我装着西服站在二楼窗前看着路上来来往往的车们。觉得城市里天空太窄，忽然想回家种地。可是离我退休年龄还狠遥远。我的影子说想杀死我，然后替代我好好生活。'
+const { TabPane } = Tabs
+const comment = '昨天上班时间，我装着西服站在二楼窗前看着路上来来往往的车们。着西服站在二楼窗前看着路上来来往往, 着西服站在二楼窗前看着路上来来往往,觉得城市里天空太窄，忽然想回家种地。可是离我退休年龄还狠遥远。我的影子说想杀死我，然后替代我好好生活。'
 
 const lyric = `
 [00:04.050]
@@ -145,22 +152,40 @@ interface IndexProps {
 
 }
 
-const Index: React.FC<IndexProps> = function (props) {
+enum TabTyps {
+    musicList = 'musicList',
+    chatList = 'chatList'    
+}
 
-    return <div>
-        {/* <div className={styles.commentBox}>
-            <div className={styles.top}><span className="iconfont icon-quoteleft"></span></div>
-            <p className={styles.content}>{comment}</p>
-        </div> */}
-        <MyPlayer name="情不得已" artist="庾澄庆" comment={{
-            content: comment,
-            userId: 29879272,
-            avatarUrl: 'http://p1.music.126.net/p9U80ex1B1ciPFa125xV5A==/5931865232210340.jpg?param=180y180',
-            nickName: '张惠妹'
-        }} src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"} />
-        <ChatList messages={messages}/>
-        <InputMessageBox handleSendMessage={_ => null} />
-        <MusicList isEditMode={true} />
+const Index: React.FC<IndexProps> = function (props) {
+    const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
+    const [activeTab, setActiveTab] = useState(TabTyps.chatList) 
+    return <div className={bindClass(styles.radioPage, isMobile ? '' : styles.normal)}>
+        <div className={styles.left}>
+            <MyPlayer name="情不得已" artist="庾澄庆" comment={{
+                content: comment,
+                userId: 29879272,
+                avatarUrl: 'http://p1.music.126.net/p9U80ex1B1ciPFa125xV5A==/5931865232210340.jpg?param=180y180',
+                nickName: '张惠妹'
+            }} src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"} />
+            <DanmuBox maxShowCount={3} />
+        </div>
+        <div className={styles.right}>
+            <Tabs activeKey={activeTab} onChange={type => setActiveTab(type as TabTyps)}>
+                <TabPane forceRender={true} key={TabTyps.chatList} tab="消息列表">
+                    <div className={styles.chatTabContent}>
+                        <ChatList messages={messages} />
+                        <InputMessageBox handleSendMessage={_ => null} />
+                    </div>
+                </TabPane>
+                <TabPane forceRender={true} key={TabTyps.musicList} tab="播放列表">
+                    <MusicList isEditMode={true} />
+
+                </TabPane>
+            </Tabs>
+        </div>
+
+
     </div>
 }
 

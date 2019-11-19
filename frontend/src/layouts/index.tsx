@@ -1,7 +1,7 @@
 import React from 'react';
-import styles from './index.css';
+import styles from './index.less';
 import 'react-perfect-scrollbar/dist/css/styles.css';
-import 'antd/dist/antd.css';
+import 'antd/dist/antd.less';
 import zhCN from 'antd/es/locale/zh_CN';
 
 const BasicLayout: React.FC = props => {

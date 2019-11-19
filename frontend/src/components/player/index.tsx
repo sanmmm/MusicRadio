@@ -1,8 +1,8 @@
-import React, { } from 'react'
+import React from 'react'
 import bindClass from 'classnames'
+import { Slider } from 'antd'
+
 import Lyric from './lyric'
-import { Slider } from '@material-ui/core'
-import { PlayArrow, Pause, VolumeUp, VolumeOff } from '@material-ui/icons'
 import styles from './index.less'
 
 interface PlayerProps {
@@ -26,6 +26,7 @@ interface PlayerState {
     volumeRatio: number;
     isDragCursor: boolean;
     isPaused: boolean;
+    commentFontSize?: number;
 }
 
 const signalIconAnimationDuration = 2
@@ -34,6 +35,10 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
     progressEle: HTMLDivElement
     lastVolumeRatioValue: number
     signalIconData: string[]
+    commentTopEle: HTMLDivElement
+    commentBotttomEle: HTMLDivElement
+    commentLineHeight: number // em
+    commentBoxEle: HTMLDivElement
     constructor(props) {
         super(props)
         this.state = {
@@ -42,14 +47,20 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
             isDragCursor: false,
             isPaused: true,
         }
+        this.commentLineHeight = 1.8
         this._handleMouseMove = this._handleMouseMove.bind(this)
         this._handleMouseUp = this._handleMouseUp.bind(this)
         this.signalIconData = [1, 2, 3, 4].map(i => `${(signalIconAnimationDuration * Math.random()).toFixed(2)}s`)
-
     }
 
     componentDidMount() {
-        // this.audioEle.play()
+        this._calcCommentFontSize(this.props)
+    }
+
+    componentWillReceiveProps(nexProps) {
+        if (nexProps.comment !== this.props.comment) {
+            this._calcCommentFontSize(nexProps)
+        }
     }
 
     _setVolume(ratio: number) {
@@ -113,20 +124,40 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
         this.audioEle.pause()
     }
 
+    _calcCommentFontSize(props: PlayerProps) {
+        const { comment } = props
+        if (!comment || !comment.content) {
+            return
+        }
+        const fontSizeSet = [18, 16, 14, 12]
+        const topClient = this.commentTopEle.getBoundingClientRect()
+        const bottomClient = this.commentBotttomEle.getBoundingClientRect()
+        const boxClient = this.commentBoxEle.getBoundingClientRect()
+        const maxContentHeight = boxClient.height - bottomClient.height - topClient.height
+        const maxContentwidth = boxClient.width
+        const averageFontSize = Math.sqrt((maxContentwidth * (maxContentHeight / this.commentLineHeight)) / comment.content.length)
+        const selectedFontSize = fontSizeSet.find(i => averageFontSize >= i)
+        this.setState({
+            commentFontSize: selectedFontSize
+        })
+    }
+
     render() {
         const { src, lrc, totalTime, pic, name, artist, comment } = this.props
-        const { timeRatio, volumeRatio, isPaused } = this.state
+        const { timeRatio, volumeRatio, isPaused, commentFontSize } = this.state
         const curcorSize = 8
         const progressLineHeight = 2
         return <div className={styles.playerBox}>
+            <div className={styles.mask}>
+            </div>
+            <div className={styles.playerBackground}>
+            </div>
             <div className={styles.left}>
                 <div className={bindClass(!isPaused && styles.rotate, styles.picBox)}>
                     {pic ? <img src={pic} /> : <div className={styles.noPic}>暂无封面</div>}
                 </div>
                 <Lyric lyric={this.props.lrc} nowTime={timeRatio * totalTime} showItemCount={4} id="id" />
-
             </div>
-
             <audio src={src}
                 ref={ele => this.audioEle = ele}
                 onTimeUpdate={event => {
@@ -145,20 +176,24 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
             <div className={styles.main}>
                 <div className={styles.commentBox}>
                     {
-                        !!comment ? <React.Fragment>
-                            <div className={styles.top}><span className="iconfont icon-quoteleft"></span></div>
-                            <p className={styles.content}>{comment.content}</p>
-                            <div className={styles.bottom}>
+                        !!comment ? <div className={styles.showData} ref={ele => this.commentBoxEle = ele}
+                        >
+                            <div className={styles.top} ref={ele => this.commentTopEle = ele}><span className="iconfont icon-quoteleft"></span></div>
+                            {
+                                !!commentFontSize && <p
+                                    style={{ fontSize: commentFontSize, lineHeight: `${this.commentLineHeight}em` }}
+                                    className={styles.content}>{comment.content}</p>
+                            }
+                            <div className={styles.bottom} ref={ele => this.commentBotttomEle = ele}>
                                 <img src={comment.avatarUrl} />
                                 <span className={styles.nickName} title={`点击查看${comment.nickName}的主页`}
                                     onClick={_ => window.open(`https://music.163.com/#/user/home?id=${comment.userId}`)}
                                 >{comment.nickName}</span>
                             </div>
-                        </React.Fragment> :
+                        </div> :
                             <div className={styles.noData}>
                                 暂无热评
-                        </div>
-                    }
+                        </div>}
                 </div>
                 <div className={styles.controlBox}>
                     <div className={styles.left}>
@@ -169,41 +204,39 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                             </div>
                             <span className={styles.content}>{name} - {artist}</span>
                         </div>
-                        <div>
-                            <div className={styles.progressOuter} onMouseDown={this._startDragCursor.bind(this)} >
-                                <div className={styles.progress} ref={ele => this.progressEle = ele} style={{ height: progressLineHeight }} >
-                                    <div className={styles.base} >
-                                    </div>
-                                    <div className={styles.past} style={{ width: `${timeRatio * 100}%` }}>
-                                    </div>
-                                    <div className={styles.curcor}
-                                        style={{
-                                            width: curcorSize, height: curcorSize,
-                                            left: `calc(${timeRatio * 100}% - ${curcorSize / 2}px)`, top: (progressLineHeight - curcorSize) / 2
-                                        }}
-                                        onMouseDown={this._startDragCursor.bind(this)}
-                                    >
-                                    </div>
+                        <div className={styles.progressOuter} onMouseDown={this._startDragCursor.bind(this)} >
+                            <div className={styles.progress} ref={ele => this.progressEle = ele} style={{ height: progressLineHeight }} >
+                                <div className={styles.base} >
+                                </div>
+                                <div className={styles.past} style={{ width: `${timeRatio * 100}%` }}>
+                                </div>
+                                <div className={styles.curcor}
+                                    style={{
+                                        width: curcorSize, height: curcorSize,
+                                        left: `calc(${timeRatio * 100}% - ${curcorSize / 2}px)`, top: (progressLineHeight - curcorSize) / 2
+                                    }}
+                                    onMouseDown={this._startDragCursor.bind(this)}
+                                >
                                 </div>
                             </div>
-                            <div className={styles.volumeBox}>
-                                <span className={styles.actionIcon}
-                                    onClick={_ => {
-                                        const ratio = this.state.volumeRatio > 0 ? 0 : (this.lastVolumeRatioValue || 1)
-                                        this.lastVolumeRatioValue = ratio
-                                        this.setState({ volumeRatio: ratio })
-                                        this._setVolume(ratio)
-                                    }}>
-                                    {volumeRatio === 0 ? <VolumeOff /> : <VolumeUp />}
-                                </span>
-                                <Slider className={styles.slider} value={volumeRatio * 100} onChange={(e, value) => {
-                                    const ratio = value as number / 100
-                                    this.setState({
-                                        volumeRatio: ratio
-                                    })
+                        </div>
+                        <div className={styles.volumeBox}>
+                            <span className={styles.actionIcon}
+                                onClick={_ => {
+                                    const ratio = this.state.volumeRatio > 0 ? 0 : (this.lastVolumeRatioValue || 1)
+                                    this.lastVolumeRatioValue = ratio
+                                    this.setState({ volumeRatio: ratio })
                                     this._setVolume(ratio)
-                                }} aria-labelledby="continuous-slider" />
-                            </div>
+                                }}>
+                                <span className={bindClass('iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}></span>
+                            </span>
+                            <Slider className={styles.slider} value={volumeRatio} min={0} max={1} step={0.01} onChange={(ratio: number) => {
+                                // const ratio = value as number / 100
+                                this.setState({
+                                    volumeRatio: ratio
+                                })
+                                this._setVolume(ratio)
+                            }} aria-labelledby="continuous-slider" />
                         </div>
                     </div>
 
@@ -216,7 +249,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                             })
                             toPause ? this.audioEle.pause() : this.audioEle.play()
                         }}>
-                        {isPaused ? <PlayArrow /> : <Pause />}
+                        <span className={bindClass('iconfont', isPaused ? 'icon-play' : 'icon-pause')}></span>
                     </div>
                 </div>
             </div>

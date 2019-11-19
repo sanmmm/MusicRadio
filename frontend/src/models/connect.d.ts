@@ -1,8 +1,9 @@
 import { AnyAction } from 'redux';
 import { RouterTypes } from 'umi';
 import { PlayListModelState } from './playList';
+import {ChatListModelState} from './chatList'
 
-export { PlayListModelState, };
+export { PlayListModelState, ChatListModelState};
 
 export interface Loading {
   global: boolean;
@@ -18,6 +19,7 @@ export interface Loading {
 
 export interface ConnectState {
   playList: PlayListModelState;
+  chatList: ChatListModelState;
   loading: Loading;
 }
 
