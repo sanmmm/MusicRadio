@@ -67,7 +67,9 @@ const PlayListModel: PlayListModelType = {
     namespace: 'playList',
     state: {
         playList: playList,
-        nowPlaying: null
+        nowPlaying: {
+            pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000'
+        }
     },
     effects: {  
         * fetchNowPlaying ({payload}, _) {

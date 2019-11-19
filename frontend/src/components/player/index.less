@@ -1,33 +1,34 @@
 @import '~@/base.less';
 
 
-.mask {
-    background-color: rgba(0,0,0,.5);
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -2;
-}
 
-.playerBackground {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: -4;
-    width: 100%;
-    height: 100%;
-    background-image: url("https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000");
-    background-position: 50%;
-    background-size: cover;
-    background-repeat: no-repeat;
-    opacity: .6;
-    filter: blur(60px);
+@keyframes toSimpleMode {
+    0% {
+        transform: scaleX(1);
+    } 
+    
+    25% {
+        transform: scaleX(0.95);
+    }
+
+    50% {
+        transform: scaleX(1);
+        
+    }
+
+    50% {
+        transform: scaleX(1.05);
+        
+    }
+
+    0% {
+        transform: scaleX(1);
+    }
 }
 
 .playerBox {
     display: flex;
+    align-items: flex-start;
     color: @normalTextColor;
     > * {
         flex-shrink: 0;
@@ -35,10 +36,17 @@
     >.left {
 
     } 
+    &.simpleMode {
+        animation: toSimpleMode 0.7s ease-in-out;
+        align-items: center;
+    }
     >.main {
         flex-grow: 1;
         flex-basis: 0;
         margin-left: 2rem;
+        &.simpleMode {
+            margin-left: 1rem;
+        }
         .controlBox {
             display: flex;
             align-items: center;
@@ -204,6 +212,15 @@
     animation-play-state: paused;
     background-color: white;
     margin: 1rem 0 2rem 0;
+    > img {
+        width: 100%;
+        height: 100%;
+    }
+    &.simpleMode {
+        width: 80px;
+        height: 80px;
+        margin: 0;
+    }
     &.rotate {
         animation-play-state: running;
     }

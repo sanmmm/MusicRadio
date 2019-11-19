@@ -18,7 +18,7 @@ interface PlayerProps {
     };
     lrc?: string;
     pic?: string;
-    simpleMode?: boolean // 简单模式，只能听，不能操作
+    simpleMode?: boolean 
 }
 
 interface PlayerState {
@@ -126,7 +126,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
 
     _calcCommentFontSize(props: PlayerProps) {
         const { comment } = props
-        if (!comment || !comment.content) {
+        if (!comment || !comment.content || !this.commentBoxEle || !this.commentTopEle || !this.commentBotttomEle ) {
             return
         }
         const fontSizeSet = [18, 16, 14, 12]
@@ -143,22 +143,23 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     render() {
-        const { src, lrc, totalTime, pic, name, artist, comment } = this.props
+        const { src, lrc, totalTime, pic, name, artist, comment, simpleMode = true } = this.props
         const { timeRatio, volumeRatio, isPaused, commentFontSize } = this.state
         const curcorSize = 8
         const progressLineHeight = 2
-        return <div className={styles.playerBox}>
-            <div className={styles.mask}>
-            </div>
-            <div className={styles.playerBackground}>
-            </div>
+        return <div>
+            <div className={bindClass(styles.playerBox, styles.simpleMode)}>
             <div className={styles.left}>
-                <div className={bindClass(!isPaused && styles.rotate, styles.picBox)}>
+                <div className={bindClass(!isPaused && styles.rotate, styles.picBox, simpleMode && styles.simpleMode)}>
                     {pic ? <img src={pic} /> : <div className={styles.noPic}>暂无封面</div>}
                 </div>
+                {
+                    !simpleMode &&
                 <Lyric lyric={this.props.lrc} nowTime={timeRatio * totalTime} showItemCount={4} id="id" />
+                }
             </div>
             <audio src={src}
+                style={{display: 'none'}}
                 ref={ele => this.audioEle = ele}
                 onTimeUpdate={event => {
                     console.log(this.audioEle.currentTime)
@@ -173,8 +174,9 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                     })
                 }}
             ></audio>
-            <div className={styles.main}>
-                <div className={styles.commentBox}>
+            <div className={bindClass(styles.main, simpleMode && styles.simpleMode)}>
+                {
+                    !simpleMode && <div className={styles.commentBox}>
                     {
                         !!comment ? <div className={styles.showData} ref={ele => this.commentBoxEle = ele}
                         >
@@ -194,7 +196,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                             <div className={styles.noData}>
                                 暂无热评
                         </div>}
-                </div>
+                </div>}
                 <div className={styles.controlBox}>
                     <div className={styles.left}>
                         <div className={styles.musicBaseInfo}>
@@ -231,7 +233,6 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                                 <span className={bindClass('iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}></span>
                             </span>
                             <Slider className={styles.slider} value={volumeRatio} min={0} max={1} step={0.01} onChange={(ratio: number) => {
-                                // const ratio = value as number / 100
                                 this.setState({
                                     volumeRatio: ratio
                                 })
@@ -254,6 +255,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                 </div>
             </div>
 
+        </div>
         </div>
     }
 }

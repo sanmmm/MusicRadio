@@ -1,0 +1,42 @@
+.scrollOuterBox {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background-color: transparent;
+}
+.scrollContainer {
+    transition: all 0.5s ease-out;
+}
+
+.scrollPageContainer {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    &.focus {
+        animation: scrollEnd 1s ease-in-out;
+    }
+}
+
+@keyframes scrollEnd {
+    0% {
+        transform: scaleX(1);
+    } 
+    
+    25% {
+        transform: scaleX(1.1);
+    }
+
+    50% {
+        transform: scaleX(1);
+        
+    }
+
+    50% {
+        transform: scaleX(0.9);
+        
+    }
+
+    0% {
+        transform: scaleX(1);
+    }
+}

@@ -92,7 +92,7 @@ const ChatListModel: ChatListModelType = {
         addDanmuItem: (state, {payload}) => {
             let {danmuList, danmuMaxShowCount} = state
             const {items} = payload
-            let lastLevelValue = danmuList.length > 1 ? danmuList[danmuList.length - 1].levelValue : danmuMaxShowCount - 1 
+            let lastLevelValue = danmuList.length !== 0 ? danmuList[danmuList.length - 1].levelValue : danmuMaxShowCount - 1 
             items.forEach(item => {
                 item.levelValue = ++lastLevelValue
                 item.offset = Math.random() * 0.8

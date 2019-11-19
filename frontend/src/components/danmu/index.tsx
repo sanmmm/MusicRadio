@@ -13,7 +13,7 @@ interface DanmuBoxProps extends ConnectProps {
     handleDamuClick: (message: MessageItem, index: number) => any;
 }
 
-const danmuContentHeight = 20
+const danmuContentHeight = 28
 
 const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
     const { danmuList, dispatch } = props
@@ -28,30 +28,41 @@ const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
         })
     }, [maxShowCount])
 
-    useEffect(() => {
-        if (!danmuList.length) {
-            return
-        }
-        const preSetTotalTime = 8000
-        const averageDuration = Math.floor(preSetTotalTime / danmuList.length)
-        let refreshDuration = averageDuration
-        if (averageDuration > configs.danmuMaxRefreshDuration) {
-            refreshDuration = configs.danmuMaxRefreshDuration
-        }
-        if (averageDuration < configs.danmuMinRefreshDuration) {
-            refreshDuration = configs.danmuMinRefreshDuration
-        }
-        const timer = setInterval(() => {
-            dispatch({
-                type: 'chatList/refreshDamuList',
-                payload: {
-                }
-            })
-        }, refreshDuration)
-        return () => {
-            clearInterval(timer)
-        }
-    }, [danmuList.length])
+    // useEffect(() => {
+    //     if (!danmuList.length) {
+    //         dispatch({
+    //             type: 'chatList/addDanmuItem',
+    //             payload: {
+    //                 items: [
+    //                     {
+    //                         content: '[系统消息]初听不知曲中意 再听已是曲中人，快来跟大家谈谈感受吧',
+    //                         time: Date.now()
+    //                     }
+    //                 ]
+    //             }
+    //         })
+    //         return
+    //     }
+    //     const preSetTotalTime = 8000
+    //     const averageDuration = Math.floor(preSetTotalTime / danmuList.length)
+    //     let refreshDuration = averageDuration
+    //     if (averageDuration > configs.danmuMaxRefreshDuration) {
+    //         refreshDuration = configs.danmuMaxRefreshDuration
+    //     }
+    //     if (averageDuration < configs.danmuMinRefreshDuration) {
+    //         refreshDuration = configs.danmuMinRefreshDuration
+    //     }
+    //     const timer = setInterval(() => {
+    //         dispatch({
+    //             type: 'chatList/refreshDamuList',
+    //             payload: {
+    //             }
+    //         })
+    //     }, refreshDuration)
+    //     return () => {
+    //         clearInterval(timer)
+    //     }
+    // }, [danmuList.length])
 
 
     useEffect(() => {

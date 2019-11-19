@@ -22,6 +22,7 @@
     "react-dom": "^16.8.6",
     "react-perfect-scrollbar": "^1.5.3",
     "react-responsive": "^8.0.1",
+    "react-swipeable": "^5.4.0",
     "umi-plugin-react": "^1.13.3"
   },
   "devDependencies": {
