@@ -1,0 +1,169 @@
+@import '~@/base.less';
+
+.searchMusicListBox {
+    color: @normalTextColor;
+    line-height: 1;
+    .detailItemsList {
+        width: 100%;
+        margin-top: .8rem;
+        > .item {
+            & + .item {
+                margin-top: .8rem;
+            }
+            width: 100%;
+            padding: .5rem;
+            display: flex;
+            align-items: center;
+            > .left {
+                width: 40px;
+                height: 40px;
+                flex-shrink: 0;
+                img {
+                    width: 100%;
+                    height: 100%;
+                    border-radius: 20%;
+                    overflow: hidden;
+                    object-fit: cover;
+                }
+            }
+            > .right {
+                flex-grow: 1;
+                min-width: 0;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin-left: 1rem;
+                > * {
+                    & + * {
+                        margin-left: 1rem;
+                    }
+                }
+                > .content {
+                    min-width: 0;
+                    > .title {
+                        .textOverflow();
+                        font-size: 1rem;
+                        margin-bottom: .5rem;
+                        color: @themeColor;
+                    }
+                    > .desc {
+                        .textOverflow();
+                        min-width: 0;
+                        font-size: .9rem;
+                    }
+                }
+                > .actions {
+                    flex-shrink: 0;
+                    :global(.iconfont) {
+                        font-size: 1.5em;
+                        cursor: pointer;
+                        padding: .3rem;
+                    }
+                    .added {
+                        font-size: 0.9rem;
+                    }
+                }
+            }
+        }
+    }
+
+    .step1Box {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        > * {
+            width: 100%;
+        }
+        .searchList {
+            .subListItem {
+                box-sizing: border-box;
+                width: 100%;
+                padding: .5rem;
+                & + .subListItem {
+                    margin-top: 1rem;
+                }
+                > .header {
+                    font-size: 1.2em;
+                    color: @themeColor;
+                }
+            }
+        }
+        .searchArea {
+            width: 100%;
+            margin-top: 1rem;
+            input {
+                color: black !important;
+            }
+        }
+
+    }
+   
+    .step2Box {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        padding: .5rem;
+        > * {
+            width: 100%;
+        }
+        > .header {
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 1rem;
+            > * {
+                display: inline-block;
+                cursor: pointer;
+                padding-right: .5rem;
+            }
+        }
+        > .noData {
+            width: 100%;
+            height: 60%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        >.detail {
+            > .header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0 .5rem;
+                & + * {
+                    margin-bottom: 1rem;
+                }
+                > .name {
+                    min-width: 0;
+                    .textOverflow();
+                    font-size: 1.1rem;
+                    margin-right: 1rem;
+                }
+                > .actions {
+                    text-align: right;
+                    .btn {
+                        display: inline-block;
+                        padding: .3rem 1rem;
+                        border-radius: 5px;
+                        overflow: hidden;
+                        border: 1px solid rgba(225,225,225,.3);
+                        &:hover {
+                            cursor: pointer;
+                            color: white;
+                            border-color: white;
+                        }
+                        &.mobile {
+                            border: none;
+                            > * {
+                                display: block;
+                                text-align: center;
+                                line-height: 1.5em;
+                            }
+                        }
+                    }
+                }
+            }
+            
+        }
+    }
+}

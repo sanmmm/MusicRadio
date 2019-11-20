@@ -18,7 +18,7 @@ interface PlayerProps {
     };
     lrc?: string;
     pic?: string;
-    simpleMode?: boolean 
+    simpleMode?: boolean;
 }
 
 interface PlayerState {
@@ -143,12 +143,12 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     render() {
-        const { src, lrc, totalTime, pic, name, artist, comment, simpleMode = true } = this.props
+        const { src, lrc, totalTime, pic, name, artist, comment, simpleMode } = this.props
         const { timeRatio, volumeRatio, isPaused, commentFontSize } = this.state
         const curcorSize = 8
         const progressLineHeight = 2
         return <div>
-            <div className={bindClass(styles.playerBox, styles.simpleMode)}>
+            <div className={bindClass(styles.playerBox, simpleMode && styles.simpleMode)}>
             <div className={styles.left}>
                 <div className={bindClass(!isPaused && styles.rotate, styles.picBox, simpleMode && styles.simpleMode)}>
                     {pic ? <img src={pic} /> : <div className={styles.noPic}>暂无封面</div>}
@@ -202,7 +202,7 @@ export default class Player extends React.Component<PlayerProps, PlayerState> {
                         <div className={styles.musicBaseInfo}>
                             <div className={bindClass(styles.signalIcon, this.state.isPaused && styles.paused)}>
                                 {
-                                    this.signalIconData.map(delay => <div style={{ animationDelay: delay, animationDuration: `${signalIconAnimationDuration}s` }}></div>)}
+                                    this.signalIconData.map(delay => <div key={delay} style={{ animationDelay: delay, animationDuration: `${signalIconAnimationDuration}s` }}></div>)}
                             </div>
                             <span className={styles.content}>{name} - {artist}</span>
                         </div>

@@ -1,9 +1,9 @@
 import { AnyAction } from 'redux';
-import { RouterTypes } from 'umi';
 import { PlayListModelState } from './playList';
 import {ChatListModelState} from './chatList'
+import {CenterModelState} from './center'
 
-export { PlayListModelState, ChatListModelState};
+export { PlayListModelState, ChatListModelState, CenterModelState};
 
 export interface Loading {
   global: boolean;
@@ -20,16 +20,13 @@ export interface Loading {
 export interface ConnectState {
   playList: PlayListModelState;
   chatList: ChatListModelState;
+  center: CenterModelState;
   loading: Loading;
-}
-
-export interface Route {
-  routes?: Route[];
 }
 
 /**
  * @type T: Params matched in dynamic routing
  */
-export interface ConnectProps<T = {}> extends Partial<RouterTypes<Route, T>> {
+export interface ConnectProps<T = {}> {
   dispatch?<K = any>(action: AnyAction): K;
 }

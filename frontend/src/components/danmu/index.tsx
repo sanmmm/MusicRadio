@@ -3,6 +3,7 @@ import bindClass from 'classnames'
 import { connect } from 'dva'
 import {useMediaQuery} from 'react-responsive'
 
+import {MessageItem, DanmuItem} from '@/typeConfig'
 import { ConnectProps, ConnectState } from '@/models/connect'
 import configs from '@/config'
 import styles from './index.less'

@@ -5,6 +5,7 @@ import { PlayArrow, Pause, VolumeUp, VolumeOff } from '@material-ui/icons'
 import dayjs, { Dayjs } from 'dayjs'
 
 import configs from '@/config'
+import {MessageTypes} from '@/typeConfig'
 import styles from './index.less'
 
 

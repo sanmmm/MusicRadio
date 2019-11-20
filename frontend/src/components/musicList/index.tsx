@@ -10,6 +10,7 @@ import { Popover, Table, Checkbox } from 'antd'
 import { PopoverProps } from 'antd/lib/popover'
 import bindClass from 'classnames'
 
+import { PlayListItem } from '@/typeConfig'
 import { ConnectProps, ConnectState } from '@/models/connect'
 import ListShow from './list'
 import configs from '@/config'
@@ -110,12 +111,13 @@ const MusicList: React.FC<MusicListProps> = function (props) {
                     }
                     {
                         index === 0 && <span className={styles.radioRandomSignalIcon}>
-                           {randomArr.map(t => <span 
-                            style={{
-                                animationDelay: `${t}s`,
-                                animationDuration: `${radioSignalAnimationDuration}s`,
-                            }}
-                           ></span>)}
+                            {randomArr.map(t => <span
+                                key={t}
+                                style={{
+                                    animationDelay: `${t}s`,
+                                    animationDuration: `${radioSignalAnimationDuration}s`,
+                                }}
+                            ></span>)}
                         </span>}
                 </div>,
                 width: '40%'

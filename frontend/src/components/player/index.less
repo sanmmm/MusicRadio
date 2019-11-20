@@ -7,22 +7,13 @@
         transform: scaleX(1);
     } 
     
-    25% {
-        transform: scaleX(0.95);
+    50% {
+        transform: scaleX(0.9);
     }
 
-    50% {
+    100% {
         transform: scaleX(1);
         
-    }
-
-    50% {
-        transform: scaleX(1.05);
-        
-    }
-
-    0% {
-        transform: scaleX(1);
     }
 }
 
@@ -37,7 +28,7 @@
 
     } 
     &.simpleMode {
-        animation: toSimpleMode 0.7s ease-in-out;
+        animation: toSimpleMode .5s ease-in-out;
         align-items: center;
     }
     >.main {
@@ -285,6 +276,7 @@
     position: relative;
     @itemHeight: 2em;
     height: @itemHeight * 4;
+    text-align: center;
     // &::before {
     //     content: "";
     //     display: block;

@@ -1,22 +1,21 @@
 @import '~@/base.less';
 
 .normal {
-  font-family: poppin,Tahoma,Arial,\5FAE\8F6F\96C5\9ED1,sans-serif;
-  text-align: center;
+  font-family: poppin,Tahoma,Arial, sans-serif;
   color: @normalTextColor;
+  .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: @headerHeight;
+    z-index: 200;
+    .logo {
+      width: calc(@headerHeight * 0.9);
+      height: calc(@headerHeight * 0.9);
+      margin-left: 20px;
+    }
+  }
 }
-
-.title {
-  font-size: 2.5rem;
-  font-weight: normal;
-  letter-spacing: -1px;
-  background: darkslateblue;
-  padding: .6em 0;
-  color: white;
-  margin: 0;
-}
-
-
 
 .mask {
   background-color: rgba(0,0,0,.5);

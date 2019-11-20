@@ -1,16 +1,22 @@
+@import '~@/base.less';
+
 .scrollOuterBox {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
     background-color: transparent;
+    position: relative;
 }
 .scrollContainer {
-    transition: all 0.5s ease-out;
+    transition: all 0.4s ease-out;
+    position: absolute;
+    left: 0;
 }
 
 .scrollPageContainer {
     width: 100vw;
-    height: 100vh;
+    margin-top: @headerHeight;
+    height: calc(~"100vh - @{headerHeight}");
     overflow: hidden;
     &.focus {
         animation: scrollEnd 1s ease-in-out;

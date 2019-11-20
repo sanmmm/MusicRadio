@@ -1,35 +1,6 @@
 import {Reducer} from 'redux'
 import {Effect} from 'dva'
-
-const playList =  [
-    {
-        id: 'song1',// 歌曲id
-        name: 'song1',// 歌名
-        artist: 'string',// 演唱者
-        album: 'string',// 专辑
-        duration: 323907,// 时长
-        isBlock: false,
-        from: 'string',// 点歌人
-    },
-    {
-        id: 'song2',// 歌曲id
-        name: 'song2',// 歌名
-        artist: 'string',// 演唱者
-        album: 'string',// 专辑
-        duration: 323907,// 时长
-        isBlock: false,
-        from: 'string',// 点歌人
-    },
-    {
-        id: 'song3',// 歌曲id
-        name: 'song3',// 歌名
-        artist: 'string',// 演唱者
-        album: 'string',// 专辑
-        duration: 323907,// 时长
-        isBlock: false,
-        from: 'string',// 点歌人
-    },
-]
+import {PlayListItem} from '@/typeConfig'
 
 export interface NowPlayingInfo {
     name: string;
@@ -59,17 +30,16 @@ export interface PlayListModelType {
     reducers: {
         moveItem: Reducer<PlayListModelState>;
         deleteItem: Reducer<PlayListModelState>;
-        addItem: Reducer<PlayListModelState>
+        addItem: Reducer<PlayListModelState>;
+        saveData: Reducer<PlayListModelState>
     };
 }
 
 const PlayListModel: PlayListModelType = {
     namespace: 'playList',
     state: {
-        playList: playList,
-        nowPlaying: {
-            pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000'
-        }
+        playList: [],
+        nowPlaying: null
     },
     effects: {  
         * fetchNowPlaying ({payload}, _) {
@@ -77,6 +47,12 @@ const PlayListModel: PlayListModelType = {
         },
     },
     reducers: {
+        saveData: (state, {payload}) => {
+            return {
+                ...state,
+                ...payload
+            }
+        },
         moveItem (state, {payload}) {
             const {from, to} = payload
             let {playList} = state

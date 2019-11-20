@@ -1,8 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useMediaQuery } from 'react-responsive'
 import bindClass from 'classnames'
 import { Tabs, message } from 'antd'
+import {connect} from 'dva'
 
+import {ConnectProps, ConnectState} from '@/models/connect'
 import configs from '@/config'
 import styles from './style.less'
 import MyPlayer from '@/components/player'
@@ -10,7 +12,8 @@ import ChatList, { InputMessageBox } from '@/components/chatList'
 import MusicList from '@/components/musicList'
 import DanmuBox from '@/components/danmu'
 import ScrollPage from '@/components/scrollPage'
-
+import RoomItem from '@/components/roomItem'
+import SearchMusicList from '@/components/musicSearchList'
 
 const { TabPane } = Tabs
 const comment = '昨天上班时间，我装着西服站在二楼窗前看着路上来来往往的车们。着西服站在二楼窗前看着路上来来往往, 着西服站在二楼窗前看着路上来来往往,觉得城市里天空太窄，忽然想回家种地。可是离我退休年龄还狠遥远。我的影子说想杀死我，然后替代我好好生活。'
@@ -123,35 +126,95 @@ const messages = [
     },
 ]
 
-const musicList = [
+
+const playList =  [
     {
         id: 'song1',// 歌曲id
-        name: 'string',// 歌名
+        name: 'song1',// 歌名
         artist: 'string',// 演唱者
         album: 'string',// 专辑
         duration: 323907,// 时长
+        isBlock: false,
         from: 'string',// 点歌人
     },
     {
         id: 'song2',// 歌曲id
-        name: 'string',// 歌名
+        name: 'song2',// 歌名
         artist: 'string',// 演唱者
         album: 'string',// 专辑
         duration: 323907,// 时长
+        isBlock: false,
         from: 'string',// 点歌人
     },
     {
         id: 'song3',// 歌曲id
-        name: 'string',// 歌名
+        name: 'song3',// 歌名
         artist: 'string',// 演唱者
         album: 'string',// 专辑
         duration: 323907,// 时长
+        isBlock: false,
         from: 'string',// 点歌人
     },
 ]
 
-interface IndexProps {
+const searchMusiclist = [
+    {
+        type: 1,
+        list: [{
+            type: 1,
+            title: '单曲1很长名字酣畅很长哈哈哈哈哈哈哈哈哈哈哈哈哈',
+            desc: 'string',
+            pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000',
+            id: '2334',
+        },
+        {
+            type: 1,
+            title: '单曲2',
+            desc: 'string',
+            pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000',
+            id: 'strifsdsffsng',
+        },]
+    },
+    {
+        type: 2,
+        list: [{
+            type: 2,
+            title: '专辑1',
+            desc: 'string',
+            pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000',
+            id: '2334',
+        },
+        {
+            type: 2,
+            title: '专辑2',
+            desc: 'string',
+            pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000',
+            id: 'strifsdsffsng',
+        },]
+    },
+]
 
+const mediaDetail = {
+    name: '青年晚报',
+    desc: 'desc',
+    pic: '',
+    list: [{
+        type: 1,
+        title: '单曲1很长名字酣畅很长哈哈哈哈哈哈哈哈哈哈哈哈哈',
+        desc: 'string',
+        pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000',
+        id: '2334',
+    },
+    {
+        type: 1,
+        title: '单曲2',
+        desc: 'string',
+        pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000',
+        id: 'strifsdsffsng',
+    }]
+}
+
+interface IndexProps extends ConnectProps {
 }
 
 enum TabTyps {
@@ -162,17 +225,80 @@ enum TabTyps {
 const Index: React.FC<IndexProps> = function (props) {
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
     const [activeTab, setActiveTab] = useState(TabTyps.chatList)
+    const [nowShowPageIndex, setShowPageIndex] = useState(0)
     const scrollRef = useRef(null)
-    return <ScrollPage ref={scrollRef}>
-        <div className={bindClass(styles.radioPage, isMobile ? '' : styles.normal)} on={_ => message.warn('wheel')}>
+
+    // TODO  DEV delete
+    useEffect(() => {
+        props.dispatch({
+            type: 'chatList/saveData',
+            payload: {
+                chatList: messages
+            }
+        })
+        props.dispatch({
+            type: 'playList/saveData',
+            payload: {
+                nowPlaying: {
+                    pic: 'https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000'
+                },
+                playList: playList
+            }
+        })
+        props.dispatch({
+            type: 'center/saveData',
+            payload: {
+                searchMusicList: searchMusiclist,
+                searchMediaDetail: mediaDetail
+            }
+        })
+    }, [])
+    return <ScrollPage ref={scrollRef} 
+            onPageChange={page => {
+                if (page !== nowShowPageIndex) {
+                    setShowPageIndex(page)
+                }
+            }}
+        >
+             <div>
+            <div style={{width: 200}}>
+            <RoomItem 
+                    title="有那些音乐听了让你感同身受"
+                    playing="雅俗共赏"
+                    heat={34}
+                    pic="https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"
+                />
+            </div>
+            <div style={{width: 300}}
+              onTouchEnd={e => {
+                console.log('touch end outer')
+                
+            }}
+            >
+            <SearchMusicList/>
+
+            </div>
+            page222222
+            <div onClick={_ => {
+                    console.log(scrollRef.current)
+                    scrollRef.current.toPreviousPage()
+                }}>upup</div>
+                <div   onClick={_ => {
+                    console.log(scrollRef.current)
+                    scrollRef.current.toNextPage()
+                }}>next</div>
+        </div>
+        <div className={bindClass(styles.radioPage, isMobile ? '' : styles.normal)} >
             <div className={styles.left}>
-                <MyPlayer name="情不得已" artist="庾澄庆" comment={{
-                    content: comment,
-                    userId: 29879272,
-                    avatarUrl: 'http://p1.music.126.net/p9U80ex1B1ciPFa125xV5A==/5931865232210340.jpg?param=180y180',
-                    nickName: '张惠妹'
-                }} src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"} />
-                <DanmuBox maxShowCount={3} />
+                <div className={bindClass(nowShowPageIndex !== 0 && styles.fixPlayerBox)}>
+                    <MyPlayer name="情不得已" artist="庾澄庆" simpleMode={nowShowPageIndex !== 0} comment={{
+                        content: comment,
+                        userId: 29879272,
+                        avatarUrl: 'http://p1.music.126.net/p9U80ex1B1ciPFa125xV5A==/5931865232210340.jpg?param=180y180',
+                        nickName: '张惠妹'
+                    }} src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"} />
+                    <DanmuBox maxShowCount={3} />
+                </div>
             </div>
             <div className={styles.right}>
                 <Tabs activeKey={activeTab} onChange={type => setActiveTab(type as TabTyps)}>
@@ -196,18 +322,9 @@ const Index: React.FC<IndexProps> = function (props) {
                     console.log(scrollRef.current)
                     scrollRef.current.toNextPage()
                 }}>next</div>
+               
         </div>
-        <div>
-            page222222
-            <div onClick={_ => {
-                    console.log(scrollRef.current)
-                    scrollRef.current.toPreviousPage()
-                }}>upup</div>
-                <div   onClick={_ => {
-                    console.log(scrollRef.current)
-                    scrollRef.current.toNextPage()
-                }}>next</div>
-        </div>
+       
         <div>
             page3333
             <div onClick={_ => {
@@ -222,4 +339,6 @@ const Index: React.FC<IndexProps> = function (props) {
     </ScrollPage>
 }
 
-export default Index
+export default connect(() => {
+    return {}
+})(Index)

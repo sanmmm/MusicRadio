@@ -12,7 +12,6 @@
     "@material-ui/core": "^4.6.1",
     "@material-ui/icons": "^4.5.1",
     "antd": "^3.25.2",
-    "aplayer": "^1.10.1",
     "classnames": "^2.2.6",
     "dayjs": "^1.8.17",
     "dva-logger": "^1.0.0",

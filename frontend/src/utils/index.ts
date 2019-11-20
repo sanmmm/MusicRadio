@@ -1,7 +1,5 @@
 import {Modal} from 'antd'
 
-
-
 enum TipTypes {
     blockMusic, 
     unBlockMusic,
@@ -35,11 +33,11 @@ export function tipWrapper (func: Function, type: TipTypes) {
 
 export const throttle = (func, time = 500) => {
     let isThrottle = false
-    const func2 = function () {
+    const func2 = function (...args) {
         if (isThrottle) {
             return
         }
-        func()
+        func(...args)
         isThrottle = true
         setTimeout(() => {
             isThrottle = false

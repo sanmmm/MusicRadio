@@ -99,7 +99,7 @@ const ListLayout: React.FC<ListProps> = function (props) {
                 />
             </div>
             <div className={styles.right}>
-                {columns.map(c => <div style={{ width: c.width || 'auto' }}>{c.title}</div>)}
+                {columns.map((c, i) => <div key={i} style={{ width: c.width || 'auto' }}>{c.title}</div>)}
             </div>
         </div>
         <ScrollBar className={styles.tableBox}>

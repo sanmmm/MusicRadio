@@ -6,7 +6,6 @@
     justify-content: center;
     max-width: 100px;
     margin: 0 .3rem;
-    border: 1px solid;
     border: 1px solid rgba(225,225,225,.3);
     border-radius: 2px;
     text-align: center;
@@ -193,30 +192,5 @@
         color: red !important;
         font-size: 14px !important;
         line-height: 1;
-    }
-}
-
-.radioRandomSignalIcon {
-    display: flex;
-    overflow: hidden;
-    > * {
-        width: 2px;
-        height: .8rem;
-        margin: 0 1px;
-        background-color: white;
-        border-radius: 25%;
-        animation: updown 2s ease-in-out infinite;
-    }
-
-    @keyframes updown {
-        0% {
-            transform: translateY(0);
-        } 
-        50%{
-            transform: translateY(80%);
-        }
-        100% {
-            transform: translateY(0%);
-        }
     }
 }

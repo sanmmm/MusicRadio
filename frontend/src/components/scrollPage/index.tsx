@@ -5,12 +5,9 @@ import { useSwipeable, Swipeable } from 'react-swipeable'
 import {throttle} from '@/utils'
 import styles from './style.less'
 
-interface ProviderProps {
-    children: React.ReactNode,
-}
-
 interface Props {
     children: React.ReactNode;
+    onPageChange?: (page: number) => any; 
 }
 const ScrollWrapper: React.FC<Props> = function (props, ref) {
     const [focusPageIndex, setFocusPageIndex] = useState(0)
@@ -24,13 +21,18 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
 
     useEffect(() => {
         document.body.addEventListener('touchmove', function (e) {
-            e.preventDefault(); //阻止默认的处理方式(阻止下拉滑动的效果)
+            e.preventDefault(); //阻止默认的处理方式(阻止微信浏览器下拉滑动的效果)
           }, {passive: false});
-    })
+    }, [])
+
+    useEffect(() => {
+        props.onPageChange(focusPageIndex)
+    }, [focusPageIndex])
     
     const toPreviousPage = useMemo(() => {
         return throttle((e) => {
-            e && e.stopPropagation()
+            console.log('e', e)
+            // e && e.stopPropagation()
             setFocusPageIndex((prevValue) => {
                 console.log(prevValue)
                 if (prevValue === 0) {
@@ -38,11 +40,12 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
                 }
                 return prevValue - 1
             })
-        }, 500)
+        }, 900)
     }, [])
     const toNextPage = useMemo(() => {
         return throttle((e) => {
-            e && e.stopPropagation()
+            console.log('e', e)
+            // e && e.stopPropagation()
             setFocusPageIndex((prevValue) => {
                 console.log(prevValue)
                 const childCount = React.Children.count(props.children)
@@ -51,7 +54,7 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
                 }
                 return prevValue + 1
             })
-        }, 500)
+        }, 900)
     }, [])
     const handlers = useSwipeable({ onSwipedUp: toNextPage, onSwipedDown: toPreviousPage })
     useImperativeHandle(ref, () => {
@@ -70,7 +73,7 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
         }
     }}>
         <div ref={containerRef}  className={styles.scrollContainer}
-                style={{transform: `translateY(${-1 * pageHeight * focusPageIndex}px)`}}
+                style={{top: `${-1 * pageHeight * focusPageIndex}px`}}
              >
             {
                 React.Children.map(props.children, (child, index) => {
