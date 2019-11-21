@@ -56,3 +56,10 @@ export interface SearchMusicItem {
     pic: string;
     id: string;
 }
+
+
+export interface EmojiItem {
+    id: string;
+    title: string;
+    src: string;
+}

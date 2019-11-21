@@ -57,7 +57,6 @@
                     :global(.iconfont) {
                         font-size: 1.5em;
                         cursor: pointer;
-                        padding: .3rem;
                     }
                     .added {
                         font-size: 0.9rem;
@@ -117,13 +116,7 @@
                 padding-right: .5rem;
             }
         }
-        > .noData {
-            width: 100%;
-            height: 60%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
+    
         >.detail {
             > .header {
                 display: flex;
@@ -143,7 +136,7 @@
                     text-align: right;
                     .btn {
                         display: inline-block;
-                        padding: .3rem 1rem;
+                        padding: .3rem .7rem;
                         border-radius: 5px;
                         overflow: hidden;
                         border: 1px solid rgba(225,225,225,.3);
@@ -160,10 +153,23 @@
                                 line-height: 1.5em;
                             }
                         }
+                        :global(.iconfont) {
+                            padding-right: .3rem;
+                        }
                     }
                 }
             }
             
         }
     }
+}
+
+
+.noData {
+    width: 100%;
+    height: 60%;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }

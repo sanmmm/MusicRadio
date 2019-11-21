@@ -1,18 +1,21 @@
 import {Reducer} from 'redux'
-import {MessageTypes, MessageItem, DanmuItem} from '@/typeConfig'
+import {Effect} from 'dva'
+import {MessageTypes, MessageItem, DanmuItem, EmojiItem} from '@/typeConfig'
 
 
 export interface ChatListModelState {
     chatList: MessageItem[];
     danmuList: DanmuItem[];
     danmuMaxShowCount: number;
+    emojiList: EmojiItem[];
+    hasMoreEmoji: boolean;
 }
 
 export interface ChatListModelType {
     namespace: 'chatList';
     state: ChatListModelState;
     effects: {
-
+        reqEmojiList: Effect;
     };
     reducers: {
         saveData: Reducer<ChatListModelState>;
@@ -27,9 +30,12 @@ const ChatListModel: ChatListModelType = {
         chatList: [],
         danmuList: [],
         danmuMaxShowCount: 3,
+        emojiList: [],
+        hasMoreEmoji: true,
     },
     effects: {  
-        
+        * reqEmojiList ({payload}, _) {
+        }
     },
     reducers: {
         saveData: (state, {payload}) => {

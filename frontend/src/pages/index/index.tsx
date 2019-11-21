@@ -14,6 +14,7 @@ import DanmuBox from '@/components/danmu'
 import ScrollPage from '@/components/scrollPage'
 import RoomItem from '@/components/roomItem'
 import SearchMusicList from '@/components/musicSearchList'
+import SearchEmoji from '@/components/chatList/emoji'
 
 const { TabPane } = Tabs
 const comment = '昨天上班时间，我装着西服站在二楼窗前看着路上来来往往的车们。着西服站在二楼窗前看着路上来来往往, 着西服站在二楼窗前看着路上来来往往,觉得城市里天空太窄，忽然想回家种地。可是离我退休年龄还狠遥远。我的影子说想杀死我，然后替代我好好生活。'
@@ -214,6 +215,13 @@ const mediaDetail = {
     }]
 }
 
+import emojiData from '@/assets/success'
+const emojiList = emojiData.map(o => ({
+    title: o.title,
+    src: o.url,
+    id: o.url
+}))
+
 interface IndexProps extends ConnectProps {
 }
 
@@ -233,7 +241,8 @@ const Index: React.FC<IndexProps> = function (props) {
         props.dispatch({
             type: 'chatList/saveData',
             payload: {
-                chatList: messages
+                chatList: messages,
+                emojiList: emojiList
             }
         })
         props.dispatch({
@@ -261,13 +270,17 @@ const Index: React.FC<IndexProps> = function (props) {
             }}
         >
              <div>
+                 <div style={{width: 400, height: 400}}>
+                     {/* <SearchEmoji/> */}
+                     <InputMessageBox handleSendMessage={_ => null} />
+                 </div>
             <div style={{width: 200}}>
-            <RoomItem 
+            {/* <RoomItem 
                     title="有那些音乐听了让你感同身受"
                     playing="雅俗共赏"
                     heat={34}
                     pic="https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"
-                />
+                /> */}
             </div>
             <div style={{width: 300}}
               onTouchEnd={e => {
@@ -275,7 +288,7 @@ const Index: React.FC<IndexProps> = function (props) {
                 
             }}
             >
-            <SearchMusicList/>
+            {/* <SearchMusicList/> */}
 
             </div>
             page222222

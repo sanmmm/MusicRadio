@@ -4,6 +4,7 @@ import { Button, TextField } from '@material-ui/core'
 import { PlayArrow, Pause, VolumeUp, VolumeOff } from '@material-ui/icons'
 import dayjs, { Dayjs } from 'dayjs'
 
+import useKeyBoardListener from '@/components/hooks/keyboardListen'
 import configs from '@/config'
 import {MessageTypes} from '@/typeConfig'
 import styles from './index.less'
@@ -24,10 +25,17 @@ interface ChatListProps {
 const ChatList: React.FC<ChatListProps> = function (props) {
     const { handleSendMessage } = props
     const [contentStr, setContent] = useState('' as string)
+    const inputRef = useKeyBoardListener({
+        onHide: _ => console.log("hide"),
+        onShow: _ => console.log("show")
+    })
+    useEffect(() => {
+        console.log(inputRef)
+    }, [])
     
     return <div className={styles.sendMessageBox}>
         <div>
-            <TextField multiline={true} placeholder="发送消息" onChange={e => {
+            <TextField multiline={true} inputRef={inputRef} placeholder="发送消息" onChange={e => {
                 const value = e.target.value
                 // TODO 表情包支持
                 setContent(value)

@@ -14,9 +14,12 @@ export default function useKeyBoardListener(options: Options) {
             isAndroid: u.indexOf('Android') > -1 || u.indexOf('Adr') > -1,
             isiOS: !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/)
         }
-    }, [])
+    }, [navigator.userAgent])
 
     useEffect(() => {
+        if (!isAndroid && !isiOS) {
+            return
+        }
         const focusHandler = () => {
             onShow()
         }
@@ -35,6 +38,6 @@ export default function useKeyBoardListener(options: Options) {
             inputBoxRef.current.addEventListener('blur', blurHandler)
         }
        
-    }, [])
+    }, [isAndroid, isiOS])
     return inputBoxRef
 }

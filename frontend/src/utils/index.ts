@@ -30,8 +30,18 @@ export function tipWrapper (func: Function, type: TipTypes) {
     }
 }
 
-
-export const throttle = (func, time = 500) => {
+export const throttle = (func, time = 500, delayMode = false) => {
+    if (delayMode) {
+        let delayTimer = null
+        return (...args) => {
+            if (delayTimer) {
+                clearTimeout(delayTimer)
+            }
+            delayTimer = setTimeout(() => {
+                func()
+            }, time)
+        }
+    }
     let isThrottle = false
     const func2 = function (...args) {
         if (isThrottle) {

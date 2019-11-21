@@ -37,7 +37,11 @@ const MusicSearchList: React.FC<Props> = (props) => {
         onShow: () => console.log('show'),
         onHide: () => console.log('hide'),
     })
-
+    
+    const initHistoryLength = useMemo(() => {
+        return history.length
+    }, [])
+    
     useEffect(() => {
         const handler = (e) => {
             e.stopPropagation()
@@ -47,9 +51,17 @@ const MusicSearchList: React.FC<Props> = (props) => {
             boxRef.current.removeEventListener('touchstart', handler)
         }
     }, [])
-    const initHistoryLength = useMemo(() => {
-        return history.length
+
+    useEffect(() => {
+        dispatch({
+            type: 'center/saveData',
+            payload: {
+                searchMusicList: [], 
+                searchMediaDetail: null,
+            }
+        })
     }, [])
+
     useEffect(() => {
         location.hash = nowRouterHash
         const handler = (e) => {
@@ -72,6 +84,7 @@ const MusicSearchList: React.FC<Props> = (props) => {
             }
         })
     }, [])
+
     const playListIdSet = useMemo(() => {
         const set = new Set()
         if (playList) {
@@ -80,6 +93,7 @@ const MusicSearchList: React.FC<Props> = (props) => {
         playList.forEach(i => set.add(i.id))
         return set
     }, [playList])
+
     const handleSerach = useMemo(() => {
         return (v) => {
             if (!v) {
@@ -121,8 +135,8 @@ const MusicSearchList: React.FC<Props> = (props) => {
                     </div>
                     <div className={styles.right}>
                         <div className={styles.content}>
-                            <div className={styles.title}>{i.title}</div>
-                            <div className={styles.desc}>{i.desc}</div>
+                            <div className={styles.title} title={i.title}>{i.title}</div>
+                            <div className={styles.desc} title={i.desc}>{i.desc}</div>
                         </div>
                         <div className={styles.actions}>
                             {
@@ -144,7 +158,7 @@ const MusicSearchList: React.FC<Props> = (props) => {
             <div className={styles.step1Box}>
                 <ScrollBar className={styles.searchList}>
                 {
-                    list.map(item => {
+                  list.length ?  list.map(item => {
                         if (!item.list.length) {
                             return null
                         }
@@ -152,7 +166,10 @@ const MusicSearchList: React.FC<Props> = (props) => {
                             <div className={styles.header}>{SearchResultTypesToLabel[item.type]}</div>
                             {renderDetailItemList(item.list, item.type)}
                         </div>
-                    })
+                    }) :
+                    <div className={styles.noData}>
+                        暂无数据
+                    </div>
                 }
                 </ScrollBar>
                     
