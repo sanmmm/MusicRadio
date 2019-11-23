@@ -2,7 +2,6 @@ import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
 import bindClass from 'classnames'
 import { connect } from 'dva'
 import ScrollBar from 'react-perfect-scrollbar'
-import LazyLoad from 'react-lazyload'
 import { useMediaQuery } from 'react-responsive'
 
 import { throttle } from '@/utils'
@@ -139,6 +138,6 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
 export default connect(({ chatList }: ConnectState) => {
     return {
         emojiList: chatList.emojiList,
-        hasMorw: chatList.hasMoreEmoji,
+        hasMore: chatList.hasMoreEmoji,
     }
 })(EmojiSearchLsit)

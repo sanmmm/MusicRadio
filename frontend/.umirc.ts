@@ -2,7 +2,7 @@ import { IConfig } from 'umi-types';
 import path from 'path'
 
 // ref: https://umijs.org/config/
-const config: IConfig =  {
+const config: IConfig = {
   treeShaking: true,
   routes: [
     {
@@ -21,7 +21,7 @@ const config: IConfig =  {
       dynamicImport: { webpackChunkName: true },
       title: 'frontend',
       dll: false,
-      
+
       routes: {
         exclude: [
           /components\//,
@@ -29,13 +29,24 @@ const config: IConfig =  {
       },
     }],
   ],
-  chainWebpack: (config,webpack) => {
+  chainWebpack: (config, webpack) => {
     config.resolve.alias.set('@', path.join(__dirname, './src'))
   },
   theme: {
-    "primary-color": 'white',
-    "text-color": 'rgba(225,225,225,.8)',
-  }
+    // "primary-color": 'white',
+    // "text-color": 'rgba(225,225,225,.8)',
+  },
+  extraBabelPlugins: [
+    [
+      'import',
+      {
+        'libraryName': '@material-ui/core',
+        'libraryDirectory': 'esm',
+        'camel2DashComponentName': false
+      },
+      'core'
+    ],
+  ]
 }
 
 export default config;

@@ -1,5 +1,6 @@
-import React, {useMemo, useEffect, useState, useContext, FunctionComponent} from 'react'
+import React, {useMemo, useEffect, useState, useContext} from 'react'
 
+import {joinPath} from '@/utils'
 const RouterCotext = React.createContext({
     url: '',
     base: '',
@@ -52,10 +53,15 @@ export const hashRouter = {
     }
 }
 
+type childrenFunc = (appendClassName: string) => React.ReactNode
+
 interface RouteProps {
     path: string;
     exact?: boolean;
-    children?: React.ReactNode
+    children?: React.ReactElement | childrenFunc;
+    startAniamtiojn?: string; // 动画classname
+    endAnimation?: string; // 动画classname
+    animationDuration?: number; // 动画时间 单位s
 }
 
 const normalizePath = (path: string) => {
@@ -63,16 +69,38 @@ const normalizePath = (path: string) => {
 }
 
 const HashRoute: React.FC<RouteProps> = (props) => {
-    const {path = '/', exact = false, children} = props
+    const {path = '/', exact = false, children, animationDuration = 0.5} = props
     const {base = '', url = '/'} = useContext(RouterCotext)
+    const [appendClassName, setAppendClassName] = useState('')
+  
     const fullPath = useMemo(() => {
-        return normalizePath('/' + base.split('/').concat(path.split('/')).filter(s => !!s).join('/'))
+        return normalizePath(joinPath(base, path))
     }, [base, path])
     const normalizedUrl = useMemo(() => {
         return normalizePath(url)
     }, [url])
-    const isMatch =  exact ? fullPath === normalizePath(normalizedUrl) : normalizedUrl.startsWith(fullPath)
-    return isMatch ? children as React.ReactElement : null
+    const isMatch =  exact ? fullPath === normalizedUrl : normalizedUrl.startsWith(fullPath)
+
+    useEffect(() => {
+        let className = ''
+        if (isMatch && props.startAniamtiojn) {
+            className = props.startAniamtiojn
+        }
+        if (!isMatch && props.endAnimation) {
+            className = props.endAnimation
+            setTimeout(() => {
+                setAppendClassName('')
+            }, animationDuration * 1000 * 0.7)
+        }
+        setAppendClassName(className)
+
+    }, [isMatch])
+
+    const isDelayDestroy = !!appendClassName
+    const isShow = isMatch || isDelayDestroy
+    return isShow ? (
+        (typeof children === 'function' ? children(appendClassName) : children) as React.ReactElement
+    ) : null
 }
 
 export default HashRoute

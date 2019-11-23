@@ -38,7 +38,7 @@ export const throttle = (func, time = 500, delayMode = false) => {
                 clearTimeout(delayTimer)
             }
             delayTimer = setTimeout(() => {
-                func()
+                func(...args)
             }, time)
         }
     }
@@ -55,3 +55,6 @@ export const throttle = (func, time = 500, delayMode = false) => {
     }
     return func2
 }
+
+
+export const joinPath = (path1, path2) => '/' + path1.split('/').concat(path2.split('/')).filter(s => !!s).join('/')

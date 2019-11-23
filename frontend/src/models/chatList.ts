@@ -15,6 +15,7 @@ export interface ChatListModelType {
     namespace: 'chatList';
     state: ChatListModelState;
     effects: {
+        reqChatList: Effect;
         reqEmojiList: Effect;
     };
     reducers: {
@@ -34,6 +35,8 @@ const ChatListModel: ChatListModelType = {
         hasMoreEmoji: true,
     },
     effects: {  
+        * reqChatList ({payload}, _) {
+        },
         * reqEmojiList ({payload}, _) {
         }
     },

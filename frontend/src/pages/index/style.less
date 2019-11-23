@@ -1,8 +1,10 @@
 .radioPage {
+    height: 100%;
     &.normal {
         display: flex;
         align-items: flex-start;
         width: 90%;
+        height: 100%;
         min-width: 960px;
         max-width: 1300px;
         margin: 0 auto;
@@ -21,26 +23,115 @@
                 left: 140px;
                 width: 100%;
                 display: flex;
-                // justify-content: center;
                 > * {
                     width: 500px;
                 }
             }
         }      
         > .right {
+            height: 100%;
             flex-basis: 0;
             flex-grow: 3;
+            display: flex;
+            flex-direction: column;
             .chatTabContent {
+                min-height: 0;
                 display: flex;
                 flex-direction: column;
-                flex-shrink: 0;
+                position: relative;
                 > * {
                     width: 100%;
                     box-sizing: border-box;
                     min-height: 0;
                 }
             }
+            .messageBox {
+                flex-shrink: 0;
+            }
         } 
     }
  
+}
+
+
+.sendMessageBox {
+    .box {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        > :global(.iconfont) {
+            // padding: 0 .5rem;
+            cursor: pointer;
+        }
+        &.focus {
+        }
+    }
+    .actionsBox {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        padding: 0 .4rem;
+        > * {
+            cursor: pointer;
+            & + * {
+                margin-left: 1rem;
+            }
+            :global(.iconfont) {
+                margin-right: .5rem;
+            }
+        }
+        &.mobile {
+            flex-wrap: nowrap;
+            justify-content: space-around;
+            :global(.iconfont) {
+                font-size: 1.4rem !important;
+            }
+            > * {
+                padding: 0 .5rem;
+            }
+        }
+    }
+    .mask {
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 50;
+        top: 0;
+        left: 0;
+        > * {
+            background-color: #4B4B4B;
+            filter: brightness(105%);
+            max-height: 100%;
+        }
+    }
+    .drawer {
+        position: absolute;
+        z-index: 51;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+    }
+    .drawerStartAnimation {
+        animation: drawerStartAnimation .5s ease-out;
+    }
+    .drawerEndAnimation {
+        animation: drawerEndAnimation .5s ease-out;
+    }
+}
+
+@keyframes drawerStartAnimation {
+    from {
+        transform:  translateY(100%);
+    } to {
+        transition: translateY(0);
+    }
+}
+
+@keyframes drawerEndAnimation {
+    from {
+        transition: translateY(0);
+    } to {
+        transform:  translateY(100%);
+    }
 }

@@ -2,6 +2,7 @@ export enum MessageTypes {
     notice, // 系统通知
     advanced, // 高级弹幕， 房管，或超级管理员所发
     normal, // 普通消息
+    emoji, // 表情消息
     send, // 发送的消息(仅发送者本地可见)
     response, // 系统响应
 }
@@ -15,7 +16,11 @@ export interface MessageItem {
     fromId?: string;
     from: string;
     tag?: string; // 发送者的头衔
-    content: string;
+    content: {
+        text?: string;
+        title?: string;
+        img?: string;
+    };
     time: string;
     type: MessageTypes;
 }

@@ -5,10 +5,13 @@ import { useMediaQuery } from 'react-responsive'
 import { Input } from 'antd'
 import ScrollBar from 'react-perfect-scrollbar'
 
+import HashRoute, { hashRouter } from '@/components/hashRouter'
 import useKeyBoardListen from '@/components/hooks/keyboardListen'
+import usePreventScorllAndSwipe from '@/components/hooks/preventScrollAndSwipe'
 import { ConnectState, ConnectProps, CenterModelState, PlayListModelState } from '@/models/connect'
 import { MediaTypes, SearchMusicItem } from '@/typeConfig'
 import configs from '@/config'
+import {joinPath} from '@/utils'
 import styles from './index.less'
 
 const { Search } = Input
@@ -19,6 +22,7 @@ interface Props extends ConnectProps {
     list: ListType;
     playList: PlayListModelState['playList'];
     mediaDetail: CenterModelState['searchMediaDetail'];
+    baseHashPath?: string;
 }
 
 const SearchResultTypesToLabel = {
@@ -26,54 +30,19 @@ const SearchResultTypesToLabel = {
     [MediaTypes.song]: '单曲'
 }
 
-enum Steps { step1 = 'step1', step2 = 'step2' }
-
 const MusicSearchList: React.FC<Props> = (props) => {
-    const { list = [], dispatch, playList, mediaDetail } = props
+    const { list = [], dispatch, playList, mediaDetail, baseHashPath = '' } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
-    const [nowRouterHash, setRouterHash] = useState(Steps.step1)
-    const boxRef = useRef<HTMLDivElement>(null)
-    const inputRef = useKeyBoardListen({
-        onShow: () => console.log('show'),
-        onHide: () => console.log('hide'),
-    })
-    
-    const initHistoryLength = useMemo(() => {
-        return history.length
-    }, [])
-    
-    useEffect(() => {
-        const handler = (e) => {
-            e.stopPropagation()
-        }
-        boxRef.current.addEventListener('touchstart', handler)
-        return () => {
-            boxRef.current.removeEventListener('touchstart', handler)
-        }
-    }, [])
+    const boxRef = usePreventScorllAndSwipe()
 
     useEffect(() => {
         dispatch({
             type: 'center/saveData',
             payload: {
-                searchMusicList: [], 
+                searchMusicList: [],
                 searchMediaDetail: null,
             }
         })
-    }, [])
-
-    useEffect(() => {
-        location.hash = nowRouterHash
-        const handler = (e) => {
-            setRouterHash(location.hash.replace('#', '') as Steps)
-        }
-        window.addEventListener('hashchange', handler)
-        return () => {
-            window.removeEventListener('hashchange', handler)
-            if (history.length > initHistoryLength) {
-                history.go(initHistoryLength - history.length)
-            }
-        }
     }, [])
 
     useEffect(() => {
@@ -117,7 +86,7 @@ const MusicSearchList: React.FC<Props> = (props) => {
                     payload: {}
                 })
             } else {
-                location.hash = Steps.step2
+                hashRouter.push('/musicSearch/step2')
                 dispatch({
                     type: 'center/reqMediaDetail',
                     payload: {}
@@ -149,38 +118,35 @@ const MusicSearchList: React.FC<Props> = (props) => {
         </div>
     }
 
-    return <div ref={boxRef} className={styles.searchMusicListBox} style={{height: isMobile ? '40vh' : '50vh'}}  
-            onWheel={e => e.stopPropagation()}
-        >
-            <input ref={inputRef}/>
-        {
-            nowRouterHash === Steps.step1 &&
+    return <div ref={boxRef} className={styles.searchMusicListBox} style={{ height: isMobile ? '40vh' : '50vh' }}
+    >
+        <HashRoute path={joinPath(baseHashPath, '/')} exact={true}>
             <div className={styles.step1Box}>
                 <ScrollBar className={styles.searchList}>
-                {
-                  list.length ?  list.map(item => {
-                        if (!item.list.length) {
-                            return null
-                        }
-                        return <div className={styles.subListItem} key={item.type}>
-                            <div className={styles.header}>{SearchResultTypesToLabel[item.type]}</div>
-                            {renderDetailItemList(item.list, item.type)}
+                    {
+                        list.length ? list.map(item => {
+                            if (!item.list.length) {
+                                return null
+                            }
+                            return <div className={styles.subListItem} key={item.type}>
+                                <div className={styles.header}>{SearchResultTypesToLabel[item.type]}</div>
+                                {renderDetailItemList(item.list, item.type)}
+                            </div>
+                        }) :
+                            <div className={styles.noData}>
+                                暂无数据
                         </div>
-                    }) :
-                    <div className={styles.noData}>
-                        暂无数据
-                    </div>
-                }
+                    }
                 </ScrollBar>
-                    
+
                 <div className={styles.searchArea}>
                     <Search style={{ width: '100%' }} placeholder="搜索" onSearch={handleSerach} />
                 </div>
             </div>
-        }
-        {
-            (nowRouterHash === Steps.step2) && <div className={styles.step2Box}>
-                <div className={styles.header} onClick={_ => location.hash = Steps.step1}><span className="iconfont icon-back-circle"></span><span>返回</span></div>    
+        </HashRoute>
+        <HashRoute path={joinPath(baseHashPath, '/musicSearch/step2')} exact={true}>
+            <div className={styles.step2Box}>
+                <div className={styles.header} onClick={_ => hashRouter.push('/musicSearch')}><span className="iconfont icon-back-circle"></span><span>返回</span></div>
                 {
                     mediaDetail && <ScrollBar className={styles.detail}>
                         <div className={styles.header}>
@@ -202,7 +168,8 @@ const MusicSearchList: React.FC<Props> = (props) => {
                     !mediaDetail && <div className={styles.noData}>
                         暂无数据
                     </div>}
-            </div>}
+            </div>
+        </HashRoute>
     </div>
 }
 

@@ -31,10 +31,7 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
     
     const toPreviousPage = useMemo(() => {
         return throttle((e) => {
-            console.log('e', e)
-            // e && e.stopPropagation()
             setFocusPageIndex((prevValue) => {
-                console.log(prevValue)
                 if (prevValue === 0) {
                     return prevValue
                 }
@@ -44,10 +41,7 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
     }, [])
     const toNextPage = useMemo(() => {
         return throttle((e) => {
-            console.log('e', e)
-            // e && e.stopPropagation()
             setFocusPageIndex((prevValue) => {
-                console.log(prevValue)
                 const childCount = React.Children.count(props.children)
                 if (prevValue === childCount - 1) {
                     return prevValue

@@ -2,33 +2,30 @@ import React, { useEffect, useState } from 'react'
 import bindClass from 'classnames'
 import ScorllBar from 'react-perfect-scrollbar'
 import dayjs, { Dayjs } from 'dayjs'
+import {connect} from 'dva'
 
-import InputBox from './input'
+import {ConnectState, ConnectProps} from '@/models/connect'
+import { MessageTypes, MessageItem } from '@/typeConfig'
 import styles from './index.less'
 
-enum MessageTypes {
-    notice, // 系统通知
-    advanced, // 高级弹幕， 房管，或超级管理员所发
-    normal, // 普通消息
-    send, // 发送的消息(仅发送者本地可见)
-    response, // 系统响应
-}
 
-interface MessageItem {
-    from: string;
-    tag?: string; // 发送者的头衔
-    content: string;
-    time: string;
-    type: MessageTypes;
-}
-
-interface ChatListProps {
+interface ChatListProps extends ConnectProps {
     messages: MessageItem[]
 }
 
 const ChatList: React.FC<ChatListProps> = function (props) {
     const { messages = [] } = props
     const [renderMessages, setRenderMessages] = useState([] as MessageItem[][])
+
+    useEffect(() => {
+        props.dispatch({
+            type: 'reqChatList',
+            payload: {
+                
+            }
+        })
+    }, [])
+
     useEffect(() => {
         const renderArr = []
         const nowDay = new Date().getDate()
@@ -62,7 +59,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
         let content = null
         if (m.type === MessageTypes.response) {
             content = <div key={m.time} className={bindClass(styles.messageItem, styles.response)}>
-                <span>{m.content}</span>
+                <span>{m.content.text}</span>
             </div>
         } else {
             content = <div key={m.time} className={styles.messageItem}>
@@ -74,19 +71,21 @@ const ChatList: React.FC<ChatListProps> = function (props) {
                     }
                     {
                         m.type === MessageTypes.notice && '[系统消息] '
-
                     }
                     {m.from}
                 </div>
                 <div className={bindClass(styles.content, m.type === MessageTypes.advanced && styles.advanced,
-                    m.type === MessageTypes.notice && styles.notice)}>{m.content}</div>
+                    m.type === MessageTypes.notice && styles.notice, m.type === MessageTypes.emoji && styles.emoji)}>
+                    {
+                        m.type === MessageTypes.emoji ? <img src={m.content.img} title={m.content.title} /> : <span>{m.content.text}</span>}
+                </div>
             </div>
         }
         return content
     }
     const nowDate = dayjs().date(), nowMonth = dayjs().month(), nowYear = dayjs().year()
     return <div className={styles.chatListBox}>
-        <ScorllBar style={{height: '100%'}}>
+        <ScorllBar style={{ height: '100%' }}>
             {
                 renderMessages.map((msgs, i) => {
                     const msgDate = dayjs(msgs[0].time)
@@ -112,6 +111,9 @@ const ChatList: React.FC<ChatListProps> = function (props) {
     </div>
 }
 
-export default ChatList
+export default connect(({chatList}: ConnectState) => {
+    return {
+        messages: chatList.chatList
+    }
+})(ChatList)
 
-export const InputMessageBox = InputBox
