@@ -8,7 +8,6 @@ import {ConnectState, ConnectProps} from '@/models/connect'
 import { MessageTypes, MessageItem } from '@/typeConfig'
 import styles from './index.less'
 
-
 interface ChatListProps extends ConnectProps {
     messages: MessageItem[]
 }
@@ -55,14 +54,25 @@ const ChatList: React.FC<ChatListProps> = function (props) {
         setRenderMessages(renderArr)
     }, [messages])
 
+    const handleClick = (item) => {
+        props.dispatch({
+            type: 'chatList/selectMessageItem',
+            payload: {
+                selectedMessageItem: {
+                    ...item
+                }
+            }
+        })
+    }
+
     const renderItem = (m: MessageItem) => {
         let content = null
         if (m.type === MessageTypes.response) {
-            content = <div key={m.time} className={bindClass(styles.messageItem, styles.response)}>
-                <span>{m.content.text}</span>
+            content = <div key={m.time} className={bindClass(styles.messageItem, styles.response)} >
+                <span onClick={handleClick.bind(null, m)}>{m.content.text}</span>
             </div>
         } else {
-            content = <div key={m.time} className={styles.messageItem}>
+            content = <div key={m.time} className={styles.messageItem} >
                 <div className={styles.header}>
                     {
                         m.type === MessageTypes.advanced && `[${m.tag}] `}
@@ -77,7 +87,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
                 <div className={bindClass(styles.content, m.type === MessageTypes.advanced && styles.advanced,
                     m.type === MessageTypes.notice && styles.notice, m.type === MessageTypes.emoji && styles.emoji)}>
                     {
-                        m.type === MessageTypes.emoji ? <img src={m.content.img} title={m.content.title} /> : <span>{m.content.text}</span>}
+                        m.type === MessageTypes.emoji ? <img src={m.content.img} title={m.content.title} onClick={handleClick.bind(null, m)} /> : <span onClick={handleClick.bind(null, m)}>{m.content.text}</span>}
                 </div>
             </div>
         }

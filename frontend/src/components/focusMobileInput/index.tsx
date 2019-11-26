@@ -5,11 +5,10 @@ import useKeyBoardListen from '@/components/hooks/keyboardListen'
 import styles from './index.less'
 
 
-type Children = (ref: React.MutableRefObject<any>) => React.ReactElement
+type Children = (ref: React.MutableRefObject<any>, isFocus?: boolean) => React.ReactElement
 
 interface Props {
     children: Children;
-    focusClassName?: string;
 }
 
 /**
@@ -18,13 +17,10 @@ interface Props {
 const FocusMobileInput: React.FC<Props> = (props) => {
     const [inputRef, isFocus] = useKeyBoardListen()
 
-    const content = props.children(inputRef)
-    const oldClassName = content.props.className
+    console.log('focus', isFocus, inputRef)
     return <div className={bindClass(isFocus && styles.focusMobileInputBox)}>
         {
-             React.cloneElement(content, {
-                className: bindClass(oldClassName, isFocus && props.focusClassName)
-            })
+            props.children(inputRef, isFocus)
         }
     </div>
 }

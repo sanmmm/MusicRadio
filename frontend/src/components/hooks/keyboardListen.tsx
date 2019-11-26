@@ -1,12 +1,9 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react'
 
 interface Options {
-    onShow?: () => any;
-    onHide?: () => any;
 }
 // 移动端下监听键盘弹起/隐藏
 export default function useKeyBoardListener(options?: Options) {
-    const {onShow = () => {}, onHide = () => {}} = (options || {})
     const [isShow, setIsShow] = useState(false)
     const inputBoxRef = useRef<HTMLInputElement>(null)
     const {isAndroid, isiOS} = useMemo(() => {
@@ -26,26 +23,30 @@ export default function useKeyBoardListener(options?: Options) {
             return
         }
         const handleShow = () => {
-            onShow()
             setIsShow(true)
         }
         const handlerHide = () => {
-            onHide()
             setIsShow(false)
         }
-        const focusHandler = () => {
+        const focusHandler = (e) => {
+            e.stopPropagation()
             handleShow()
         }
         inputBoxRef.current.addEventListener('focus', focusHandler)
         if (isAndroid) {
             const originHeight = document.documentElement.clientHeight || document.body.clientHeight;
-            const resizeHandler = () => {
+            const resizeHandler = (e) => {
+                e.stopPropagation()
                 const nowHeight = document.documentElement.clientHeight || document.body.clientHeight;
-                nowHeight < originHeight ? handleShow() : handlerHide()
+                if (nowHeight > originHeight) {
+                    handlerHide()
+                }
             }
+            
             window.addEventListener('resize', resizeHandler)
         } else {
-            const blurHandler = () => {
+            const blurHandler = (e) => {
+                e.stopPropagation()                    
                 handlerHide()
             }
             inputBoxRef.current.addEventListener('blur', blurHandler)

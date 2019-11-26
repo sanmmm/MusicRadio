@@ -69,6 +69,7 @@
         height: 100%;
         display: flex;
         flex-direction: column;
+        justify-content: space-between;
         > * {
             width: 100%;
         }
@@ -88,15 +89,22 @@
         }
         .searchArea {
             width: 100%;
+            box-sizing: border-box;
+            padding: .2rem .4rem;
             margin-top: 1rem;
-            input {
-                color: black !important;
+            display: flex;
+            align-items: center;
+            > * {
+                + * {
+                    margin-left: 1rem;
+                }
             }
         }
 
     }
    
     .step2Box {
+        box-sizing: border-box;
         width: 100%;
         height: 100%;
         display: flex;

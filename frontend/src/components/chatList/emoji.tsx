@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react'
+import React, { useEffect, useState, useRef, useReducer, useCallback } from 'react'
 import bindClass from 'classnames'
 import { connect } from 'dva'
 import ScrollBar from 'react-perfect-scrollbar'
@@ -21,12 +21,12 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
     const { emojiList, hasMore, dispatch } = props
     const boxRef = useRef(null)
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
-    const emojiItemPerLine = isMobile ? 4 : 2
+    const emojiItemPerLine = isMobile ? 4 : 3
     const [scrollEle, setScrollEle] = useState(null as HTMLElement)
     const [visibleImgMap, setVisibleImgMap] = useState({} as {
         [key: string]: ImageLoadingStatus
     })
-
+   
     const fetchEmojiList = (lastId = '') => {
         dispatch({
             type: 'chatList/reqEmojiList',
@@ -58,6 +58,7 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
             return
         }
         const scrollY = (scrollEle.clientHeight + scrollEle.scrollTop)
+        const obj = {}
         scrollEle.querySelectorAll(`.${styles.item}`).forEach((ele: HTMLElement) => {
             const eleId = ele.getAttribute('data-id')
             if (visibleImgMap[eleId]) {
@@ -65,10 +66,15 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
             }
             const offsetTop = ele.offsetTop
             if (offsetTop - scrollY < 20) {
-                visibleImgMap[eleId] = ImageLoadingStatus.loading
+                obj[eleId] = ImageLoadingStatus.loading
             }
         })
-        setVisibleImgMap({ ...visibleImgMap })
+        setVisibleImgMap((visibleImgMap) => {
+            return {
+                ...visibleImgMap,
+                ...obj
+            }
+        })
     }, [scrollEle, visibleImgMap])
 
     useEffect(() => {
@@ -115,8 +121,10 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
                                         <img src={e.src}
                                             className={bindClass(isImgLoading && styles.loading)}
                                             onLoad={_ => {
-                                                visibleImgMap[e.id] = ImageLoadingStatus.loadEnd
-                                                setVisibleImgMap({ ...visibleImgMap })
+                                                setVisibleImgMap((visibleImgMap) => {
+                                                    visibleImgMap[e.id] = ImageLoadingStatus.loadEnd
+                                                    return { ...visibleImgMap }
+                                                })
                                             }} />
                                         {
                                             isImgLoading && <span className="iconfont icon-load"></span>

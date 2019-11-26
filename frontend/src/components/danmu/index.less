@@ -12,6 +12,7 @@
         position: absolute;
         left: 0;
         transition: all 0.3s ease-in-out;
+        z-index: 40;
         &.highLight {
             > .content {
                 color: white;
@@ -26,9 +27,6 @@
                     color: @noticeColor;
                 }
             }
-        }
-        &.mobile {
-            font-size: 12px;
         }
         > .placeholder {
             flex-basis: 0;

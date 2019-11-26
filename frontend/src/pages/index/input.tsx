@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import bindClass from 'classnames'
-import { Button, TextField } from '@material-ui/core'
+import { Button } from '@material-ui/core'
 import { useMediaQuery } from 'react-responsive'
 
 import FocusInputWrapper from '@/components/focusMobileInput'
@@ -12,6 +12,7 @@ import MusicSearch from '@/components/musicSearchList'
 import configs from '@/config'
 import { MessageTypes, MessageItem } from '@/typeConfig'
 import styles from './style.less'
+import { CustomTextFeild, CustomBtn } from '../../utils/styleInject'
 
 interface ChatInputProps {
 }
@@ -70,9 +71,9 @@ const ChatInput: React.FC<ChatInputProps> = function (props) {
     const [contentStr, setContent] = useState('' as string)
 
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
-    console.log('render input')
 
     const handleAction = (actionType: ActionTypes) => {
+        console.log('click click')
         hashRouter.push(`/${actionType}`)
         if (actionType === ActionTypes.vote) {
 
@@ -85,23 +86,26 @@ const ChatInput: React.FC<ChatInputProps> = function (props) {
         onClick={_ => hashRouter.push('/')}
     >
         <div className={bindClass(styles.drawer, appendClassName)} onClick={e => e.stopPropagation()}>
-            {content}
+            <div className={styles.back} onClick={_ => hashRouter.back()}><span className="iconfont icon-back-circle"></span><span className={styles.text}>返回</span></div>
+            <div className={styles.content} >
+                {content}
+            </div>
         </div>
     </div>
     const renderActions = actionsConfig.filter(obj => isMobile || obj.showInPc)
 
-    return <div className={styles.sendMessageBox}>
+    return <div className={bindClass(styles.sendMessageBox, isMobile && styles.mobile)}>
         <HashRouter>
             <FocusInputWrapper>
                 {
-                    inputRef => <div className={styles.box}>
-                        <TextField multiline={true} inputRef={inputRef} placeholder="发送消息" color="secondary" onChange={e => {
-                            const value = e.target.value
-                            setContent(value)
-                        }} />
+                    (inputRef, isFocus) => <div className={bindClass(styles.box, isFocus && styles.focus)}>
+                        <CustomTextFeild multiline={true} fullWidth={true} inputRef={inputRef} placeholder="发送消息"
+                            onChange={e => {
+                                const value = e.target.value
+                                setContent(value)
+                            }} />
                         <span className="iconfont icon-emoji" onClick={handleAction.bind(null, ActionTypes.emoji)}></span>
-                        <Button
-                            disabled={!contentStr.length}
+                        <CustomBtn
                             onClick={_ => {
                                 if (contentStr.length && contentStr.length < configs.maxInputMessage) {
                                     // 
@@ -110,7 +114,7 @@ const ChatInput: React.FC<ChatInputProps> = function (props) {
                                 }
                             }}>
                             发送
-                    </Button>
+                    </CustomBtn>
                     </div>}
             </FocusInputWrapper>
             <div className={bindClass(styles.actionsBox, isMobile && styles.mobile)}>
@@ -121,16 +125,16 @@ const ChatInput: React.FC<ChatInputProps> = function (props) {
                 </div>)}
             </div>
             <HashRoute path={`/${ActionTypes.emoji}`} exact={true} startAniamtiojn={styles.drawerStartAnimation} endAnimation={styles.drawerEndAnimation}
-                animationDuration={0.5}
+                animationDuration={0.4}
             >
                 {
                     drawerWrapper(<EmojiSearch />)
                 }
             </HashRoute>
             {
-                renderActions.filter(obj => !!obj.render).map(obj => <HashRoute key={obj.type} exact={true} path={`/${obj.type}`}
+                renderActions.filter(obj => !!obj.render).map(obj => <HashRoute key={obj.type} path={`/${obj.type}`}
                     startAniamtiojn={styles.drawerStartAnimation} endAnimation={styles.drawerEndAnimation}
-                    animationDuration={0.5}
+                    animationDuration={0.4}
                 >
                     {
                         drawerWrapper(obj.render())

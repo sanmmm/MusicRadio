@@ -2,19 +2,16 @@ import React, { useEffect, useState, useMemo, useRef } from 'react'
 import bindClass from 'classnames'
 import { connect } from 'dva'
 import { useMediaQuery } from 'react-responsive'
-import { Input } from 'antd'
 import ScrollBar from 'react-perfect-scrollbar'
 
+import {CustomTextFeild, CustomBtn} from '@/utils/styleInject'
 import HashRoute, { hashRouter } from '@/components/hashRouter'
-import useKeyBoardListen from '@/components/hooks/keyboardListen'
-import usePreventScorllAndSwipe from '@/components/hooks/preventScrollAndSwipe'
+import FocusMobileInputWrapper from '@/components/focusMobileInput'
 import { ConnectState, ConnectProps, CenterModelState, PlayListModelState } from '@/models/connect'
 import { MediaTypes, SearchMusicItem } from '@/typeConfig'
 import configs from '@/config'
 import {joinPath} from '@/utils'
 import styles from './index.less'
-
-const { Search } = Input
 
 type ListType = CenterModelState['searchMusicList']
 
@@ -33,7 +30,7 @@ const SearchResultTypesToLabel = {
 const MusicSearchList: React.FC<Props> = (props) => {
     const { list = [], dispatch, playList, mediaDetail, baseHashPath = '' } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
-    const boxRef = usePreventScorllAndSwipe()
+    const [searchValue, setSearchValue] = useState('')
 
     useEffect(() => {
         dispatch({
@@ -86,14 +83,14 @@ const MusicSearchList: React.FC<Props> = (props) => {
                     payload: {}
                 })
             } else {
-                hashRouter.push('/musicSearch/step2')
+                hashRouter.push(joinPath(baseHashPath, '/step2'))
                 dispatch({
                     type: 'center/reqMediaDetail',
                     payload: {}
                 })
             }
         }
-    }, [])
+    }, [baseHashPath])
 
     const renderDetailItemList = (list: SearchMusicItem[], key = null) => {
         return <div className={styles.detailItemsList} key={key}>
@@ -118,9 +115,8 @@ const MusicSearchList: React.FC<Props> = (props) => {
         </div>
     }
 
-    return <div ref={boxRef} className={styles.searchMusicListBox} style={{ height: isMobile ? '40vh' : '50vh' }}
-    >
-        <HashRoute path={joinPath(baseHashPath, '/')} exact={true}>
+    return <div className={styles.searchMusicListBox}>
+        <HashRoute path={joinPath(baseHashPath, '/')} exact={true} >
             <div className={styles.step1Box}>
                 <ScrollBar className={styles.searchList}>
                     {
@@ -138,15 +134,21 @@ const MusicSearchList: React.FC<Props> = (props) => {
                         </div>
                     }
                 </ScrollBar>
-
-                <div className={styles.searchArea}>
-                    <Search style={{ width: '100%' }} placeholder="搜索" onSearch={handleSerach} />
-                </div>
+                <FocusMobileInputWrapper>
+                    {
+                        (inputRef, isFocus) => <div className={styles.searchArea}>
+                            <CustomTextFeild inputRef={inputRef} fullWidth={true} placeholder="搜索音乐" value={searchValue}
+                                onChange={(e) => {
+                                    setSearchValue(e.target.value)
+                                }}
+                            /><CustomBtn>搜索</CustomBtn>
+                        </div>}
+                </FocusMobileInputWrapper>
             </div>
         </HashRoute>
-        <HashRoute path={joinPath(baseHashPath, '/musicSearch/step2')} exact={true}>
+        <HashRoute path={joinPath(baseHashPath, '/step2')} exact={true}>
             <div className={styles.step2Box}>
-                <div className={styles.header} onClick={_ => hashRouter.push('/musicSearch')}><span className="iconfont icon-back-circle"></span><span>返回</span></div>
+                <div className={styles.header} onClick={_ => hashRouter.back()}><span className="iconfont icon-back-circle"></span><span>返回</span></div>
                 {
                     mediaDetail && <ScrollBar className={styles.detail}>
                         <div className={styles.header}>

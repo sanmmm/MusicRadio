@@ -2,13 +2,12 @@
 
 .scrollOuterBox {
     width: 100vw;
-    height: 100vh;
     overflow: hidden;
     background-color: transparent;
     position: relative;
 }
 .scrollContainer {
-    transition: all 0.4s ease-out;
+    transition: all 0.4s ease-in-out;
     position: absolute;
     left: 0;
 }
@@ -19,30 +18,43 @@
     height: calc(~"100vh - @{headerHeight}");
     overflow: hidden;
     &.focus {
-        animation: scrollEnd 1s ease-in-out;
+        // animation: scrollEnd 1s ease-in-out;
     }
 }
 
+// @keyframes scrollEnd {
+//     0% {
+//         transform: scaleX(1);
+//     } 
+    
+//     25% {
+//         transform: scaleX(1.1);
+//     }
+
+//     50% {
+//         transform: scaleX(1);
+        
+//     }
+
+//     50% {
+//         transform: scaleX(0.9);
+        
+//     }
+
+//     0% {
+//         transform: scaleX(1);
+//     }
+// }
 @keyframes scrollEnd {
     0% {
-        transform: scaleX(1);
+        transform: scaleY(1);
     } 
     
-    25% {
-        transform: scaleX(1.1);
-    }
-
     50% {
-        transform: scaleX(1);
-        
-    }
-
-    50% {
-        transform: scaleX(0.9);
-        
+        transform: scaleY(1.05);
     }
 
     0% {
-        transform: scaleX(1);
+        transform: scaleY(1);
     }
 }

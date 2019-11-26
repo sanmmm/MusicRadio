@@ -11,13 +11,14 @@ import styles from './index.less'
 
 interface DanmuBoxProps extends ConnectProps {
     danmuList: DanmuItem[];
-    handleDamuClick: (message: MessageItem, index: number) => any;
+    handleDamuClick?: (message: MessageItem, index: number) => any;
+    isPause?: boolean;
 }
 
 const danmuContentHeight = 28
 
 const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
-    const { danmuList, dispatch } = props
+    const { danmuList, dispatch, isPause = false } = props
     const isMobile = useMediaQuery({query: configs.mobileMediaQuery})
     const maxShowCount = isMobile ? 3 : 7
     useEffect(() => {
@@ -30,6 +31,9 @@ const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
     }, [maxShowCount])
 
     useEffect(() => {
+        if (isPause) {
+            return
+        }
         if (!danmuList.length) {
             dispatch({
                 type: 'chatList/addDanmuItem',
@@ -66,25 +70,37 @@ const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
         return () => {
             clearInterval(timer)
         }
-    }, [danmuList.length])
+    }, [danmuList.length, isPause])
+
+    const handleItemClick = (item) => {
+        dispatch({
+            type: 'chatList/selectMessageItem',
+            payload: {
+                selectedMessageItem: {
+                    ...item
+                }
+            }
+        })
+    }
     
 
-    return <div>
-        <div className={styles.damuListBox} style={{ height: `${maxShowCount * 1.5 * danmuContentHeight}px` }}>
+    return <div className={styles.damuListBox} style={{ height: `${maxShowCount * 1.5 * danmuContentHeight}px`, maxHeight: '100%' }}>
             {danmuList.map(d => <div key={d.time} className={bindClass(styles.item, d.levelValue === 1 && styles.highLight)}
                 style={{
                     height: danmuContentHeight,
-                    top: `${danmuContentHeight * 1.5 * d.levelValue}px`
+                    top: `${danmuContentHeight * 1.5 * d.levelValue}px`,
                 }}
+                
             >
-                <div className={styles.placeholder} style={{maxWidth: `${(d.offset * 100).toFixed(2)}%`}}></div>
+                {!isMobile && <div className={styles.placeholder} style={{maxWidth: `${(d.offset * 100).toFixed(2)}%`}}></div>}
                 <div className={bindClass(styles.content, d.type === MessageTypes.advanced && styles.advanced, 
-                        d.type === MessageTypes.emoji && styles.emoji, d.type === MessageTypes.notice && styles.notice)}>
+                        d.type === MessageTypes.emoji && styles.emoji, d.type === MessageTypes.notice && styles.notice)}
+                        onClick={handleItemClick.bind(null, d)}
+                >
                     {d.content.text || `[图片消息: ${d.content.title}]点击查看图片`}
                 </div>
             </div>)}
         </div>
-    </div>
 }
 
 export default connect(({ chatList }: ConnectState) => {

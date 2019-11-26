@@ -10,16 +10,15 @@ import configs from '@/config'
 import styles from './style.less'
 import MyPlayer from '@/components/player'
 import ChatList from '@/components/chatList'
-import MusicList from '@/components/musicList'
+import PlayList from '@/components/musicList'
 import DanmuBox from '@/components/danmu'
-import ScrollPage from '@/components/scrollPage'
+import ScrollPage, { ScrollPageItem } from '@/components/scrollPage'
 import RoomItem from '@/components/roomItem'
-import SearchMusicList from '@/components/musicSearchList'
-import SearchEmoji from '@/components/chatList/emoji'
-import { HashRouter } from '@/components/hashRouter'
 import usePreventScrollAndSwipe from '@/components/hooks/preventScrollAndSwipe'
 import CrateRoom from './createRoom'
 import MessageInputBox from './input'
+import HandleSelectedMessage from './handleSelectMessage'
+import { CustomTabs, CustomTab } from '../../utils/styleInject'
 
 const comment = '昨天上班时间，我装着西服站在二楼窗前看着路上来来往往的车们。着西服站在二楼窗前看着路上来来往往, 着西服站在二楼窗前看着路上来来往往,觉得城市里天空太窄，忽然想回家种地。可是离我退休年龄还狠遥远。我的影子说想杀死我，然后替代我好好生活。'
 
@@ -234,6 +233,118 @@ const mediaDetail = {
     }]
 }
 
+const danmuData = [
+    {
+        from: '伯钧大魔王',
+        content: {
+            text: '18年好啊',
+        },
+        time: '2018-02-03',
+        type: MessageTypes.normal
+    },
+    {
+        from: '用户2',
+        content: {
+            text: '19年号',
+        },
+        time: '2019-01-01',
+        type: MessageTypes.normal
+    },
+    {
+        from: '用户3',
+        content: {
+            text: '19年号',
+        },
+        time: '2019-01-01 01:22:23',
+        type: MessageTypes.normal
+    },
+    {
+        from: '管理员',
+        tag: '管理员',
+        content: {
+            text: '友好讨论',
+        },
+        time: '2019-01-033434',
+        type: MessageTypes.advanced
+    },
+    {
+        from: '伯钧大魔王',
+        content: {
+            text: '18年好啊',
+        },
+        time: '2018-02-03dgf',
+        type: MessageTypes.normal
+    },
+    {
+        from: '用户2',
+        content: {
+            text: '19年号',
+        },
+        time: '2019-01-01dfdf',
+        type: MessageTypes.notice
+    },
+    {
+        from: '用户3',
+        content: {
+            text: '19年号22',
+        },
+        time: '2019-01-01 01:22:23dfdf',
+        type: MessageTypes.normal
+    },
+    {
+        from: '管理员',
+        tag: '管理员',
+        content: {
+            text: '友好讨论33',
+        },
+        time: '2019-01-03sdssdsd',
+        type: MessageTypes.notice
+    },
+    {
+        from: '伯钧大魔王',
+        content: {
+            text: '18年好33啊',
+        },
+        time: '2018-02-03sdsd',
+        type: MessageTypes.normal
+    },
+    {
+        from: '用户2',
+        content: {
+            text: '19年号33',
+        },
+        time: '2019-01-01dfdfd',
+        type: MessageTypes.normal
+    },
+    {
+        from: '用户3',
+        content: {
+            text: '19年号3333',
+        },
+        time: '2019-01-0101:22:23dfdf',
+        type: MessageTypes.normal
+    },
+    {
+        from: '管理员',
+        tag: '管理员',
+        content: {
+            text: '友好讨333论',
+        },
+        time: '2019-01-03dfdfdf',
+        type: MessageTypes.normal
+    },
+    {
+        from: '管理员',
+        tag: '管理员',
+        content: {
+            title: '宝宝生气了',
+            img: 'https://i.loli.net/2019/11/20/YhAwOXBMeqnJRGx.gif'
+        },
+        time: '2019-01-03dsdsdsdghhhhdf',
+        type: MessageTypes.emoji
+    },
+]
+
 import emojiData from '@/assets/success'
 const emojiList = emojiData.map(o => ({
     title: o.title,
@@ -245,16 +356,15 @@ interface IndexProps extends ConnectProps {
 }
 
 enum TabTyps {
-    musicList = 'musicList',
+    playList = 'playList',
     chatList = 'chatList'
 }
 
 const Index: React.FC<IndexProps> = function (props) {
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
     const [activeTab, setActiveTab] = useState(TabTyps.chatList)
-    const [nowShowPageIndex, setShowPageIndex] = useState(0)
     const scrollRef = useRef(null)
-    const rightEleRef = usePreventScrollAndSwipe()
+    const actionAreaEleRef = usePreventScrollAndSwipe()
     // TODO  DEV delete
     useEffect(() => {
         props.dispatch({
@@ -287,194 +397,74 @@ const Index: React.FC<IndexProps> = function (props) {
         props.dispatch({
             type: 'chatList/addDanmuItem',
             payload: {
-                items: [
-                    {
-                        from: '伯钧大魔王',
-                        content: {
-                            text: '18年好啊',
-                        },
-                        time: '2018-02-03',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '用户2',
-                        content: {
-                            text: '19年号',
-                        },
-                        time: '2019-01-01',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '用户3',
-                        content: {
-                            text: '19年号',
-                        },
-                        time: '2019-01-01 01:22:23',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '管理员',
-                        tag: '管理员',
-                        content: {
-                            text: '友好讨论',
-                        },
-                        time: '2019-01-033434',
-                        type: MessageTypes.advanced
-                    },
-                    {
-                        from: '伯钧大魔王',
-                        content: {
-                            text: '18年好啊',
-                        },
-                        time: '2018-02-03dgf',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '用户2',
-                        content: {
-                            text: '19年号',
-                        },
-                        time: '2019-01-01dfdf',
-                        type: MessageTypes.notice
-                    },
-                    {
-                        from: '用户3',
-                        content: {
-                            text: '19年号22',
-                        },
-                        time: '2019-01-01 01:22:23dfdf',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '管理员',
-                        tag: '管理员',
-                        content: {
-                            text: '友好讨论33',
-                        },
-                        time: '2019-01-03sdssdsd',
-                        type: MessageTypes.notice
-                    },
-                    {
-                        from: '伯钧大魔王',
-                        content: {
-                            text: '18年好33啊',
-                        },
-                        time: '2018-02-03sdsd',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '用户2',
-                        content: {
-                            text: '19年号33',
-                        },
-                        time: '2019-01-01dfdfd',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '用户3',
-                        content: {
-                            text: '19年号3333',
-                        },
-                        time: '2019-01-0101:22:23dfdf',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '管理员',
-                        tag: '管理员',
-                        content: {
-                            text: '友好讨333论',
-                        },
-                        time: '2019-01-03dfdfdf',
-                        type: MessageTypes.normal
-                    },
-                    {
-                        from: '管理员',
-                        tag: '管理员',
-                        content: {
-                            title: '宝宝生气了',
-                            img: 'https://i.loli.net/2019/11/20/YhAwOXBMeqnJRGx.gif'
-                        },
-                        time: '2019-01-03dsdsdsdghhhhdf',
-                        type: MessageTypes.emoji
-                    },
-                ]
+                items: danmuData
             }
         })
     }, [])
 
     return <ScrollPage ref={scrollRef}
-        onPageChange={page => {
-            if (page !== nowShowPageIndex) {
-                setShowPageIndex(page)
-            }
-        }}
     >
-        <div className={bindClass(styles.radioPage, isMobile ? '' : styles.normal)} >
-            <div className={styles.left}>
-                <div className={bindClass(nowShowPageIndex !== 0 && styles.fixPlayerBox)}>
-                    <MyPlayer name="情不得已" artist="庾澄庆" simpleMode={nowShowPageIndex !== 0} comment={{
-                        content: comment,
-                        userId: 29879272,
-                        avatarUrl: 'http://p1.music.126.net/p9U80ex1B1ciPFa125xV5A==/5931865232210340.jpg?param=180y180',
-                        nickName: '张惠妹'
-                    }} src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"} />
-                    <DanmuBox maxShowCount={3} />
-                </div>
-            </div>
-            <div className={styles.right} ref={rightEleRef}>
-                <Tabs value={activeTab} onChange={(_, type) => setActiveTab(type as TabTyps)} scrollButtons="auto">
-                    <Tab label="消息列表" />
-                    <Tab label="播放列表" />
-                </Tabs>
-                <div className={styles.chatTabContent}>
-                    <ChatList messages={messages} />
-                    <div className={styles.messageBox}>
-                        <MessageInputBox />
+        <ScrollPageItem>
+            {
+                (isShow) => <div className={styles.radioPageOuter}>
+                    <HandleSelectedMessage />
+                    <div className={bindClass(styles.radioPage, isMobile ? styles.mobile : styles.normal)} >
+                        <div className={bindClass(isMobile ? styles.top : styles.left)}>
+                            <div className={bindClass(!isShow && styles.fixPlayerBox, isMobile && styles.playerOuter)}>
+                                <MyPlayer isMobile={isMobile} name="情不得已" artist="庾澄庆" simpleMode={!isShow} comment={{
+                                    content: comment,
+                                    userId: 29879272,
+                                    avatarUrl: 'http://p1.music.126.net/p9U80ex1B1ciPFa125xV5A==/5931865232210340.jpg?param=180y180',
+                                    nickName: '张惠妹'
+                                }} src={src} totalTime={264} lrc={lyric} pic={"https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"} />
+                            </div>
+                            <div className={styles.danmuOuter}>
+                                <DanmuBox isPause={!isShow} />
+                            </div>
+                        </div>
+                        <div className={isMobile ? styles.bottom : styles.right} ref={actionAreaEleRef}>
+                            {
+                                isMobile ? <MessageInputBox /> :
+                                    <React.Fragment>
+                                        <CustomTabs variant="fullWidth" value={activeTab} centered={true} onChange={(_, type) => setActiveTab(type as TabTyps)} scrollButtons="auto">
+                                            <CustomTab label="消息列表" value={TabTyps.chatList} />
+                                            <CustomTab label="播放列表" value={TabTyps.playList} />
+                                        </CustomTabs>
+                                        {activeTab == TabTyps.chatList && <div className={styles.chatTabContent}>
+                                            <ChatList />
+                                            <div className={styles.messageBox}>
+                                                <MessageInputBox />
+                                            </div>
+                                        </div>}
+                                        {
+                                            activeTab == TabTyps.playList && <PlayList />
+                                        }
+                                    </React.Fragment>
+                            }
+                        </div>
                     </div>
+                </div>}
+        </ScrollPageItem>
+        {/* <ScrollPageItem>
+           
+        </ScrollPageItem>
+        <ScrollPageItem>
+            {
+                () => <div>
+                    page3333
+            <div onClick={_ => {
+                        console.log(scrollRef.current)
+                        scrollRef.current.toPreviousPage()
+                    }}>upup</div>
+                    <div onClick={_ => {
+                        console.log(scrollRef.current)
+                        scrollRef.current.toNextPage()
+                    }}>next</div>
                 </div>
-            </div>
-        </div>
-        <div>
-            {/* <CrateRoom/> */}
-            <div style={{ width: 200 }}>
-                {/* <RoomItem 
-                    title="有那些音乐听了让你感同身受"
-                    playing="雅俗共赏"
-                    heat={34}
-                    pic="https://y.gtimg.cn/music/photo_new/T002R300x300M0000024uN121wrWdZ_1.jpg?max_age=2592000"
-                /> */}
-            </div>
-            <div style={{ width: 300 }}
-            >
-                {/* <HashRouter>
-                    <SearchMusicList />
-
-                </HashRouter> */}
-
-            </div>
-            page222222
-            <div onClick={_ => {
-                console.log(scrollRef.current)
-                scrollRef.current.toPreviousPage()
-            }}>upup</div>
-            <div onClick={_ => {
-                console.log(scrollRef.current)
-                scrollRef.current.toNextPage()
-            }}>next</div>
-        </div>
+            }
+        </ScrollPageItem> */}
 
 
-        <div>
-            page3333
-            <div onClick={_ => {
-                console.log(scrollRef.current)
-                scrollRef.current.toPreviousPage()
-            }}>upup</div>
-            <div onClick={_ => {
-                console.log(scrollRef.current)
-                scrollRef.current.toNextPage()
-            }}>next</div>
-        </div>
     </ScrollPage>
 }
 

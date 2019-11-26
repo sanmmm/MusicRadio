@@ -22,6 +22,7 @@ interface LyricItem {
     content: string
 }
 
+const itemHeight = '2em'
 
 const LyricBox: React.FC<LyricBoxProps> = function (props) {
 
@@ -81,7 +82,7 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
     }, [freshLyricItems, props.nowTime])
 
     const lyricOffsetValue = freshLyricItems.length && (state.focusItemIndex / freshLyricItems.length) * 100
-    return <div className={styles.lyricBox}>
+    return <div className={styles.lyricBox} style={{height: `calc(${itemHeight} * ${props.showItemCount})`}} >
         {
             freshLyricItems.length ?
                 <div style={{ transform: `translate(0, -${lyricOffsetValue}%)` }} className={styles.itemsBox}>

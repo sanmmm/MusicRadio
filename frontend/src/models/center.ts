@@ -25,6 +25,7 @@ export interface CenterModelType {
         addMusicToPlayList: Effect;
         reqMediaDetail: Effect;
         createRoom: Effect;
+        blockUser: Effect;
     };
     reducers: {
         saveData: Reducer<CenterModelState>;
@@ -50,6 +51,9 @@ const CenterModel: CenterModelType = {
         },
         * createRoom ({payload}, {}) {
 
+        },
+        * blockUser ({payload}, {}) {
+            
         },
     },
     reducers: {

@@ -9,6 +9,7 @@ export interface ChatListModelState {
     danmuMaxShowCount: number;
     emojiList: EmojiItem[];
     hasMoreEmoji: boolean;
+    selectedMessageItem: MessageItem
 }
 
 export interface ChatListModelType {
@@ -22,6 +23,8 @@ export interface ChatListModelType {
         saveData: Reducer<ChatListModelState>;
         addDanmuItem: Reducer<ChatListModelState>;
         refreshDamuList: Reducer<ChatListModelState>;
+        selectMessageItem: Reducer<ChatListModelState>;
+        clearSelectedMessageItem: Reducer<ChatListModelState>;
     };
 }
 
@@ -33,6 +36,7 @@ const ChatListModel: ChatListModelType = {
         danmuMaxShowCount: 3,
         emojiList: [],
         hasMoreEmoji: true,
+        selectedMessageItem: null
     },
     effects: {  
         * reqChatList ({payload}, _) {
@@ -71,8 +75,20 @@ const ChatListModel: ChatListModelType = {
                 ...state,
                 danmuList: [...danmuList]
             }
+        },
+        selectMessageItem: (state, {payload}) => {
+            const {selectedMessageItem} = payload
+            return {
+                ...state,
+                selectedMessageItem
+            }
+        },
+        clearSelectedMessageItem: (state, _) => {
+            return {
+                ...state,
+                selectedMessageItem: null
+            }
         }
-        
     }
 }
 

@@ -18,43 +18,68 @@
 }
 
 .playerBox {
-    display: flex;
-    align-items: flex-start;
     color: @normalTextColor;
-    > * {
-        flex-shrink: 0;
-    }
-    >.left {
-
-    } 
+ 
     &.simpleMode {
         animation: toSimpleMode .5s ease-in-out;
         align-items: center;
     }
-    >.main {
-        flex-grow: 1;
-        flex-basis: 0;
-        margin-left: 2rem;
-        &.simpleMode {
-            margin-left: 1rem;
+    &.normal {
+        display: flex;
+        align-items: flex-start;
+        > * {
+            flex-shrink: 0;
         }
-        .controlBox {
-            display: flex;
-            align-items: center;
-            padding: 1rem;
-            > .left {
-                flex-grow: 1;
-                margin-right: 3rem;
+        >.main {
+            flex-grow: 1;
+            flex-basis: 0;
+            margin-left: 2rem;
+            &.simpleMode {
+                margin-left: 1rem;
             }
-            > .right {
+            >.left {
+
+            } 
+            
+        }
+    }
+    &.mobileMode {
+        > .mobileMain {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-evenly;
+            width: 90%;
+            height: 100%;
+            margin: 0 auto;
+            > * {
                 flex-shrink: 0;
-                :global(.iconfont) {
-                    font-size: 18px;
-                }
-                > * {
-                    + * {
-                        margin-right: .4rem;
-                    }
+                width: 100%;
+            }
+        }
+    }
+
+    .lyricOuter {
+        width: 200px;
+        margin: 1rem auto;
+    }
+       
+    .controlBox {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        box-sizing: border-box;
+        > .left {
+            flex-grow: 1;
+            margin-right: 3rem;
+        }
+        > .right {
+            flex-shrink: 0;
+            :global(.iconfont) {
+                font-size: 1.3rem;
+            }
+            > * {
+                + * {
+                    margin-right: .4rem;
                 }
             }
         }
@@ -83,7 +108,7 @@
         .top {
             text-align: left;
             :global(.icon-quoteleft) {
-                font-size: 28px !important;
+                font-size: 1.9rem !important;
                 color: rgba(155, 155, 155, 1) !important;
             }
         }
@@ -310,6 +335,7 @@
         .item {
             height: @itemHeight;
             box-sizing: border-box;
+            .textOverflow();
             &.focus {
                 color: @highLightColor;
             }

@@ -65,13 +65,15 @@ interface RouteProps {
 }
 
 const normalizePath = (path: string) => {
-    return path.toLowerCase().replace(/\/$/, '')
+    return path.toLowerCase().replace(/.+\/$/, '')
 }
+
+enum RouteStatus {notMatch, matched, delayDestory}
 
 const HashRoute: React.FC<RouteProps> = (props) => {
     const {path = '/', exact = false, children, animationDuration = 0.5} = props
     const {base = '', url = '/'} = useContext(RouterCotext)
-    const [appendClassName, setAppendClassName] = useState('')
+    const [nowStatus, setStatus] = useState(RouteStatus.notMatch)
   
     const fullPath = useMemo(() => {
         return normalizePath(joinPath(base, path))
@@ -82,23 +84,30 @@ const HashRoute: React.FC<RouteProps> = (props) => {
     const isMatch =  exact ? fullPath === normalizedUrl : normalizedUrl.startsWith(fullPath)
 
     useEffect(() => {
-        let className = ''
-        if (isMatch && props.startAniamtiojn) {
-            className = props.startAniamtiojn
+        let status = nowStatus, timer = null
+        if (isMatch) {
+            status = RouteStatus.matched
         }
-        if (!isMatch && props.endAnimation) {
-            className = props.endAnimation
-            setTimeout(() => {
-                setAppendClassName('')
-            }, animationDuration * 1000 * 0.7)
+        if (!isMatch && nowStatus !== RouteStatus.notMatch) {
+            status = RouteStatus.notMatch
+            if (!!props.endAnimation) {
+                status = RouteStatus.delayDestory
+                timer = setTimeout(() => {
+                    setStatus(RouteStatus.notMatch)
+                }, animationDuration * 1000)
+            }
         }
-        setAppendClassName(className)
-
+        setStatus(status)
+        return () => {
+            if (timer) {
+                clearTimeout(timer)
+            }
+        }
     }, [isMatch])
 
-    const isDelayDestroy = !!appendClassName
-    const isShow = isMatch || isDelayDestroy
-    return isShow ? (
+    const isShow = nowStatus > RouteStatus.notMatch
+    const appendClassName = isShow && (nowStatus === RouteStatus.matched ? props.startAniamtiojn : props.endAnimation)
+    return  isShow ? (
         (typeof children === 'function' ? children(appendClassName) : children) as React.ReactElement
     ) : null
 }

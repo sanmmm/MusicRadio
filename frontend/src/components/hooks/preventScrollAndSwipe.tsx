@@ -5,7 +5,6 @@ export default function () {
     useEffect(() => {
         if (eleRef.current) {
             const handler = (e) => {
-                e.preventDefault()
                 e.stopPropagation()
             }
             eleRef.current.addEventListener('wheel', handler)
