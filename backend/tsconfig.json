@@ -1,0 +1,26 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "module": "commonjs",
+        "esModuleInterop": true,
+        "target": "es5",
+        "strict": false,
+        "moduleResolution": "node",
+        "sourceMap": true,
+        "lib": [
+            "es7",
+            "es2017.object"
+        ],
+        "outDir": "../build",
+        "baseUrl": ".",
+        "paths": {
+            "root/*": ["./*"]
+        },
+        "experimentalDecorators": true,
+        "strictNullChecks": false,
+        "typeRoots": ["../node_modules/@types"]
+    },
+    "files": ["app.ts",],
+    "include": ["**/*.ts"],
+    "exclude": []
+}

@@ -1,0 +1,45 @@
+{
+  "name": "music-radio",
+  "version": "0.0.1",
+  "description": "Inspired by [SyncMusic](https://github.com/kasuganosoras/SyncMusic)",
+  "scripts": {
+    "dev": "nodemon -e js,mjs,json,ts",
+    "start": "ts-node -r tsconfig-paths/register app.ts",
+    "build": "tsc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:sanmmm/MusicRadio.git"
+  },
+  "keywords": [
+    "music",
+    "radio",
+    "nodejs",
+    "typescript"
+  ],
+  "author": "sanmmm",
+  "license": "MIT",
+  "dependencies": {
+    "@types/express": "^4.17.2",
+    "@types/got": "^9.6.9",
+    "compression": "^1.7.4",
+    "cookie": "^0.4.0",
+    "cookie-parser": "^1.4.4",
+    "express": "^4.17.1",
+    "got": "^9.6.0",
+    "ioredis": "^4.14.1",
+    "socket.io": "^2.3.0",
+    "uuid": "^3.3.3"
+  },
+  "devDependencies": {
+    "@types/ioredis": "^4.14.2",
+    "@types/socket.io": "^2.1.4",
+    "@types/typescript": "^2.0.0",
+    "cheerio": "^1.0.0-rc.3",
+    "form-data": "^3.0.0",
+    "nodemon": "^1.19.4",
+    "ts-node": "^8.5.2",
+    "tsconfig-paths": "^3.9.0",
+    "typescript": "^3.7.2"
+  }
+}
