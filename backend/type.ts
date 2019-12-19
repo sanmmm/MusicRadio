@@ -34,7 +34,7 @@ export enum ClientListenSocketEvents {
     addPlayListItems = 'addPlayListItems',
     movePlayListItems = 'movePlayListItems',
     deletePlayListItems = 'deletePlayListItems',
-    blockPlayListItem = 'blockPlayListItem',
+    blockPlayListItems = 'blockPlayListItems',
     recieveRoomList = 'recieveRoomList',
     userInfoChange = 'userInfoChange',
     notification = 'notification',
@@ -54,8 +54,10 @@ export enum ServerListenSocketEvents {
     blockUserIp = 'blockUserIp', // 封禁ip
     revokeAction = 'revokeAction', // 管理员撤回操作
     createRoom = 'createRoom',
+    destroyRoom = 'destroyRoom',
     joinRoom = 'joinRoom',
     quitRoom = 'quitRoom',
+    loadRoomData = 'loadRoomData',
 }
 
 export interface StaticModelClass<T = any> {
@@ -78,9 +80,12 @@ export interface ModelBase {
 export interface UserModel extends ModelBase {
     nowRoomId: string;
     ip: string;
+    blockPlayItems: string[]; // 用户个人屏蔽的音乐id列表
 }
 
 export interface RoomModel extends ModelBase {
+    creator: string; // 创建者id
+    isPublic: boolean;
     isHallRoom: boolean; // 是否为大厅
     max: number;
     heat: number;
@@ -99,7 +104,41 @@ export interface RoomModel extends ModelBase {
             nickName: string;
         };
     };
+    joiners: string[];
     banUsers: string[];
     blockIps: string[];
     blockUsers: string[];
+    messageHistory: MessageItem[];
+    playList: PlayListItem[]
+}
+
+export enum MessageTypes {
+    notice, // 系统通知
+    advanced, // 高级弹幕， 房管，或超级管理员所发
+    normal, // 普通消息
+    emoji, // 表情消息
+    notification, // 系统响应
+}
+
+export interface MessageItem {
+    id: string;
+    fromId?: string;
+    from: string;
+    tag?: string; // [tag][message]
+    content: {
+        text?: string;
+        title?: string;
+        img?: string;
+    };
+    time: string;
+    type: MessageTypes;
+}
+
+export interface PlayListItem {
+    id: string; // 歌曲id
+    name: string; // 歌名
+    artist: string; // 演唱者
+    album: string; // 专辑
+    duration: number; // 时长
+    from: string; // 点歌人
 }

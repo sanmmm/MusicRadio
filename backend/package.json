@@ -29,15 +29,19 @@
     "got": "^9.6.0",
     "ioredis": "^4.14.1",
     "socket.io": "^2.3.0",
+    "socket.io-emitter": "^3.1.1",
+    "socket.io-redis": "^5.2.0",
     "uuid": "^3.3.3"
   },
   "devDependencies": {
     "@types/ioredis": "^4.14.2",
     "@types/socket.io": "^2.1.4",
+    "@types/socket.io-emitter": "^3.1.0",
     "@types/typescript": "^2.0.0",
     "cheerio": "^1.0.0-rc.3",
     "form-data": "^3.0.0",
     "nodemon": "^1.19.4",
+    "socket.io-emitter": "^3.1.1",
     "ts-node": "^8.5.2",
     "tsconfig-paths": "^3.9.0",
     "typescript": "^3.7.2"

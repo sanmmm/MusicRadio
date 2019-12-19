@@ -5,7 +5,8 @@ import cookieParser from 'cookie-parser'
 import cookie from 'cookie'
 
 import settings from 'root/settings'
-import {SessionTypes} from 'root/type'
+import {User} from 'root/lib/models'
+import {SessionTypes, UserModel} from 'root/type'
 const tokenHeaderName = 'my-app-certification-token'
 
 const getIp = (str) => {
@@ -15,8 +16,8 @@ const getIp = (str) => {
     return str
 }
 
-export default function session (type: SessionTypes = SessionTypes.cookie) {
-    return (req: express.Request | socketIo.Socket['request'], next: Function) => {
+export default  function session (type: SessionTypes = SessionTypes.cookie) {
+    return async (req: express.Request | socketIo.Socket['request'], next: Function) => {
         console.log('inner session middleware')
         let sessionId = ''
         const ipAddress = getIp(req.socket.remoteAddress)
@@ -33,8 +34,23 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
             sessionId = req.headers[tokenHeaderName] as string
         }
         console.log(sessionId)
+        let userDoc: UserModel = null
+        if (sessionId) {
+            let userDoc = await User.findOne(sessionId)
+            if (!userDoc) {
+                userDoc = new User({
+                    id: sessionId,
+                    ip: ipAddress,
+                })
+            }
+            userDoc.ip = ipAddress
+            await userDoc.save()
+        }
         req.session = {
             id: sessionId,
+            ip: ipAddress,
+            user: userDoc,
+            isAuthenticated: !!userDoc
         }
         next()
     }

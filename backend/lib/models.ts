@@ -1,13 +1,15 @@
 import uuid from 'uuid/v4'
 
 import settings from 'root/settings'
+import {isSuperAdmin} from 'root/lib/utils'
 import redisCli from 'root/lib/redis'
-import {UserModel, RoomModel, ModelBase, StaticModelClass} from 'root/type'
+import {UserModel, RoomModel, ModelBase, StaticModelClass, MessageItem, PlayListItem} from 'root/type'
 
 class BaseModel {
     id: string;
+    private isInit: boolean = true;
     constructor (obj = {}) {
-        Object.assign(this, {})
+        Object.assign(this, obj)
     }
     static generateKey (id: string) {
         return `musicradio-modelid:${id}`
@@ -49,6 +51,13 @@ class BaseModel {
         if (!this.id) {
             this.id = uuid().replace(/-/g, '')
         }
+        if (this.isInit) {
+            const hasExisted = redisCli.exists(this.id)
+            if (hasExisted) {
+                throw new Error(`duplicated id: ${this.id}`)
+            }
+            this.isInit = false
+        }
         await redisCli.set(BaseModel.generateKey(this.id), JSON.stringify(this))
         return this
     }
@@ -68,14 +77,17 @@ function defineModel<T> (model: StaticModelClass<T>) {
 class UserModelDef extends BaseModel implements UserModel {
     nowRoomId: string;
     ip: string;
+    blockPlayItems: string[] = [];
 }
 
 export const User = defineModel<UserModelDef>(UserModelDef)
 
 class RoomModelDef extends BaseModel implements RoomModel{
-    isHallRoom: boolean; // 是否为大厅
+    creator: string;
+    isPublic: boolean = true;
+    isHallRoom: boolean = false; // 是否为大厅
     max: number;
-    heat: number;
+    heat: number = 1;
     name: string;
     nowPlayingInfo: {
         name: string;
@@ -91,9 +103,31 @@ class RoomModelDef extends BaseModel implements RoomModel{
             nickName: string;
         };
     };
-    banUsers: string[];
-    blockIps: string[];
-    blockUsers: string[];
+    joiners: string[] = [];
+    banUsers: string[] = [];
+    blockIps: string[] = [];
+    blockUsers: string[] = [];
+    messageHistory: MessageItem[] = [];
+    playList: PlayListItem[] = [];
+
+    join (user: UserModel) {
+        const isAdmin = isSuperAdmin(user)
+        if (!isAdmin) {
+            if (this.heat === this.max) {
+                throw new Error('房间超员')
+            }
+            this.heat ++
+        }
+        this.joiners = Array.from(new Set(this.joiners).add(user.id))
+    }
+
+    quit (user: UserModel) {
+        const findIndex = this.joiners.indexOf(user.id)
+        if (findIndex > -1) {
+            this.joiners.splice(findIndex, 1)
+            !isSuperAdmin(user) && this.heat--
+        }
+    }
 }
 
 export const Room = defineModel<RoomModelDef>(RoomModelDef)
