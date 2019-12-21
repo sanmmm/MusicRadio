@@ -3,7 +3,7 @@ import uuid from 'uuid/v4'
 import settings from 'root/settings'
 import {isSuperAdmin} from 'root/lib/utils'
 import redisCli from 'root/lib/redis'
-import {UserModel, RoomModel, ModelBase, StaticModelClass, MessageItem, PlayListItem} from 'root/type'
+import {UserModel, RoomModel, ModelBase, StaticModelClass, MessageItem, PlayListItem, AdminAction, RoomStatus} from 'root/type'
 
 class BaseModel {
     id: string;
@@ -75,15 +75,18 @@ function defineModel<T> (model: StaticModelClass<T>) {
 }
 
 class UserModelDef extends BaseModel implements UserModel {
+    isSuperAdmin: boolean = false;
     nowRoomId: string;
     ip: string;
     blockPlayItems: string[] = [];
+    allowComment = true;
 }
 
 export const User = defineModel<UserModelDef>(UserModelDef)
 
 class RoomModelDef extends BaseModel implements RoomModel{
     creator: string;
+    status: RoomStatus = RoomStatus.created;
     isPublic: boolean = true;
     isHallRoom: boolean = false; // 是否为大厅
     max: number;
@@ -109,6 +112,7 @@ class RoomModelDef extends BaseModel implements RoomModel{
     blockUsers: string[] = [];
     messageHistory: MessageItem[] = [];
     playList: PlayListItem[] = [];
+    adminActions: AdminAction[] = [];
 
     join (user: UserModel) {
         const isAdmin = isSuperAdmin(user)

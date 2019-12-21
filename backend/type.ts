@@ -1,8 +1,11 @@
-interface Session {
+export interface Session {
     id: string;
     ip: string;
     isAuthenticated: boolean;
-    user?: UserModel
+    user?: UserModel;
+    login: (user: UserModel) => Promise<any>;
+    logOut: () => Promise<any>;
+    getUser: () => Promise<UserModel>;
 }
 
 declare global {
@@ -38,7 +41,8 @@ export enum ClientListenSocketEvents {
     recieveRoomList = 'recieveRoomList',
     userInfoChange = 'userInfoChange',
     notification = 'notification',
-    updateUserStatus = 'updateUserStatus',
+    updateSocketStatus = 'updateSocketStatus',
+    createRoomSuccess = 'createRoomSuccess'
 }
 
 export enum ServerListenSocketEvents {
@@ -49,7 +53,7 @@ export enum ServerListenSocketEvents {
     movePlayListItems = 'movePlayListItems',
     deletePlayListItems = 'deletePlayListItems',
     blockPlayListItem = 'blockPlayListItem',
-    banUser = 'banUser', // 禁言
+    banUserComment = 'banUserComment', // 禁言
     blockUser = 'blockUser', // 封禁用户
     blockUserIp = 'blockUserIp', // 封禁ip
     revokeAction = 'revokeAction', // 管理员撤回操作
@@ -78,13 +82,17 @@ export interface ModelBase {
 }
 
 export interface UserModel extends ModelBase {
+    isSuperAdmin: boolean;
+    name?: string;
     nowRoomId: string;
     ip: string;
     blockPlayItems: string[]; // 用户个人屏蔽的音乐id列表
+    allowComment: boolean;
 }
 
 export interface RoomModel extends ModelBase {
     creator: string; // 创建者id
+    status: RoomStatus; // 
     isPublic: boolean;
     isHallRoom: boolean; // 是否为大厅
     max: number;
@@ -109,7 +117,14 @@ export interface RoomModel extends ModelBase {
     blockIps: string[];
     blockUsers: string[];
     messageHistory: MessageItem[];
-    playList: PlayListItem[]
+    playList: PlayListItem[];
+    adminActions: AdminAction[];
+}
+
+export enum RoomStatus {
+    created, // 初始化, 但尚没有人加入
+    active, // 当创建者加入时为激活状态
+    willDestroy, // 等待被销毁 (创建者被动断开连接超过一定时间，房间会被销毁)
 }
 
 export enum MessageTypes {
@@ -139,6 +154,39 @@ export interface PlayListItem {
     name: string; // 歌名
     artist: string; // 演唱者
     album: string; // 专辑
-    duration: number; // 时长
+    duration: number; // 时长  ms
     from: string; // 点歌人
+}
+
+export enum MediaTypes {
+    song = 1, // 单曲
+    album, // 专辑
+}
+
+export enum ScoketStatus {
+    connected,
+    invalid,
+    roomBlocked,
+    globalBlocked,
+    closed,
+}
+
+export enum AdminActionTypes {
+    blockUser,
+    blockIp,
+    banUserComment,
+}
+
+export interface AdminAction {
+    id: string;
+    type: AdminActionTypes;
+    operator: string;
+    operatorName: string;
+    isSuperAdmin: boolean;
+    room: string;
+    time: string | number;
+    detail: {
+        ip?: string;
+        userId?: string;
+    };
 }

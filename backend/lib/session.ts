@@ -6,7 +6,8 @@ import cookie from 'cookie'
 
 import settings from 'root/settings'
 import {User} from 'root/lib/models'
-import {SessionTypes, UserModel} from 'root/type'
+import redisCli from 'root/lib/redis'
+import {SessionTypes, UserModel, Session as SessionDef} from 'root/type'
 const tokenHeaderName = 'my-app-certification-token'
 
 const getIp = (str) => {
@@ -14,6 +15,52 @@ const getIp = (str) => {
         str = str.replace('::ffff:', '')
     }
     return str
+}
+
+class Session implements SessionDef {
+    static sessionToUserIdKey (sessioId: string) {
+        return `musicradio:sessiontosuer:${sessioId}`
+    }
+    id: string;
+    ip: string;
+    isAuthenticated: boolean = false;
+    user: UserModel;
+    constructor (obj: Partial<Session>) {
+        Object.assign(this, obj)
+    }
+    async login (user: UserModel) {
+        if (!this.id) {
+            throw new Error('invalid session id')
+        }
+        const redisKey = Session.sessionToUserIdKey(this.id)
+        await redisCli.safeSet(redisKey, user.id, 3600 * 24 * 7)
+    }
+    async logOut () {
+        if (!this.id) {
+            throw new Error('invalid session id')
+        }
+        const redisKey = Session.sessionToUserIdKey(this.id)
+        await redisCli.del(redisKey)
+    }
+    async getUser () {
+        if (!this.id) {
+            return
+        }
+        const redisKey = Session.sessionToUserIdKey(this.id)
+        const userId = (await redisCli.safeGet(redisKey)) || this.id
+        let user = await User.findOne(userId)
+        if (!user) {
+            user = new User({
+                id: userId,
+                ip: this.ip,
+            })
+        }
+        user.ip = this.ip
+        await user.save()
+        this.user = user
+        this.isAuthenticated = !!this.user
+        return this.user
+    }
 }
 
 export default  function session (type: SessionTypes = SessionTypes.cookie) {
@@ -34,24 +81,13 @@ export default  function session (type: SessionTypes = SessionTypes.cookie) {
             sessionId = req.headers[tokenHeaderName] as string
         }
         console.log(sessionId)
-        let userDoc: UserModel = null
-        if (sessionId) {
-            let userDoc = await User.findOne(sessionId)
-            if (!userDoc) {
-                userDoc = new User({
-                    id: sessionId,
-                    ip: ipAddress,
-                })
-            }
-            userDoc.ip = ipAddress
-            await userDoc.save()
-        }
-        req.session = {
+        const session = new Session({
             id: sessionId,
             ip: ipAddress,
-            user: userDoc,
-            isAuthenticated: !!userDoc
-        }
+            isAuthenticated: false,
+        })
+        await session.getUser()
+        req.session = session
         next()
     }
 }
