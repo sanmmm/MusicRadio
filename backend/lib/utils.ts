@@ -45,14 +45,19 @@ export function hideIp(ip: string) {
     return ip.replace(/(^[0-9a-f]+)|([0-9a-f]+$)/g, '**')
 }
 
-export function safePushArrItem(arr: Array<any>, item: any) {
-    return Array.from(new Set(arr).add(item))
+export function safePushArrItem(arr: Array<any>, item: any | any[]) {
+    const set = new Set(arr)
+    item instanceof Array ? item.forEach(i => set.add(i)) : set.add(item)
+    return Array.from(set)
 }
 
-export function safeRemoveArrItem(arr: Array<any>, item: any) {
-    const findIndex = arr.indexOf(item)
-    if (findIndex > -1) {
-        arr.splice(findIndex, 1)
-    }
-    return arr
+export function safeRemoveArrItem(arr: Array<any>, item: any | any[]) {
+    const newArr = []
+    const delSet = new Set(item instanceof Array ? item : [item])
+    arr.forEach(i => {
+        if (!delSet.has(i)) {
+            newArr.push(i)
+        }
+    })
+    return newArr
 }

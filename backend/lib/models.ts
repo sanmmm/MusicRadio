@@ -7,7 +7,7 @@ import {UserModel, RoomModel, ModelBase, StaticModelClass, MessageItem, PlayList
 
 class BaseModel {
     id: string;
-    private isInit: boolean = true;
+    protected isInit: boolean = true;
     constructor (obj = {}) {
         Object.assign(this, obj)
     }
@@ -17,12 +17,12 @@ class BaseModel {
     static async find (ids: string[]) {
         ids = ids.map(BaseModel.generateKey)
         const dataArr = (await redisCli.mget(...ids)) || []
-        return dataArr.map(str => str && new BaseModel().fromJson(str) as any)
+        return dataArr.map(str => str && this.fromJson(str) as any)
     }
     static async findOne (id: string) {
         id = BaseModel.generateKey(id)
         const dataStr = await redisCli.get(id)
-        return dataStr && new BaseModel().fromJson(dataStr) as any
+        return dataStr && this.fromJson(dataStr) as any
     }
     static async delete (ids: string[]) {
         ids = ids.map(BaseModel.generateKey)
@@ -41,8 +41,8 @@ class BaseModel {
         await redisCli.mset(map)
         return updatedItems
     }
-    fromJson (jsonStr: string) { 
-        return new BaseModel(JSON.parse(jsonStr)) as this
+    static fromJson (str: string) {
+        return new this(JSON.parse(str))
     }
     toJson () {
         return JSON.stringify(this)
@@ -70,8 +70,8 @@ class BaseModel {
     }
 }
 
-function defineModel<T> (model: StaticModelClass<T>) {
-    return model
+function defineModel <U, T extends StaticModelClass<U>> (m: T) {
+    return m as (StaticModelClass<U> & T)
 }
 
 class UserModelDef extends BaseModel implements UserModel {
@@ -82,23 +82,27 @@ class UserModelDef extends BaseModel implements UserModel {
     allowComment = true;
 }
 
-export const User = defineModel<UserModelDef>(UserModelDef)
+export const User = defineModel<UserModelDef, typeof UserModelDef>(UserModelDef)
 
-class RoomModelDef extends BaseModel implements RoomModel{
+class RoomModelDef extends BaseModel implements RoomModel {
     creator: string;
-    status: RoomStatus = RoomStatus.created;
+    status: RoomStatus = RoomStatus.active;
     isPublic: boolean = true;
     isHallRoom: boolean = false; // 是否为大厅
     max: number;
     heat: number = 1;
     name: string;
     nowPlayingInfo: {
+        id: string;
         name: string;
         artist: string;
         src: string;
         lyric: string;
         pic: string;
         isPaused: boolean;
+        duration: number;
+        progress: number; // 用小数来表示播放进度的百分比
+        endAt: number; // timestamp 秒
         comment: {
             content: string;
             userId: number;
@@ -113,6 +117,29 @@ class RoomModelDef extends BaseModel implements RoomModel{
     messageHistory: MessageItem[] = [];
     playList: PlayListItem[] = [];
     adminActions: AdminAction[] = [];
+
+    static getRoomListKey () {
+        return 'musicradio:roomlist'
+    }
+
+    static async getRoomIdList () {
+        return redisCli.smembers(this.getRoomListKey())
+    }
+
+    async save () {
+        let isInit = this.isInit
+        const res = await super.save()
+        if (isInit && this.id !== hallRoomId) {
+            await redisCli.sadd(Room.getRoomListKey(), this.id)
+        }
+        return res
+    }
+
+    async remove () {
+        const res = await super.remove()
+        await redisCli.srem(Room.getRoomListKey(), this.id)
+        return res
+    }
 
     join (user: UserModel) {
         const isAdmin = isSuperAdmin(user)
@@ -134,4 +161,4 @@ class RoomModelDef extends BaseModel implements RoomModel{
     }
 }
 
-export const Room = defineModel<RoomModelDef>(RoomModelDef)
+export const Room = defineModel<RoomModelDef, typeof RoomModelDef>(RoomModelDef)

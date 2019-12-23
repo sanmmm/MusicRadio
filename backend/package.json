@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "nodemon -e js,mjs,json,ts",
     "start": "ts-node -r tsconfig-paths/register app.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "ts-node tes.ts"
   },
   "repository": {
     "type": "git",

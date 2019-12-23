@@ -18,7 +18,6 @@
         },
         "experimentalDecorators": true,
         "strictNullChecks": false,
-        "typeRoots": ["../node_modules/@types"]
     },
     "files": ["app.ts",],
     "include": ["**/*.ts"],

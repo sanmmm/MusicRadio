@@ -3,15 +3,19 @@ import socketIoRedis from 'socket.io-redis'
 import socketIoEmitter from 'socket.io-emitter'
 
 import settings from 'root/settings'
-import redisCli from 'root/lib/redis'
 import session from 'root/lib/session'
 import { User, Room } from 'root/lib/models'
+import * as NetEaseApi from 'root/lib/api'
+import * as CronTask from 'root/lib/taskCron'
+import redisCli from 'root/lib/redis'
+import BlockMusicList from 'root/config/blockMusic'
+import emojiData from 'root/config/emojiData'
 import {
     SessionTypes, ServerListenSocketEvents, ClientListenSocketEvents, UserModel, RoomModel,
-    MessageItem, PlayListItem, ScoketStatus, MessageTypes, AdminAction, AdminActionTypes, RoomStatus
+    MessageItem, PlayListItem, ScoketStatus, MessageTypes, AdminAction, AdminActionTypes, RoomStatus,
+    MediaTypes, CronTaskTypes
 } from 'root/type'
 import { catchError, isSuperAdmin, hideIp, safePushArrItem, safeRemoveArrItem } from 'root/lib/utils'
-import emojiData from 'root/emojiData'
 
 const socketEmiiter = socketIoEmitter({ host: settings.redisHost, port: settings.redisPort })
 
@@ -37,6 +41,253 @@ const IpToUsersMap: {
     [ip: string]: string[]
 } = {}
 
+namespace ListenSocket {
+    type Handler = (socket: socketIo.Socket, ...args: any) => any
+    const map = new Map<string, Set<Handler>>() 
+    export function register(event: ServerListenSocketEvents) {
+        return (target, propertyName: string, descriptor: PropertyDescriptor) => {
+            const func: Handler = descriptor.value
+            let funcSet = map.get(event)
+            if (!funcSet) {
+                funcSet = new Set()
+                map.set(event, funcSet)
+            }
+            funcSet.add(func)
+            return func as TypedPropertyDescriptor<Handler>
+        }
+    }
+
+    export function listen (socket: socketIo.Socket) {
+        map.forEach((funcSet, event) => {
+            funcSet.forEach(handler => {
+                socket.on(event, handler)
+            })
+        })
+    } 
+}
+
+namespace ModelUtils {
+    export async function destroyRoom (room: RoomModel) {
+        const joiners = await User.update(room.joiners, (item) => {
+            item.nowRoomId = null
+            item.allowComment = true
+            return item
+        })
+        await room.remove()
+        return joiners
+    }
+}
+
+namespace DestroyRoom {
+    const getRoomRecordKey = (roomId: string) => {
+        return `musicraio:roomdestroy:${roomId}`
+    }
+
+    interface DestroyRecord {
+        cronJobId: string;
+        prevRoomStatus: RoomStatus;
+    }
+
+    interface cronData {
+        roomId: string
+    }   
+    class UtilFunc {
+        @catchError
+        static async handleDestroy (data: cronData) {
+            const {roomId} = data
+            const room = await Room.findOne(roomId)
+            const joiners = await ModelUtils.destroyRoom(room)
+            Actions.notification(joiners, '该房间已被销毁')
+            Actions.userInfoChange(joiners)
+        }
+    }
+
+    CronTask.listen(CronTaskTypes.destroyRoom, UtilFunc.handleDestroy)
+
+    export async function destroy (room: RoomModel) {
+        const cronData: cronData = {
+            roomId: room.id
+        }
+        const expire = 60 * 5
+        const redisKey = getRoomRecordKey(room.id)
+        
+        const oldJobRecord: DestroyRecord = JSON.parse(await redisCli.safeGet(redisKey))
+        if (oldJobRecord) {
+            await CronTask.cancelCaronTask(oldJobRecord.cronJobId)
+            await redisCli.del(redisKey)
+        }
+        const jobId = await CronTask.pushCronTask(CronTaskTypes.destroyRoom, cronData, expire)
+        await redisCli.safeSet(redisKey, JSON.stringify({
+            cronJobId: jobId,
+            prevRoomStatus: room.status
+        } as DestroyRecord), expire)
+        room.status = RoomStatus.willDestroy
+        await room.save()
+        return room
+    }
+
+    export async function cancelDestroy (room: RoomModel) {
+        if (room.status !== RoomStatus.willDestroy) {
+            return
+        } 
+        const redisKey = getRoomRecordKey(room.id)
+        const record: DestroyRecord = JSON.parse(await redisCli.get(redisKey))
+        if (!record) {
+            return
+        }
+        await CronTask.cancelCaronTask(record.cronJobId)
+        await redisCli.del(redisKey)
+        room.status = record.prevRoomStatus
+        await room.save()
+        return room
+    }
+}
+
+namespace ManageRoomPlaying {
+    interface CronJobData {
+        roomId: string;
+    }
+
+    const getRoomToJobIdKey = (roomId: string) => `musicradio:playing:${roomId}`
+    
+    class UtilFunc {
+        // 上一首播放结束后按照播放列表自动切换
+        @catchError
+        static async handleSwitchPlaying (data: CronJobData) {
+            const {roomId} = data
+            const room = await Room.findOne(roomId)
+            const leftPlayList = room.playList
+            leftPlayList.shift()
+            room.nowPlayingInfo = null
+            await room.save()
+            if (!leftPlayList.length) {
+                console.log(`房间: ${room.id}列表播放结束`)
+                return
+            }
+            await startPlaying(room)
+        }
+
+    }
+
+    async function setSwitchMusicCronJob (room: RoomModel) {
+        const jobIdRedisKey = getRoomToJobIdKey(room.id)
+        const oldJobId = await redisCli.get(jobIdRedisKey)
+        if (oldJobId) {
+            await CronTask.cancelCaronTask(oldJobId)
+            await redisCli.del(jobIdRedisKey)
+        }
+        
+        const {progress, duration} = room.nowPlayingInfo
+        const leftSecond = (1 - progress) * duration
+        const data: CronJobData = {
+            roomId: room.id,
+        }
+        // 播放进度为100% 或极度接近100%, 结束播放
+        if (leftSecond < 0.3) {
+            UtilFunc.handleSwitchPlaying(data)
+            return
+        }
+        const newlyjobId = await CronTask.pushCronTask(CronTaskTypes.cutMusic, data, leftSecond)
+        await redisCli.safeSet(jobIdRedisKey, newlyjobId, leftSecond)
+    }
+
+    async function cancelSwitchMusicJob (room: RoomModel) {
+        const jobIdRedisKey = getRoomToJobIdKey(room.id)
+        const jobId = await redisCli.safeGet(jobIdRedisKey)
+        if (!jobId) {
+            return
+        }
+        await CronTask.cancelCaronTask(jobId)
+        await redisCli.del(jobIdRedisKey)
+    }
+
+    CronTask.listen<CronJobData>(CronTaskTypes.cutMusic, UtilFunc.handleSwitchPlaying)
+
+    export async function getPlayItemDetailInfo (playItemId: string) {
+        const [musicInfo] = await NetEaseApi.getMusicInfo([playItemId])
+        const {id, name, artist, lyric, src, pic, duration, comments} = musicInfo
+        let selectedComment = null, lineCount = 0
+        comments.forEach((c, index) => { // 选取换行符最少的评论
+            const nowLineCount = c.content.split('\n').length
+            if (index === 0 || nowLineCount < lineCount) {
+                selectedComment = c
+                selectedComment.content = c.content.replace(/\n/g, ' ')
+                lineCount = nowLineCount
+            }
+        })
+        const comment = selectedComment;
+        const nowPlayingInfo: RoomModel['nowPlayingInfo'] = {
+            isPaused: true,
+            id,
+            name,
+            artist,
+            lyric,
+            src,
+            pic,
+            progress: 0,
+            duration,
+            endAt: null,
+            comment,
+        }
+        return nowPlayingInfo
+    }
+
+    export async function startPlaying (room: RoomModel) {
+        let nowPlayingInfo: RoomModel['nowPlayingInfo'] = room.nowPlayingInfo
+        if (!nowPlayingInfo) {
+            if (!room.playList.length) {
+                console.log(`当前房间:${room.id}播放内容为空！`)
+                return
+            }
+            nowPlayingInfo = await getPlayItemDetailInfo(room.playList[0].id)
+            room.nowPlayingInfo = nowPlayingInfo
+            await room.save()
+        }
+        if (!nowPlayingInfo.isPaused) {
+            return
+        }
+        
+        const {duration, progress = 0} = nowPlayingInfo
+        const endAt = Date.now() / 1000 + (duration * progress)
+        room.nowPlayingInfo.endAt = endAt
+        room.nowPlayingInfo.isPaused = true
+        await room.save()
+        await setSwitchMusicCronJob(room)
+        Actions.sendNowRoomPlayingInfo(room, room.joiners)
+    }
+
+    export async function pausePlaying (room: RoomModel) {
+        await cancelSwitchMusicJob(room)
+        const {duration, endAt} = room.nowPlayingInfo
+        const leftTime = endAt - Date.now() / 1000
+        if (leftTime < 0) {
+            throw new Error('invalid expireAt')
+        }
+        Object.assign(room.nowPlayingInfo, {
+            isPaused: true,
+            progress: ((duration - leftTime) / duration).toFixed(2),
+        })
+        await room.save()
+        Actions.sendNowRoomPlayingInfo(room, room.joiners)
+    }
+
+    export async function changePlayingProgress (room: RoomModel, progressRate: number) {
+        if (progressRate > 1 || progressRate < 0) {
+            throw new Error('invalid progress rate')
+        }
+        await cancelSwitchMusicJob(room)
+        room.nowPlayingInfo.progress = progressRate
+        await room.save()
+        if (!room.nowPlayingInfo.isPaused) {
+            const {progress, duration} = room.nowPlayingInfo
+            room.nowPlayingInfo.endAt = Date.now() / 1000 + progress * duration
+            await room.save()
+            await setSwitchMusicCronJob(room)
+        }
+        Actions.sendNowRoomPlayingInfo(room, room.joiners)
+    }
+}
+
 class Actions {
     static usersToSocketIds(users: (UserModel | string)[]) {
         return users.map(user => UserToSocketIdMap[typeof user === 'string' ? user : user.id])
@@ -53,16 +304,6 @@ class Actions {
             data: room.nowPlayingInfo
         }
         Actions.emit(users, ClientListenSocketEvents.recieveNowPlayingInfo, sendData)
-    }
-    @catchError
-    static async pausePlaying(users: (UserModel | string)[]) {
-        Actions.emit(users, ClientListenSocketEvents.pausePlaying, {
-        })
-    }
-    @catchError
-    static async startPlaying(users: (UserModel | string)[]) {
-        Actions.emit(users, ClientListenSocketEvents.startPlaying, {
-        })
     }
     @catchError
     static async addChatListMessages(users: (UserModel | string)[], messages: MessageItem[]) {
@@ -83,34 +324,45 @@ class Actions {
         })
     }
     @catchError
-    static async movePlayListItem(users: (UserModel | string)[], data: { fromId: string; toId: string }) {
-        Actions.emit(users, ClientListenSocketEvents.movePlayListItems, {
+    static async movePlayListItem(users: (UserModel | string)[], data: { fromIndex: number; toIndex: number }) {
+        Actions.emit(users, ClientListenSocketEvents.movePlayListItem, {
             data
         })
     }
     @catchError
-    static async blockPlayListItems(users: (UserModel | string)[], ids: string[]) {
-        Actions.emit(users, ClientListenSocketEvents.blockPlayListItems, {
-            data: ids
+    static async sendSearchResult (users: (UserModel | string)[], data: { actionId: string; list: any[] }) {
+        Actions.emit(users, ClientListenSocketEvents.searchMediaResult, {
+            data: data.list,
+            actionId: data.actionId,
         })
     }
+
+    @catchError
+    static async sendMediaDetail (users: (UserModel | string)[], data: { actionId: string; detail: any }) {
+        Actions.emit(users, ClientListenSocketEvents.updateMediaDetail, {
+            data: data.detail,
+            actionId: data.actionId,
+        })
+    }
+    
     @catchError
     static async recommendRoomList(users: (UserModel | string)[], data: any[]) {
-        Actions.emit(users, ClientListenSocketEvents.recieveRoomList, {
+        Actions.emit(users, ClientListenSocketEvents.updatRecommenedRoomList, {
             data
         })
     }
+    
     @catchError
     static async createRoomSuccess (user: (UserModel | string), roomId: string) {
         Actions.emit([user], ClientListenSocketEvents.createRoomSuccess, {
             data: roomId
         })
     }
-
+    
     @catchError
     static async userInfoChange(users: UserModel[], appendInfo: Object = {}) {
         users.forEach(user => {
-            Actions.emit([user], ClientListenSocketEvents.userInfoChange, {
+            Actions.emit([user], ClientListenSocketEvents.updateUserInfo, {
                 data: {
                     ...user,
                     ...appendInfo
@@ -118,14 +370,14 @@ class Actions {
             })
         })
     }
-
+    
     @catchError
     static async notification (users: (UserModel | string)[], msg: string) {
-        Actions.emit(users, ClientListenSocketEvents.userInfoChange, {
+        Actions.emit(users, ClientListenSocketEvents.updateUserInfo, {
             data: msg
         })
     }
-
+    
     @catchError
     static async updateSocketStatus (socketIds: string[], status: ScoketStatus) {
         socketIds.forEach(id => {
@@ -134,9 +386,46 @@ class Actions {
             })
         })
     }
+
+    @catchError
+    static async updateEmojiList (users: (UserModel | string)[], emojiList: any[]) {
+        Actions.emit(users, ClientListenSocketEvents.updateUserInfo, {
+            data: emojiList
+        })
+    }
 }
 
 class Handler {
+    @catchError
+    static async connected (socket: socketIo.Socket) {
+        const {user, user: {id: userId}, ip} = socket.session
+        const prevUserSocketId = UserToSocketIdMap[userId]
+        UserToSocketIdMap[userId] = socket.id
+        if (prevUserSocketId) {
+            Actions.updateSocketStatus([prevUserSocketId], ScoketStatus.closed)
+        }
+
+        if (!isSuperAdmin(user) ) {
+            const hallRoom = await Room.findOne(hallRoomId)
+            if (hallRoom.blockIps.includes(ip) || hallRoom.blockUsers.includes(userId)) {
+                return Actions.updateSocketStatus([socket.id], ScoketStatus.globalBlocked)
+            }
+            if (user.nowRoomId) {
+                const room = await Room.findOne(user.nowRoomId)
+                if (user.id === room.creator && room.status === RoomStatus.willDestroy) {
+                    // 房间创建者在一定时间内断线重连，则取消自动销毁房间的定时任务
+                    await DestroyRoom.cancelDestroy(room)
+                }
+                if (room.blockIps.includes(ip) || room.blockUsers.includes(userId)) {
+                    return Actions.updateSocketStatus([socket.id], ScoketStatus.roomBlocked)
+                }
+            }
+        }
+        Actions.updateSocketStatus([socket.id], ScoketStatus.connected)
+        
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.disconnect)
     @catchError
     static async disConnect(socket: socketIo.Socket, reason: string) {
         const { user: reqUser } = socket.session
@@ -148,7 +437,8 @@ class Handler {
         if (reqUser.nowRoomId) {
             const room = await Room.findOne(reqUser.nowRoomId)
             if (room.creator === reqUser.id) {
-                // TODO
+                // 定时任务: 如果房间创建者没有重新上线, 五分钟后销毁房间
+                await DestroyRoom.destroy(room)
             } else {
                 room.quit(reqUser)
                 await room.save()
@@ -158,6 +448,7 @@ class Handler {
         }
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.joinRoom)
     @catchError
     static async handleJoinRoom(socket: socketIo.Socket, msg: { roomId: string }) {
         const reqUser = socket.session.user
@@ -183,11 +474,13 @@ class Handler {
         } else if (room.heat === room.max) {
             errMsg = '该房间已满员'
         }
-        if (room.status === RoomStatus.created) {
+
+        const isInitial = room.joiners.length === 0
+        if (isInitial) {
             if (reqUser.id !== room.creator) {
                 errMsg = '该房间尚未开放'
             } else {
-                room.status = RoomStatus.active
+                await DestroyRoom.cancelDestroy(room)
             }
         }
         if (errMsg) {
@@ -203,6 +496,7 @@ class Handler {
         Actions.userInfoChange([reqUser])
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.getRoomData)
     @catchError
     static async loadRoomData(socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
@@ -216,6 +510,7 @@ class Handler {
         Actions.addPlayListItems([reqUser], room.playList)
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.createRoom)
     @catchError
     static async createRoom(socket: SocketIO.Socket, msg: {
         name: string;
@@ -232,9 +527,12 @@ class Handler {
         })
         await room.save()
         Actions.createRoomSuccess(reqUser, room.id)
+        // 初始化好的房间 如果在一定时间内（暂定为5分钟）创建者没有加入，则自动销毁
+        await DestroyRoom.destroy(room)
         // TODO
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.destroyRoom)
     @catchError
     static async destroyRoom(socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
@@ -243,17 +541,13 @@ class Handler {
         if (!isSuperAdmin(reqUser) || room.creator !== reqUser.id) {
             throw new Error('越权操作')
         }
-        const joiners = await User.update(room.joiners, (item) => {
-            item.nowRoomId = null
-            item.allowComment = true
-            return item
-        })
-        await room.remove()
+        const joiners = await ModelUtils.destroyRoom(room)
         Actions.userInfoChange(joiners)
         Actions.notification([reqUser], '房间删除成功!')
         Actions.notification(room.joiners.filter(id => id !== reqUser.id), '房间已被管理员销毁')
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.quitRoom)
     @catchError
     static async quitRoom (socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
@@ -273,6 +567,7 @@ class Handler {
       
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.pausePlaying)
     @catchError
     static async pausePlaying(socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
@@ -281,11 +576,10 @@ class Handler {
         if (!isSuperAdmin(reqUser) && room.creator !== reqUser.id) {
             throw new Error('越权操作')
         }
-        room.nowPlayingInfo.isPaused = true
-        await room.save()
-        Actions.pausePlaying(room.joiners)
+        await ManageRoomPlaying.pausePlaying(room)
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.startPlaying)
     @catchError
     static async startPlaying(socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
@@ -294,11 +588,23 @@ class Handler {
         if (!isSuperAdmin(reqUser) && room.creator !== reqUser.id) {
             throw new Error('越权操作')
         }
-        room.nowPlayingInfo.isPaused = false
-        await room.save()
-        Actions.pausePlaying(room.joiners)
+        await ManageRoomPlaying.startPlaying(room)
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.changeProgress)
+    @catchError
+    static async changeProgress (socket: SocketIO.Socket, msg: { roomId: string, progress: number }) {
+        const { roomId, progress = 0} = msg
+        const reqUser = socket.session.user
+        const room = await Room.findOne(roomId)
+        if (!isSuperAdmin(reqUser) && room.creator !== reqUser.id) {
+            throw new Error('越权操作')
+        }
+        await ManageRoomPlaying.changePlayingProgress(room, progress)
+    }
+
+
+    @ListenSocket.register(ServerListenSocketEvents.sendMessage)
     @catchError
     static async sendMessages (socket: SocketIO.Socket, msg: {
         roomId: string;
@@ -348,6 +654,7 @@ class Handler {
         Actions.addChatListMessages(room.joiners, [message])
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.blockUser)
     @catchError
     static async blockUser (socket: SocketIO.Socket, msg: { 
         roomId: string;
@@ -386,6 +693,7 @@ class Handler {
         Actions.userInfoChange([blockedUser])
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.blockUserIp)
     @catchError
     static async blockIp (socket: SocketIO.Socket, msg: { 
         roomId: string;
@@ -430,6 +738,7 @@ class Handler {
         Actions.userInfoChange(blockedUsers)
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.banUserComment)
     @catchError
     static async banUserComment (socket: SocketIO.Socket, msg: { 
         roomId: string;
@@ -464,6 +773,7 @@ class Handler {
         Actions.userInfoChange([aimUser])
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.revokeAction)
     @catchError
     static async revokeAdminAction (socket: SocketIO.Socket, msg: { roomId: string, actionId: string }) {
         const {roomId,  actionId } = msg
@@ -495,25 +805,255 @@ class Handler {
         await room.save()
     }
 
+
+    @ListenSocket.register(ServerListenSocketEvents.blockPlayListItems)
     @catchError
-    static async addPlayListItems(socket: SocketIO.Socket, msg: { roomId }) {
-        const { roomId } = msg
+    static async blockPlayListItems (socket: SocketIO.Socket, msg: { ids: string[] }) {
+        const { ids = [] } = msg
+        if (!ids.length) {
+            return
+        }
+        const reqUser = socket.session.user
+        reqUser.blockPlayItems = safePushArrItem(reqUser.blockPlayItems, ids)
+        await reqUser.save()
+    Actions.userInfoChange([reqUser])
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.unblockPlayListItems)
+    @catchError
+    static async unblockPlayListItems (socket: SocketIO.Socket, msg: { ids: string[] }) {
+        const { ids = [] } = msg
+        if (!ids.length) {
+            return
+        }
+        const reqUser = socket.session.user
+        reqUser.blockPlayItems = safeRemoveArrItem(reqUser.blockPlayItems, ids)
+        await reqUser.save()
+        Actions.userInfoChange([reqUser])
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.addPlayListItems)
+    @catchError
+    static async addPlayListItems (socket: SocketIO.Socket, msg: { ids: string[], roomId: string }) {
+        const { ids = [], roomId } = msg
+        if (!ids.length) {
+            return
+        }
+        const musicIds = Array.from(new Set(ids))
+        const reqUser = socket.session.user
+        const room = await Room.findOne(roomId)
+        const isSuper = isSuperAdmin(reqUser)
+        if (!isSuper && !room.joiners.includes(reqUser.id)) {
+            throw new Error('越权操作')
+        }
+        if (!isSuper && room.creator !== reqUser.id ) {
+            // TODO 
+        }
+        const oldMusicIdSet = new Set(room.playList.map(i => i.id))
+        const existed: string[] = [], newMusics = [], excluded = []
+        for (let musicId of musicIds) {
+            if (oldMusicIdSet.has(musicId)) {
+                existed.push(musicId)
+                continue
+            }
+            const [info] = await NetEaseApi.getMusicBaseInfo(musicId)
+            const {id, name, artist, album, duration} = info
+            if (!info.free || BlockMusicList.includes(name) || duration > settings.musicDurationLimit) {
+                excluded.push(name)
+                continue
+            }
+            newMusics.push({
+                id,
+                name,
+                artist,
+                album,
+                duration,
+                from: reqUser.name || hideIp(reqUser.ip),
+                fromId: reqUser.id,
+            })
+        }
+        room.playList = safePushArrItem(room.playList, newMusics)
+        await room.save()
+        await ManageRoomPlaying.startPlaying(room)
+        const messages: string[] = []
+        existed.length && messages.push(`${existed.length}首已在列表中`)
+        excluded.length && excluded.forEach(name => messages.push(`《${name}》暂不支持播放`))
+        newMusics.length && messages.push(`${newMusics.length}首添加成功!`)
+        
+        Actions.addChatListMessages([reqUser], messages.map(m => {
+            return {
+                id: Date.now().toString(),
+                type: MessageTypes.notification,
+                from: '系统消息',
+                content: {
+                    text: m
+                },
+                time: Date.now(),
+            }
+        }))
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.deletePlayListItems)
+    @catchError
+    static async deletePlayListItems (socket: SocketIO.Socket, msg: { ids: string[], roomId: string }) {
+        const { ids = [], roomId } = msg
+        if (!ids.length) {
+            return
+        }
+        const toDelIds = new Set(ids)
         const reqUser = socket.session.user
         const room = await Room.findOne(roomId)
         if (!isSuperAdmin(reqUser) && room.creator !== reqUser.id) {
             throw new Error('越权操作')
         }
-        room.nowPlayingInfo.isPaused = false
+        
+        let nowPlayingId, isRoomPlaying = false
+        if (room.nowPlayingInfo) {
+            const {id, isPaused} = room.nowPlayingInfo
+            nowPlayingId = id
+            isRoomPlaying = !isPaused
+        }
+        room.playList = room.playList.filter(item => !toDelIds.has(item.id))
         await room.save()
-        Actions.pausePlaying(room.joiners)
+        if (toDelIds.has(nowPlayingId)) {
+            await ManageRoomPlaying.pausePlaying(room)
+            room.nowPlayingInfo = null
+            await room.save()
+        }
+
+        if (!room.nowPlayingInfo && room.playList.length) {
+            const playItemId = room.playList[0].id
+            room.nowPlayingInfo = await ManageRoomPlaying.getPlayItemDetailInfo(playItemId)
+            if (isRoomPlaying) {
+                await ManageRoomPlaying.startPlaying(room)
+            }
+        }
+        Actions.notification([reqUser], '删除成功')
+        Actions.deletePlayListItems(room.joiners, Array.from(toDelIds))
+        // Actions.addChatListMessages([reqUser], [
+        //     {
+        //         id: Date.now().toString(),
+        //         type: MessageTypes.notification,
+        //         from: '系统消息',
+        //         content: {
+        //             text: '删除成功'
+        //         },
+        //         time: Date.now(),
+        //     }
+        // ])
     }
 
+    @ListenSocket.register(ServerListenSocketEvents.movePlayListItem)
+    @catchError
+    static async movePlayListItem (socket: SocketIO.Socket, msg: { 
+        fromIndex: number;
+        toIndex: number;
+        roomId: string; 
+    }) {
+        const {fromIndex, toIndex, roomId} = msg
+        if (fromIndex === toIndex) {
+            return
+        }
+        const reqUser = socket.session.user
+        const room = await Room.findOne(roomId)
+        const isSuper = isSuperAdmin(reqUser)
+        if (!isSuper && !room.joiners.includes(reqUser.id)) {
+            throw new Error('越权操作')
+        }
+        const fromItem = room.playList[fromIndex]
+        const toItem = room.playList[toIndex]
+        if (!fromItem || !toItem ) {
+            throw new Error('invalid index')
+        }
+
+        room.playList.splice(fromIndex, 1)
+        room.playList.splice(toIndex, 0, fromItem)
+        await room.save()
+        Actions.movePlayListItem(room.joiners, {
+            fromIndex,
+            toIndex
+        })
+        Actions.notification([reqUser], '移动成功')
+
+        if (toIndex === 0) {
+            const isRoomPlaying = room.nowPlayingInfo && !room.nowPlayingInfo.isPaused
+            if (isRoomPlaying) {
+                await ManageRoomPlaying.startPlaying(room)
+            }
+        }   
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.searchMedia)
+    @catchError
+    static async getEmojiList (socket: SocketIO.Socket, msg: {lastId: string }) {
+        const { lastId } = msg
+        const reqUser = socket.session.user
+        const findIndex = lastId ? (emojiData.findIndex(e => e.id === lastId) + 1) : 0
+        const list = emojiData.slice(findIndex, findIndex + 15)
+        Actions.updateEmojiList([reqUser], list)
+    }
+
+
+    @ListenSocket.register(ServerListenSocketEvents.searchMedia)
+    @catchError
+    static async searchMedia (socket: SocketIO.Socket, msg: { keywords: string, actionId: string }) {
+        const { keywords = '', actionId } = msg
+        if (!keywords.trim()) {
+            return
+        }
+        const songs = await NetEaseApi.searchMedia(keywords, MediaTypes.song)
+        const albums = await NetEaseApi.searchMedia(keywords, MediaTypes.album)        
+        const all = songs.concat(albums)
+        Actions.sendSearchResult([socket.session.user], {
+            actionId,
+            list: all
+        })
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.getMediaDetail)
+    @catchError
+    static async getAlbumInfo (socket: SocketIO.Socket, msg: { id: string, actionId: string }) {
+        const { id, actionId } = msg
+        if (!id) {
+            throw new Error('invalid id')
+        }
+        const albumInfo = await NetEaseApi.getAlbumInfo(id)
+        const {name, desc, pic, musicList} = albumInfo
+        Actions.sendMediaDetail([socket.session.user], {
+            actionId,
+            detail: {
+                name,
+                desc,
+                pic,
+                type: MediaTypes.album,
+                list: musicList.map(m => {
+                    const {name, id, pic} = m
+                    return {
+                        title: name,
+                        id,
+                        pic,
+                        type: MediaTypes.song
+                    }
+                })
+            }
+        })
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.recommendRoom)
+    @catchError
+    static async loadRoomList (socket: SocketIO.Socket, msg: {lastId}) {
+        const { lastId } = msg
+        const allRoomIds = await Room.getRoomIdList()
+        const offset = lastId ? (allRoomIds.indexOf(lastId) + 1) : 0
+        const rooms = await Room.find(allRoomIds.slice(offset, offset + 10))
+        Actions.recommendRoomList([socket.session.user], rooms)
+    }
 }
 
 export default async function (server) {
     await beforeStart()
     const io = socketIo(server, {
-        origins: '*:*'
+        origins: settings.origin || '*:*'
     })
     io.adapter(socketIoRedis({ port: settings.redisPort, host: settings.redisHost }))
     io.use((socket, next) => {
@@ -528,30 +1068,7 @@ export default async function (server) {
         if (!socket.session.isAuthenticated) {
             return Actions.updateSocketStatus([socket.id], ScoketStatus.invalid)
         }
-        const {user, user: {id: userId}, ip} = socket.session
-        const prevUserSocketId = UserToSocketIdMap[userId]
-        UserToSocketIdMap[userId] = socket.id
-        if (prevUserSocketId) {
-            Actions.updateSocketStatus([prevUserSocketId], ScoketStatus.closed)
-        }
-
-        if (!isSuperAdmin(user) ) {
-            const hallRoom = await Room.findOne(hallRoomId)
-            if (hallRoom.blockIps.includes(ip) || hallRoom.blockUsers.includes(userId)) {
-                return Actions.updateSocketStatus([socket.id], ScoketStatus.globalBlocked)
-            }
-            if (user.nowRoomId) {
-                const room = await Room.findOne(user.nowRoomId)
-                if (room.blockIps.includes(ip) || room.blockUsers.includes(userId)) {
-                    return Actions.updateSocketStatus([socket.id], ScoketStatus.roomBlocked)
-                }
-            } else {
-                await Handler.handleJoinRoom(socket, {roomId: hallRoomId})
-            }
-        }
-        Actions.updateSocketStatus([socket.id], ScoketStatus.connected)
-        
-        socket.on('disconnect', Handler.disConnect.bind(Handler, socket))
-        socket.on(ServerListenSocketEvents.joinRoom, Handler.handleJoinRoom)
+        Handler.connected(socket)
+        ListenSocket.listen(socket)
     })
 }

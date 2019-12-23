@@ -31,28 +31,36 @@ export enum SessionTypes {ip, cookie, token}
 
 export enum ClientListenSocketEvents {
     recieveNowPlayingInfo = 'recieveNowPlayingInfo',
-    pausePlaying = 'pausePlaying',
-    startPlaying = 'startPlaying',
     addChatListMessages = 'addChatListMessages',
     addPlayListItems = 'addPlayListItems',
-    movePlayListItems = 'movePlayListItems',
+    movePlayListItem = 'movePlayListItem',
     deletePlayListItems = 'deletePlayListItems',
     blockPlayListItems = 'blockPlayListItems',
-    recieveRoomList = 'recieveRoomList',
-    userInfoChange = 'userInfoChange',
-    notification = 'notification',
+    unblockPlayListItems = 'unblockPlayListItems',
+    searchMediaResult = 'searchMediaResult',
+    updateRoomInfo = 'updateRoomInfo', // 接受房间的基础信息
+    updateMediaDetail = 'updateMediaDetail',  
+    updateUserInfo = 'updateUserInfo',
     updateSocketStatus = 'updateSocketStatus',
+    updatRecommenedRoomList = 'updatRecommenedRoomList',
+    updateEmojiList = 'updateEmojiList',
+    notification = 'notification',
     createRoomSuccess = 'createRoomSuccess'
 }
 
 export enum ServerListenSocketEvents {
+    disconnect = 'disconnect',
     sendMessage = 'sendMessage',
     pausePlaying = 'pausePlaying',
     startPlaying = 'startPlaying',
+    changeProgress = 'changeProgress',
     addPlayListItems = 'addPlayListItems',
-    movePlayListItems = 'movePlayListItems',
+    movePlayListItem = 'movePlayListItem',
     deletePlayListItems = 'deletePlayListItems',
-    blockPlayListItem = 'blockPlayListItem',
+    blockPlayListItems = 'blockPlayListItems',
+    unblockPlayListItems = 'unblockPlayListItems',
+    searchMedia = 'searchMedia', // 搜索音乐，专辑
+    getMediaDetail = 'getMediaDetail', // 获取 专辑详情
     banUserComment = 'banUserComment', // 禁言
     blockUser = 'blockUser', // 封禁用户
     blockUserIp = 'blockUserIp', // 封禁ip
@@ -61,7 +69,9 @@ export enum ServerListenSocketEvents {
     destroyRoom = 'destroyRoom',
     joinRoom = 'joinRoom',
     quitRoom = 'quitRoom',
-    loadRoomData = 'loadRoomData',
+    getRoomData = 'loadRoomData', // 获取房间数据, 用于初始化
+    recommendRoom = 'recommendRoom', // 获取 推荐房间列表
+    getEmojiList = 'getEmojiList', // 获取表情包列表
 }
 
 export interface StaticModelClass<T = any> {
@@ -71,11 +81,11 @@ export interface StaticModelClass<T = any> {
     findOne: (id: string) => Promise<T>;
     delete: (ids: string[]) => Promise<any>;
     update: (ids: string[], cb: (item: T) => T) => Promise<T[]>;
+    fromJson: (str: string) => T
 }
 
 export interface ModelBase {
     id: string;
-    fromJson: (str: string) => this;
     toJson: () => string;
     save: () => Promise<this>;
     remove: () => Promise<this>;
@@ -99,12 +109,16 @@ export interface RoomModel extends ModelBase {
     heat: number;
     name: string;
     nowPlayingInfo: {
+        id: string;
         name: string;
         artist: string;
         src: string;
         lyric: string;
         pic: string;
         isPaused: boolean;
+        progress:number;
+        endAt: number; // timestamp 秒
+        duration: number; // 秒
         comment: {
             content: string;
             userId: number;
@@ -122,7 +136,6 @@ export interface RoomModel extends ModelBase {
 }
 
 export enum RoomStatus {
-    created, // 初始化, 但尚没有人加入
     active, // 当创建者加入时为激活状态
     willDestroy, // 等待被销毁 (创建者被动断开连接超过一定时间，房间会被销毁)
 }
@@ -145,7 +158,7 @@ export interface MessageItem {
         title?: string;
         img?: string;
     };
-    time: string;
+    time: string | number;
     type: MessageTypes;
 }
 
@@ -156,6 +169,7 @@ export interface PlayListItem {
     album: string; // 专辑
     duration: number; // 时长  ms
     from: string; // 点歌人
+    fromId: string; // 点歌人id
 }
 
 export enum MediaTypes {
@@ -189,4 +203,9 @@ export interface AdminAction {
         ip?: string;
         userId?: string;
     };
+}
+
+export enum CronTaskTypes {
+    destroyRoom = 'destroyRoom',
+    cutMusic = 'cutMusic',
 }
