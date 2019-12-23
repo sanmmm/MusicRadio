@@ -7,30 +7,33 @@ export function isSuperAdmin(user: UserModel) {
 }
 
 
-export function catchError(target, propertyName, descriptor: PropertyDescriptor): any {
+export function catchError(target, propertyName, descriptor: PropertyDescriptor) {
     const func = descriptor.value
-    return (async (...args) => {
+    descriptor.value = async (...args) => {
         try {
-            func(...args)
+            await func(...args)
         } catch (e) {
-            console.error
+            console.error(e)
         }
-    })
+    }
+    return descriptor as TypedPropertyDescriptor<any>
 }
 
-export function throttle(options: {
-    time: number;
-    handler?: (...args: any) => any;
-    key?: string;
-}) {
-    const {time = 1000, handler, key} = options || {}
+export function throttle(
+    time: number,
+    options: {
+        handler?: (...args: any) => any;
+        key?: string;
+    } = {}
+) {
+    const { handler, key } = options
     return function (target, propertyName, descriptor: PropertyDescriptor) {
         const func = descriptor.value
-        return async (...args) => {
+        const newFunc = async (...args) => {
             if (time > 0) {
                 const redisKey = `musicradio:apithrottle:${key || propertyName}`
-                const flag = await redisCli.exists(redisKey)
-                if (flag) {
+                const rejected = await redisCli.exists(redisKey)
+                if (rejected && handler) {
                     await handler(...args)
                     return
                 }
@@ -38,6 +41,8 @@ export function throttle(options: {
             }
             func(...args)
         }
+        descriptor.value = newFunc
+        return descriptor
     }
 }
 

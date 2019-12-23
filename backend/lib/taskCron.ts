@@ -19,24 +19,28 @@ namespace expiredCronTaskQueue {
     const dataQueneMap: Map<string, Set<TaskInfo>> = new Map()
     const cbMap: Map<string, cb> = new Map()
     
+    function pushToDataQueneMap (type: CronTaskTypes, info: TaskInfo) {
+        let taskDataSet = dataQueneMap.get(type)
+        if (!taskDataSet) {
+            taskDataSet = new Set()
+            dataQueneMap.set(type, taskDataSet)
+        }
+        taskDataSet.add(info)
+        return taskDataSet
+    }
+
     export type cb<T = any> = (data: TaskInfo<T>['data']) => any
     export function publish (type: CronTaskTypes, info: TaskInfo) {
         const cb = cbMap.get(type)
         if (!cb) {
-            let taskDataSet = dataQueneMap.get(type)
-            if (!taskDataSet) {
-                taskDataSet = new Set()
-                dataQueneMap.set(type, taskDataSet)
-            }
-            taskDataSet.add(info)
-            return 
+            pushToDataQueneMap(type, info)
         }
         cb(info)
     }
 
     export function subscribe (type: CronTaskTypes, cb: cb) {
         cbMap.set(type, cb)
-        const waittingTasks = dataQueneMap.get(type)
+        const waittingTasks = (dataQueneMap.get(type) || new Set())
         waittingTasks.forEach(taskInfo => {
             cb(taskInfo)
             waittingTasks.delete(taskInfo)
@@ -55,6 +59,7 @@ function addCronJob(expireAt: number, taskInfo: TaskInfo) {
         if (!newlyInfo) {
             return
         }
+        console.log(`cron task: ${taskInfo.taskType}/${taskInfo.taskId} arrived`)
         expiredCronTaskQueue.publish(taskInfo.taskType, newlyInfo)
     }, null, true)
 }

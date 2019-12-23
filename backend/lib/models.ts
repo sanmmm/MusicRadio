@@ -42,7 +42,9 @@ class BaseModel {
         return updatedItems
     }
     static fromJson (str: string) {
-        return new this(JSON.parse(str))
+        const obj =new this(JSON.parse(str))
+        obj.isInit = false
+        return obj
     }
     toJson () {
         return JSON.stringify(this)
@@ -52,7 +54,7 @@ class BaseModel {
             this.id = uuid().replace(/-/g, '')
         }
         if (this.isInit) {
-            const hasExisted = redisCli.exists(this.id)
+            const hasExisted = await redisCli.exists(BaseModel.generateKey(this.id))
             if (hasExisted) {
                 throw new Error(`duplicated id: ${this.id}`)
             }
@@ -70,7 +72,7 @@ class BaseModel {
     }
 }
 
-function defineModel <U, T extends StaticModelClass<U>> (m: T) {
+function defineModel <U, T extends StaticModelClass> (m: T) {
     return m as (StaticModelClass<U> & T)
 }
 

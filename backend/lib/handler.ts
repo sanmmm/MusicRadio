@@ -15,7 +15,7 @@ import {
     MessageItem, PlayListItem, ScoketStatus, MessageTypes, AdminAction, AdminActionTypes, RoomStatus,
     MediaTypes, CronTaskTypes
 } from 'root/type'
-import { catchError, isSuperAdmin, hideIp, safePushArrItem, safeRemoveArrItem } from 'root/lib/utils'
+import { catchError, isSuperAdmin, hideIp, safePushArrItem, safeRemoveArrItem, throttle as throttleAction } from 'root/lib/utils'
 
 const socketEmiiter = socketIoEmitter({ host: settings.redisHost, port: settings.redisPort })
 
@@ -42,18 +42,22 @@ const IpToUsersMap: {
 } = {}
 
 namespace ListenSocket {
-    type Handler = (socket: socketIo.Socket, ...args: any) => any
+    type Handler = (socket: socketIo.Socket, data: any, actionId?: string) => any
     const map = new Map<string, Set<Handler>>() 
     export function register(event: ServerListenSocketEvents) {
         return (target, propertyName: string, descriptor: PropertyDescriptor) => {
-            const func: Handler = descriptor.value
+            const prevFunc: Handler = descriptor.value
             let funcSet = map.get(event)
             if (!funcSet) {
                 funcSet = new Set()
                 map.set(event, funcSet)
             }
-            funcSet.add(func)
-            return func as TypedPropertyDescriptor<Handler>
+            const newFunc = (socket: socketIo.Socket, data: any) => {
+                prevFunc(socket, data, data.actionId)
+            }
+            funcSet.add(newFunc)
+            descriptor.value = newFunc
+            return descriptor as TypedPropertyDescriptor<Handler>
         }
     }
 
@@ -425,7 +429,6 @@ class Handler {
         
     }
 
-    @ListenSocket.register(ServerListenSocketEvents.disconnect)
     @catchError
     static async disConnect(socket: socketIo.Socket, reason: string) {
         const { user: reqUser } = socket.session
@@ -569,6 +572,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.pausePlaying)
     @catchError
+    @throttleAction(3000)
     static async pausePlaying(socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
         const reqUser = socket.session.user
@@ -581,6 +585,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.startPlaying)
     @catchError
+    @throttleAction(3000)
     static async startPlaying(socket: SocketIO.Socket, msg: { roomId: string }) {
         const { roomId } = msg
         const reqUser = socket.session.user
@@ -593,6 +598,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.changeProgress)
     @catchError
+    @throttleAction(3000)
     static async changeProgress (socket: SocketIO.Socket, msg: { roomId: string, progress: number }) {
         const { roomId, progress = 0} = msg
         const reqUser = socket.session.user
@@ -606,6 +612,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.sendMessage)
     @catchError
+    @throttleAction(4000)
     static async sendMessages (socket: SocketIO.Socket, msg: {
         roomId: string;
         text?: string;
@@ -656,6 +663,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.blockUser)
     @catchError
+    @throttleAction(2000)
     static async blockUser (socket: SocketIO.Socket, msg: { 
         roomId: string;
         userId: string;
@@ -695,6 +703,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.blockUserIp)
     @catchError
+    @throttleAction(2000)
     static async blockIp (socket: SocketIO.Socket, msg: { 
         roomId: string;
         userId: string; // 根据userid查到ip
@@ -740,6 +749,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.banUserComment)
     @catchError
+    @throttleAction(2000)
     static async banUserComment (socket: SocketIO.Socket, msg: { 
         roomId: string;
         userId: string;
@@ -775,14 +785,15 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.revokeAction)
     @catchError
-    static async revokeAdminAction (socket: SocketIO.Socket, msg: { roomId: string, actionId: string }) {
-        const {roomId,  actionId } = msg
+    @throttleAction(2000)
+    static async revokeAdminAction (socket: SocketIO.Socket, msg: { roomId: string, revokeActionId: string }) {
+        const {roomId, revokeActionId } = msg
         const reqUser = socket.session.user
         const room = await Room.findOne(roomId)
         if (!isSuperAdmin(reqUser) && room.creator !== reqUser.id) {
             throw new Error('越权操作')
         }
-        const action = room.adminActions.find(item => item.id === actionId)
+        const action = room.adminActions.find(item => item.id === revokeActionId)
         if (!action) {
             throw new Error('该操作不存在')
         }
@@ -834,6 +845,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.addPlayListItems)
     @catchError
+    @throttleAction(3000)
     static async addPlayListItems (socket: SocketIO.Socket, msg: { ids: string[], roomId: string }) {
         const { ids = [], roomId } = msg
         if (!ids.length) {
@@ -895,6 +907,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.deletePlayListItems)
     @catchError
+    @throttleAction(3000)
     static async deletePlayListItems (socket: SocketIO.Socket, msg: { ids: string[], roomId: string }) {
         const { ids = [], roomId } = msg
         if (!ids.length) {
@@ -945,6 +958,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.movePlayListItem)
     @catchError
+    @throttleAction(3000)
     static async movePlayListItem (socket: SocketIO.Socket, msg: { 
         fromIndex: number;
         toIndex: number;
@@ -996,8 +1010,9 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.searchMedia)
     @catchError
-    static async searchMedia (socket: SocketIO.Socket, msg: { keywords: string, actionId: string }) {
-        const { keywords = '', actionId } = msg
+    @throttleAction(5000)
+    static async searchMedia (socket: SocketIO.Socket, msg: { keywords: string }, actionId: string) {
+        const { keywords = '' } = msg
         if (!keywords.trim()) {
             return
         }
@@ -1012,8 +1027,9 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.getMediaDetail)
     @catchError
-    static async getAlbumInfo (socket: SocketIO.Socket, msg: { id: string, actionId: string }) {
-        const { id, actionId } = msg
+    @throttleAction(5000)
+    static async getAlbumInfo (socket: SocketIO.Socket, msg: { id: string }, actionId: string) {
+        const { id } = msg
         if (!id) {
             throw new Error('invalid id')
         }
@@ -1057,7 +1073,7 @@ export default async function (server) {
     })
     io.adapter(socketIoRedis({ port: settings.redisPort, host: settings.redisHost }))
     io.use((socket, next) => {
-        session(SessionTypes.ip)(socket.request, () => {
+        session(SessionTypes.token)(socket.request, () => {
             socket.session = socket.request.session
             next()
         })
@@ -1069,6 +1085,7 @@ export default async function (server) {
             return Actions.updateSocketStatus([socket.id], ScoketStatus.invalid)
         }
         Handler.connected(socket)
+        socket.on(ServerListenSocketEvents.disconnect, Handler.disConnect.bind(Handler, socket))
         ListenSocket.listen(socket)
     })
 }

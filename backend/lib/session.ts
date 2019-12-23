@@ -3,12 +3,14 @@ import express from 'express'
 import socketIo from 'socket.io'
 import cookieParser from 'cookie-parser'
 import cookie from 'cookie'
+import {URL} from 'url'
 
 import settings from 'root/settings'
 import {User} from 'root/lib/models'
 import redisCli from 'root/lib/redis'
 import {SessionTypes, UserModel, Session as SessionDef} from 'root/type'
-const tokenHeaderName = 'my-app-certification-token'
+import globalConfigs from 'global/common/config'
+const {tokenHeaderName: authTokenKey} = globalConfigs
 
 const getIp = (str) => {
     if (str.startsWith('::ffff:')) {
@@ -78,7 +80,8 @@ export default  function session (type: SessionTypes = SessionTypes.cookie) {
             sessionId = signedCookies[settings.sessionKey]
         }
         if (type === SessionTypes.token) {
-            sessionId = req.headers[tokenHeaderName] as string
+            const urlObj = new URL(`http://t.com/${req.url}`)
+            sessionId = urlObj.searchParams.get(authTokenKey) as string
         }
         console.log(sessionId)
         const session = new Session({

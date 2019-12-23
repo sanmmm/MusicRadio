@@ -7,9 +7,10 @@ import uuidV4 from 'uuid/v4'
 import session from 'root/lib/session'
 import socketHandler from 'root/lib/handler'
 import settings from 'root/settings'
+import globalConfigs from 'global/common/config'
 import { SessionTypes } from 'root/type'
 
-global.hallRoomId = 'globalRoomId'
+global.hallRoomId = globalConfigs.hallRoomId
 
 const app = express()
 app.use(compression())
@@ -23,7 +24,7 @@ app.use((req, res, next) => {
     next()
 })
 app.use((req, _, next) => {
-    session(SessionTypes.cookie)(req, next)
+    session(SessionTypes.ip)(req, next)
 })
 app.use('/static', express.static('static'))
 app.use('/test', (_, res) => {

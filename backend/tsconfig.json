@@ -14,7 +14,8 @@
         "outDir": "../build",
         "baseUrl": ".",
         "paths": {
-            "root/*": ["./*"]
+            "root/*": ["./*"],
+            "global/*": ["../*"]
         },
         "experimentalDecorators": true,
         "strictNullChecks": false,
