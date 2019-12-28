@@ -1,0 +1,29 @@
+.signalIcon {
+    display: flex;
+    overflow: hidden;
+    flex-shrink: 0;
+    margin-right: .5rem;
+    &.paused {
+        > * {
+            animation-play-state: paused;
+        }
+    }
+    > *{
+        animation: updown 2s ease-in-out infinite;
+        width: 2px;
+        height: 0.8em;
+        border-radius: 25%;
+        margin: 0 1px; 
+    }
+}
+@keyframes updown {
+    0% {
+        transform: translateY(0);
+    } 
+    50%{
+        transform: translateY(90%);
+    }
+    100% {
+        transform: translateY(0%);
+    }
+}

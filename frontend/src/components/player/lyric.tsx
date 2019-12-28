@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import bindClass from 'classnames'
 
 import styles from './index.less'
@@ -16,22 +16,31 @@ enum LyricItemTypes {
 }
 
 interface LyricItem {
-    index?: number,
     time: number,
     type: LyricItemTypes,
-    content: string
+    content: string,
+    lineHeight?: number,
 }
 
 const itemHeight = '2em'
 
-const LyricBox: React.FC<LyricBoxProps> = function (props) {
-
-    const [state, setState] = useState({
-        focusItemIndex: -2
-    } as {
-        focusItemIndex: number
+const calcOffset = (cursorIndex: number, items: LyricItem[]) => {
+    let offset = 0
+    items.some((item, index) => {
+        if (index < cursorIndex) {
+            offset += item.lineHeight
+            return false
+        }
+        return true
     })
+    return offset
+}
+
+const LyricBox: React.FC<LyricBoxProps> = function (props) {
+    const boxRef = useRef<HTMLDivElement>(null)
+    const [focusItemIndex, setFocusItemIndex] = useState(-2 as number)
     const [freshLyricItems, setLyricItems] = useState([] as LyricItem[])
+    const [needCalcItemsLineHeight, setNeedCalcItemLineHeight] = useState(false)
 
     useEffect(() => {
         const { lyric = '' } = props
@@ -53,41 +62,47 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
             return {
                 type: LyricItemTypes.content,
                 time,
-                content
+                content,
             }
-        }).filter(i => !!i).map((item, i) => ({
-            ...item,
-            index: i
-        }))
+        }).filter(i => !!i)
         setLyricItems(items)
-    }, [props.id])
+        setNeedCalcItemLineHeight(true)
+    }, [props.id, props.lyric])
+
+    useEffect(() => {
+        if (boxRef.current && needCalcItemsLineHeight) {
+            const nodeList = boxRef.current.querySelectorAll(`.${styles.item}`)
+            nodeList.forEach((node, index) => {
+                const rect = node.getBoundingClientRect()
+                const lyricItem = freshLyricItems[index]
+                lyricItem && (lyricItem.lineHeight = rect.height)
+            })
+            setNeedCalcItemLineHeight(false)
+        }
+    }, [needCalcItemsLineHeight])
 
     useEffect(() => {
         const nowFocusItemIndex = freshLyricItems.findIndex((item, index) => {
-            if (item.time <= props.nowTime) {
+            if (props.nowTime + 0.5 > item.time) {
                 const nextItem = freshLyricItems[index + 1]
-                if (!nextItem || props.nowTime < nextItem.time) {
+                if (!nextItem || (props.nowTime + 0.5) < nextItem.time) {
                     return true
                 }
             }
             return false
         })
-        if (nowFocusItemIndex === state.focusItemIndex) {
-            return
-        }
-        setState({
-            ...state,
-            focusItemIndex: nowFocusItemIndex
-        })
+        setFocusItemIndex(nowFocusItemIndex)
     }, [freshLyricItems, props.nowTime])
 
-    const lyricOffsetValue = freshLyricItems.length && (state.focusItemIndex / freshLyricItems.length) * 100
-    return <div className={styles.lyricBox} style={{height: `calc(${itemHeight} * ${props.showItemCount})`}} >
+    const lyricOffsetValue = freshLyricItems.length && calcOffset(focusItemIndex, freshLyricItems)
+    return <div className={styles.lyricBox} 
+        ref={boxRef}
+     >
         {
             freshLyricItems.length ?
-                <div style={{ transform: `translate(0, -${lyricOffsetValue}%)` }} className={styles.itemsBox}>
+                <div style={{ transform: `translate(0, -${lyricOffsetValue}px)`, lineHeight: itemHeight }} className={styles.itemsBox}>
                     {
-                        freshLyricItems.map(item => <div key={item.index} className={bindClass(styles.item, item.index === state.focusItemIndex && styles.focus)}>
+                        freshLyricItems.map((item, index) => <div key={index} className={bindClass(styles.item, index === focusItemIndex && styles.focus)}>
                             {item.content}
                         </div>)}
                 </div> :

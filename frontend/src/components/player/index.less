@@ -89,7 +89,11 @@
 .commentBox {
     height: 240px;
     margin: 0 0 1rem;
+    position: relative;
     .noData {
+        position: absolute;
+        top: 0;
+        left: 0;
         height: 100%;
         width: 100%;
         display: flex;
@@ -98,6 +102,9 @@
         font-weight: bold;
     }
     .showData {
+        &.hide {
+            visibility: hidden;
+        }
         height: 100%;
         display: flex;
         flex-direction: column;
@@ -150,36 +157,6 @@
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .signalIcon {
-        display: flex;
-        overflow: hidden;
-        flex-shrink: 0;
-        margin-right: .5rem;
-        &.paused {
-            > * {
-                animation-play-state: paused;
-            }
-        }
-        > *{
-            animation: updown 2s ease-in-out infinite;
-            width: 2px;
-            height: 0.8em;
-            background-color: @themeColor;
-            border-radius: 25%;
-            margin: 0 1px; 
-        }
-    }
-    @keyframes updown {
-        0% {
-            transform: translateY(0);
-        } 
-        50%{
-            transform: translateY(90%);
-        }
-        100% {
-            transform: translateY(0%);
-        }
-    }
 }
 
 .progressOuter {
@@ -213,9 +190,32 @@
             border-radius: 50%;
             position: absolute;
             top: 0;
-            // transition: all 0.3s;
             transform: scale(0);
         }
+        .pending {
+            position: absolute;
+            animation: progressLoadingIconAnimation 1s linear infinite;
+            color: white;
+            transform-origin: center;
+            &::before {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+            }
+        }
+    }
+}
+
+@keyframes progressLoadingIconAnimation {
+    0% {
+        transform: rotate(0);
+    } 
+    50% {
+        transform: rotate(180deg);
+    }
+    100%{
+        transform:  rotate(360deg);
     }
 }
 
@@ -224,7 +224,7 @@
     height: 220px;
     border-radius: 50%;
     overflow: hidden;
-    animation: picRotate 10s  linear infinite;
+    animation: picRotate 18s  linear infinite;
     animation-play-state: paused;
     background-color: white;
     margin: 1rem 0 2rem 0;
@@ -261,33 +261,15 @@
 .volumeBox {
     display: flex;
     align-items: center;
-    :global(.ant-slider) {
-        width: 30% !important;
-        max-width: 70px;
-        margin-top: 0 !important;
-        margin-bottom: 0 !important;
-        > * {
-            height: 2px !important;
-        }
-        :global(.ant-slider-handle) {
-            display: none !important;
-        }
-        
-        :global(.ant-slider-rail) {
-            background-color: rgb(155, 155, 155);
-        }
-        :global(.ant-slider-track) {
-            background-color: white;
-        }
-    }
+    
     .slider {
-        display: none;
+        visibility: hidden;
         width: 70px;
-        
+        margin-left: .5rem;
     }
     &:hover {
         .slider {
-            display: block;
+            visibility: visible;
         }
     }
     .actionIcon {
@@ -333,9 +315,8 @@
     .itemsBox {
         transition: all 0.4s;
         .item {
-            height: @itemHeight;
             box-sizing: border-box;
-            .textOverflow();
+            word-break: break-all;
             &.focus {
                 color: @highLightColor;
             }
