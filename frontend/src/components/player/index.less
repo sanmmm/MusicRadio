@@ -261,19 +261,25 @@
 .volumeBox {
     display: flex;
     align-items: center;
-    
-    .slider {
-        visibility: hidden;
-        width: 70px;
-        margin-left: .5rem;
-    }
-    &:hover {
-        .slider {
-            visibility: visible;
-        }
-    }
+    margin-top: .5rem;
+
     .actionIcon {
         cursor: pointer;
+        position: relative;
+        padding-right: 0.5rem;
+        &:hover {
+            .slider {
+                visibility: visible;
+            }
+        }
+        .slider {
+            visibility: hidden;
+            width: 70px;
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translate(0, -50%);
+        }
     }
 }
 

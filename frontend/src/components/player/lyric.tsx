@@ -75,7 +75,8 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
             nodeList.forEach((node, index) => {
                 const rect = node.getBoundingClientRect()
                 const lyricItem = freshLyricItems[index]
-                lyricItem && (lyricItem.lineHeight = rect.height)
+                const eleHeight = rect.height || rect.bottom - rect.top
+                lyricItem && (lyricItem.lineHeight = eleHeight)
             })
             setNeedCalcItemLineHeight(false)
         }
@@ -96,6 +97,7 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
 
     const lyricOffsetValue = freshLyricItems.length && calcOffset(focusItemIndex, freshLyricItems)
     return <div className={styles.lyricBox} 
+        style={{height: `calc(${props.showItemCount || 2} * ${itemHeight})`}}
         ref={boxRef}
      >
         {

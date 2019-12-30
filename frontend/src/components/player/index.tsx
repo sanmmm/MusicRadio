@@ -5,6 +5,8 @@ import { connect } from 'dva'
 
 import { ConnectProps, ConnectState, PlayListModelState } from '@/models/connect'
 import { NowPlayingStatus } from '@global/common/enums'
+import { LocalStorageKeys } from '@/typeConfig'
+import { getLocalStorageData, setLocalStorageData } from '@/utils'
 import { VolumeSlider } from '@/utils/styleInject'
 import Lyric from './lyric'
 import SignalIcon from '@/components/signalIcon'
@@ -59,7 +61,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         super(props)
         this.state = {
             timeRatio: 0,
-            volumeRatio: 0.4,
+            volumeRatio: getLocalStorageData(LocalStorageKeys.volume) || 0.2,
             isDragCursor: false,
             commentTextAlign: 'left',
             musicBuffered: [],
@@ -68,11 +70,17 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         this.commentLineHeight = 1.8
         this._handleMouseMove = this._handleMouseMove.bind(this)
         this._handleMouseUp = this._handleMouseUp.bind(this)
-
+        this._changePlayingStatus = this._changePlayingStatus.bind(this)
+        this._handleKeyDown = this._handleKeyDown.bind(this)
     }
 
     componentDidMount() {
         this._calcCommentFontSize(this.props)
+        window.addEventListener('keydown', this._handleKeyDown)
+    }
+
+    componentWillUnmount () {
+        window.removeEventListener('keydown', this._handleKeyDown)
     }
 
     componentDidUpdate() {
@@ -119,10 +127,12 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }
         this._refreshMusicBuffered()
         this._calcTimeRatioByEndAtOrProgress()
+        this._setVolume(this.state.volumeRatio)
         this.audioEle.play()
     }
 
     _setVolume(ratio: number) {
+        setLocalStorageData(LocalStorageKeys.volume, ratio)
         this.audioEle.volume = ratio
     }
 
@@ -264,6 +274,33 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         })
     }
 
+    _handleKeyDown (e) {
+        if (e && e.code.toLocaleLowerCase() === 'space') {
+            this._changePlayingStatus()
+        }
+    }
+
+    _changePlayingStatus () {
+        if (!this._contralAble()) {
+            return
+        }
+        const { isPaused, musicId, nowRoomId } = this.props
+        const toPause = !isPaused
+        this.props.dispatch({
+            type: toPause ? 'playList/pausePlay' : 'playList/startPlay',
+            payload: {
+                roomId: nowRoomId,
+                musicId: musicId,
+            }
+        })
+    }
+
+    _contralAble () {
+        const {isRoomAdmin, status: playingStatus} = this.props
+        const contralAble = isRoomAdmin && playingStatus && playingStatus !== NowPlayingStatus.preloading
+        return contralAble
+    }
+
     render() {
         const { src, lyric, duration, pic, name, artist, comment, simpleMode, isMobile, musicId,
             isPaused, status: playingStatus, isRoomAdmin } = this.props
@@ -279,7 +316,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }
         const isReallyPaused = isDragCursor || isPaused
         const isProgressPending = this._getIsProgressPending(isReallyPaused)
-        const contralAble = isRoomAdmin && playingStatus && playingStatus !== NowPlayingStatus.preloading
+        const contralAble = this._contralAble()
 
         const lyRicNode = <div className={styles.lyricOuter}>
             <Lyric lyric={lyric} nowTime={timeRatio * duration} showItemCount={isMobile ? 2 : 4} id={musicId} />
@@ -351,39 +388,34 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 </div>
                 {
                     !isMobile && <div className={styles.volumeBox}>
-                        <span className={styles.actionIcon}
-                            onClick={_ => {
-                                const ratio = this.state.volumeRatio > 0 ? 0 : (this.lastVolumeRatioValue || 1)
-                                this.lastVolumeRatioValue = ratio
-                                this.setState({ volumeRatio: ratio })
-                                this._setVolume(ratio)
-                            }}>
-                            <span className={bindClass('iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}></span>
+                        <span className={bindClass(styles.actionIcon, 'iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}
+                                onClick={e => {
+                                    const ratio = this.state.volumeRatio > 0 ? 0 : (this.lastVolumeRatioValue || 1)
+                                    this.lastVolumeRatioValue = ratio
+                                    this.setState({ volumeRatio: ratio })
+                                    this._setVolume(ratio)
+                                }}
+                        >
+                            <VolumeSlider className={styles.slider} value={volumeRatio} min={0} max={1} step={0.01} 
+                                onChange={(_, ratio: number) => {
+                                    this.setState({
+                                        volumeRatio: ratio
+                                    })
+                                    this._setVolume(ratio)
+                                }} 
+                                aria-labelledby="continuous-slider" 
+                                onClick={e => e.stopPropagation()}
+                            />
                         </span>
-                        <VolumeSlider className={styles.slider} value={volumeRatio} min={0} max={1} step={0.01} onChange={(_, ratio: number) => {
-                            this.setState({
-                                volumeRatio: ratio
-                            })
-                            this._setVolume(ratio)
-                        }} aria-labelledby="continuous-slider" />
+
                     </div>}
             </div>
 
             {
-                isRoomAdmin &&
+                contralAble &&
                 <div
                     className={styles.right}
-                    onClick={_ => {
-                        const { isPaused, musicId, nowRoomId } = this.props
-                        const toPause = !isPaused
-                        this.props.dispatch({
-                            type: toPause ? 'playList/pausePlay' : 'playList/startPlay',
-                            payload: {
-                                roomId: nowRoomId,
-                                musicId: musicId,
-                            }
-                        })
-                    }}>
+                    onClick={this._changePlayingStatus}>
                     <span className={bindClass('iconfont', (isDragCursor || isPaused) ? 'icon-play' : 'icon-pause')}></span>
                 </div>
             }
@@ -420,7 +452,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     if (!this.audioEle.paused) {
                         return
                     }
-                    console.log('on play start')
                     this._startPlay()
                 }}
                 onEnded={_ => {
