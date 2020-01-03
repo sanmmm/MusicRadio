@@ -1,0 +1,72 @@
+@import '~@/base.less';
+
+@keyframes loading {
+    from {
+        transform: rotate(0deg);
+    } to {
+        transform: rotate(360deg);
+    }
+}
+
+.table {
+    position: relative;
+    .hide {
+        visibility: hidden;
+    }
+    .loading {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 20;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(155, 155, 155, 0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        > .icon {
+            color: @themeColor;
+            font-size: 1.2rem;
+            animation: loading 1s linear infinite;
+        }
+    }
+    .noData {
+        height: 100px;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .tableContent {
+        width: 100%;
+        height: 100%;
+        min-height: 100px;
+        table-layout: fixed;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        .header {
+            width: 100%;
+        }
+        .body {
+            width: 100%;
+            flex-basis: 0;
+            flex-grow: 1;
+        }
+        .line {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            .cell {
+                @padding: .5rem;
+                text-align: left;
+                padding: @padding;
+                box-sizing: border-box;
+                min-width: 3rem;
+                > * {
+                    width: calc(~"100% - @{padding} * 2")
+                }
+            }
+        }
+    }
+}
