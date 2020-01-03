@@ -70,10 +70,10 @@
         box-sizing: border-box;
         > .left {
             flex-grow: 1;
-            margin-right: 3rem;
         }
         > .right {
             flex-shrink: 0;
+            margin-left: 3rem;
             :global(.iconfont) {
                 font-size: 1.3rem;
             }
@@ -161,7 +161,6 @@
 
 .progressOuter {
     padding: 3px 0;
-    cursor: pointer;
     user-select: none;
     margin: .5rem 0;
     &:hover {
@@ -170,6 +169,9 @@
                 transform: scale(1);
             }
         }   
+    }
+    &.controlAble {
+        cursor: pointer;
     }
     > .progress {
         position: relative;

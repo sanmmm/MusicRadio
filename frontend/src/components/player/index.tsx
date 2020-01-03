@@ -19,6 +19,7 @@ interface PlayerProps extends ConnectProps, ReduxPlayingInfo {
     nowRoomId: string;
     isRoomAdmin: boolean;
     musicId: string;
+    isBlocked: boolean;
     isPaused: boolean;
     simpleMode?: boolean;
     isMobile: boolean;
@@ -41,6 +42,7 @@ enum NeedToDoActions {
     pausePlay = 1,
     startPlay,
     calcTimeRatio,
+    blockMusic
 }
 
 class Player extends React.Component<PlayerProps, PlayerState> {
@@ -98,6 +100,21 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         if (needTodoActionArr.includes(NeedToDoActions.calcTimeRatio)) {
             this._calcTimeRatioByEndAtOrProgress()
         }
+        if (needTodoActionArr.includes(NeedToDoActions.blockMusic)) {
+            if (this.props.isBlocked) {
+                this.setState({
+                    volumeRatio: 0
+                })
+                this._setVolume(0, false)
+            } else {
+                const volumeRatio = getLocalStorageData(LocalStorageKeys.volume) || 0.4
+                this.setState({
+                    volumeRatio
+                })
+                this._setVolume(volumeRatio)
+            }
+         
+        }
     }
 
     componentWillReceiveProps(nextProps) {
@@ -118,6 +135,9 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         if (nextProps.comment && nextProps.comment !== this.props.comment) {
             this._calcCommentFontSize(nextProps)
         }
+        if (nextProps.isBlocked !== this.props.isBlocked) {
+            this.needTodoActionArr.push(NeedToDoActions.blockMusic)
+        }
     }
 
     _startPlay() {
@@ -131,8 +151,8 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         this.audioEle.play()
     }
 
-    _setVolume(ratio: number) {
-        setLocalStorageData(LocalStorageKeys.volume, ratio)
+    _setVolume(ratio: number, syncLocalStorage = true) {
+        syncLocalStorage && setLocalStorageData(LocalStorageKeys.volume, ratio)
         this.audioEle.volume = ratio
     }
 
@@ -275,7 +295,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     _handleKeyDown (e) {
-        if (e && e.code.toLocaleLowerCase() === 'space') {
+        if (e && e.code && e.code.toLocaleLowerCase() === 'space') {
             this._changePlayingStatus()
         }
     }
@@ -316,7 +336,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }
         const isReallyPaused = isDragCursor || isPaused
         const isProgressPending = this._getIsProgressPending(isReallyPaused)
-        const contralAble = this._contralAble()
+        const controlAble = this._contralAble()
 
         const lyRicNode = <div className={styles.lyricOuter}>
             <Lyric lyric={lyric} nowTime={timeRatio * duration} showItemCount={isMobile ? 2 : 4} id={musicId} />
@@ -362,14 +382,14 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                         }
                     </span>
                 </div>
-                <div className={styles.progressOuter} onMouseDown={contralAble && this._startDragCursor.bind(this)} >
+                <div className={bindClass(styles.progressOuter, controlAble && styles.controlAble)} onMouseDown={controlAble && this._startDragCursor.bind(this)} >
                     <div className={styles.progress} ref={ele => this.progressEle = ele} style={{ height: progressLineHeight }} >
                         <div className={styles.base} >
                         </div>
                         <div className={styles.past} style={{ width: `${timeRatio * 100}%` }}>
                         </div>
                         {
-                            contralAble &&
+                            controlAble &&
                             <div className={bindClass(isProgressPending ? {
                                 [styles.pending]: true,
                                 'iconfont': true,
@@ -412,7 +432,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             </div>
 
             {
-                contralAble &&
+                controlAble &&
                 <div
                     className={styles.right}
                     onClick={this._changePlayingStatus}>
@@ -479,11 +499,16 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         </div>
     }
 }
-export default connect<Exclude<PlayerProps, 'simpleMode' | 'isMobile'>, any, Pick<PlayerProps, 'simpleMode' | 'isMobile'>>(({ playList: { nowPlaying }, center: { nowRoomInfo, userInfo } }: ConnectState) => {
+export default connect<Exclude<PlayerProps, 'simpleMode' | 'isMobile'>, any, Pick<PlayerProps, 'simpleMode' | 'isMobile'>>(
+    ({ playList: { nowPlaying }, center: { nowRoomInfo, userInfo, blockPlayItems } }: ConnectState
+) => {
+    const musicId = nowPlaying && nowPlaying.id
+    const isBlocked = (blockPlayItems || []).some(blockedId => blockedId === musicId),
     return {
         isRoomAdmin: userInfo && (userInfo.isRoomCreator || userInfo.isSuperAdmin),
         nowRoomId: nowRoomInfo && nowRoomInfo.id,
-        musicId: nowPlaying && nowPlaying.id,
+        musicId,
+        isBlocked,
         isPaused: !(nowPlaying && nowPlaying.status === NowPlayingStatus.playing),
         ...(nowPlaying || {}) as any
     }
