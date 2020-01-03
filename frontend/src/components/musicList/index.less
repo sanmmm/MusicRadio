@@ -24,43 +24,20 @@
     }
 }
 
-
-
-
-@baseColor: rgba(225,225,225,.8);
-.listShowBox {
-    text-align: left;
-    color: @baseColor;
+.musicList {
+    height: 100%;
+    box-sizing: border-box;
+    padding: 1rem 0;
     display: flex;
     flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: flex-start;
-    height: 500px;
-    width: 100%;
-    padding: 1rem 0;
-    > * {
-        width: 100%;
-        box-sizing: border-box;
-        flex-shrink: 0;
+    .info {
+        margin-top: .8rem;
     }
-    :global(.ant-checkbox-inner) {
-        background-color: transparent !important;
-        border-color: rgba(225,225,225,.5) !important;
-        :hover, :focus {
-            border-color: white !important;
-        }
-    }
-    :global(.ant-checkbox-checked) {
-        &::after {
-            border-color: white !important;
-        }
-    }
-
     .actionsBox {
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
-        margin-bottom: .8rem;
+        margin-top: .8rem;
         &.normal {
             > * {
                 .actionBtnBase();
@@ -91,73 +68,8 @@
             flex-grow: 1;
         }
     }
-    .tableBox {
-        min-height: 0;
-        flex-basis: 0;
+    .tableContainer {
         flex-grow: 1;
-    }
-}
-
-
-
-@normalTdPadding: 8px;
-@mobileTdPadding: .4rem;
-.tableHeader {
-    display: flex;
-    align-items: center;
-    &.mobile {
-        > .left {
-            padding: @mobileTdPadding;
-        }
-        > .right {
-            > * {
-                padding: @mobileTdPadding;
-            }
-        }
-    }
-
-    > .left {
-        text-align: center;
-        padding: @normalTdPadding;
-    }
-    > .right {
-        flex-grow: 1;
-        display: flex;
-        align-items: center;
-        > * {
-            padding: @normalTdPadding;
-        }
-   }
-}
-
-.tableRow {
-    color: @baseColor !important;
-    box-sizing: border-box;
-    td {
-        border-width: 0 !important;
-        background-color: transparent !important;
-        padding: @normalTdPadding !important;
-    }
-    :hover {
-        td {
-            background-color: transparent !important;
-        }
-    }
-    &.mobile {
-        td {
-            padding: @mobileTdPadding !important;
-            font-size: .8rem !important;
-        }
-    }
-    &.bottomHighLight {
-        td {
-            border-bottom: 1px dashed white !important;
-        }
-    }
-    &.topHighLight {
-        td {
-            border-top: 1px dashed white !important;
-        }
     }
 }
 
@@ -167,6 +79,7 @@
 
 
 .popoverActions {
+    padding: .5rem;
     .item {
         cursor: pointer;
         text-align: center;
@@ -181,12 +94,21 @@
     }
 }
 
-.musicNameTd {
+.musicNameCell {
     display: flex;
     align-items: center;
+    @iconMargin: .7rem;
+    > .name {
+        display: inline-block;
+        flex-basis: 0;
+        flex-grow: 1;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
     > * {
         & + * {
-            margin-left: .7rem;
+            margin-left: @iconMargin;
         }
     }
     :global(.icon-block) {

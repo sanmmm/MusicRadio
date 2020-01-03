@@ -47,6 +47,7 @@
         align-items: flex-start;
         .header {
             width: 100%;
+            border-bottom: 1px solid @normalTextColor;
         }
         .body {
             width: 100%;
@@ -62,9 +63,11 @@
                 text-align: left;
                 padding: @padding;
                 box-sizing: border-box;
-                min-width: 3rem;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
                 > * {
-                    width: calc(~"100% - @{padding} * 2")
+                    width: calc(~"100% - @{padding} * 2");
                 }
             }
         }

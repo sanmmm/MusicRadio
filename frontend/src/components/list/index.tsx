@@ -60,6 +60,24 @@ const ListRender = React.memo<Props>(function (props) {
         })
     }
 
+    useEffect(() => {
+        if (rowSelection) {
+            const selecedKeySet = new Set(rowSelection.selectedRowKeys)
+            const checkedKeys = [], checkedItems = []
+            dataSource.forEach(item => {
+                const key = rowKey(item)
+                if (selecedKeySet.has(key)) {
+                    checkedItems.push(item)
+                    checkedKeys.push(key)
+                }
+            })
+            if (checkedItems.length !== rowSelection.selectedRowKeys.length) {
+                rowSelection.onChange(checkedKeys, checkedItems)
+            }
+
+        }
+    }, [dataSource, dataSource.length])
+
     const handleItemCheck = useCallback((key: string, item, checked: boolean) => {
         const { checkedKeys, dataSource, rowKey, onChange } = getSyncState()
         checked ? checkedKeys.add(key) : checkedKeys.delete(key)
@@ -89,10 +107,11 @@ const ListRender = React.memo<Props>(function (props) {
                 <div className={styles.line}>
                     {
                         !!rowSelection &&
-                        <CustomCheckbox checked={rowSelection && rowSelection.selectedRowKeys.length === dataSource.length} onChange={handleCheckAll} />
+                        <CustomCheckbox disabled={!dataSource.length} 
+                        checked={rowSelection && dataSource.length && rowSelection.selectedRowKeys.length === dataSource.length} onChange={handleCheckAll} />
                     }
                     {
-                        columns.map(obj => <div className={styles.cell} key={obj.dataKey as string} style={{ width: obj.width }}>
+                        columns.map((obj, index) => <div className={styles.cell} key={obj.dataKey ? obj.dataKey as string : index} style={{ width: obj.width }}>
                             {obj.title || ''}
                         </div>)}
                 </div>
@@ -111,14 +130,14 @@ const ListRender = React.memo<Props>(function (props) {
                         />
                     })
                 }
+                {
+                    !dataSource.length &&
+                    <div className={styles.noData}>
+                        <span>暂无数据</span>
+                    </div>
+                }
             </Scrollbar>
         </div>
-        {
-            !dataSource.length &&
-            <div className={styles.noData}>
-                <span>暂无数据</span>
-            </div>
-        }
         {
             loading && <div className={styles.loading}>
                 <span className={bindClass('iconfont icon-load', styles.icon)}></span>
