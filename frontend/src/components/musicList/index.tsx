@@ -90,23 +90,30 @@ const MusicList: React.FC<MusicListProps> = function (props) {
         })
     }
 
-    const actions = [
-        {
-            icon: 'delete',
-            label: '删除',
-            onClick: () => {
-                const ids = selectedIds
-                handleDeleteItems(ids)
-            }
-        },
-        {
-            icon: 'clear',
-            label: '全部删除',
-            onClick: () => {
-                handleDeleteItems(musicList.map(item => item.id))
-            }
-        },
-    ]
+    let actions: {
+        icon: string;
+        label: string;
+        onClick: (...args: any) => any;
+    }[] = [] 
+    if (isRoomAdmin) {
+        actions = actions.concat([
+            {
+                icon: 'delete',
+                label: '删除',
+                onClick: () => {
+                    const ids = selectedIds
+                    handleDeleteItems(ids)
+                }
+            },
+            {
+                icon: 'clear',
+                label: '全部删除',
+                onClick: () => {
+                    handleDeleteItems(musicList.map(item => item.id))
+                }
+            },
+        ])
+    }
     if (blockBtnType) {
         actions.push({
             icon: 'block',
@@ -194,7 +201,7 @@ const MusicList: React.FC<MusicListProps> = function (props) {
 }
 
 export default connect(({ playList, center: { nowRoomInfo, userInfo, blockPlayItems }, loading }: ConnectState) => {
-    const actionPending = ['movePlayListItem', 'deletePlayListItem'].some(s => loading.effects[`playList/${s}`])
+    const actionPending = ['movePlayListItem', 'deletePlayListItem', 'blockPlayListItems', 'unblockPlayListItems'].some(s => loading.effects[`playList/${s}`])
     return {
         nowRoomId: nowRoomInfo && nowRoomInfo.id,
         musicList: playList.playList,
