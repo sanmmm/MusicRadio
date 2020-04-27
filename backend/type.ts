@@ -1,11 +1,19 @@
+import {NowPlayingStatus, RoomMusicPlayMode} from 'global/common/enums'
+
+export interface SessionStoreData {
+    userId: string;
+    defaultUserId: string;
+}
+
 export interface Session {
     id: string;
+    storeData: SessionStoreData;
     ip: string;
     isAuthenticated: boolean;
     user?: UserModel;
     login: (user: UserModel) => Promise<any>;
     logOut: () => Promise<any>;
-    getUser: () => Promise<UserModel>;
+    load: () => Promise<any>;
 }
 
 declare global {
@@ -29,110 +37,97 @@ declare global {
 
 export enum SessionTypes {ip, cookie, token}
 
-export enum ClientListenSocketEvents {
-    recieveNowPlayingInfo = 'recieveNowPlayingInfo',
-    addChatListMessages = 'addChatListMessages',
-    addPlayListItems = 'addPlayListItems',
-    movePlayListItem = 'movePlayListItem',
-    deletePlayListItems = 'deletePlayListItems',
-    blockPlayListItems = 'blockPlayListItems',
-    unblockPlayListItems = 'unblockPlayListItems',
-    searchMediaResult = 'searchMediaResult',
-    updateRoomInfo = 'updateRoomInfo', // 接受房间的基础信息
-    updateMediaDetail = 'updateMediaDetail',  
-    updateUserInfo = 'updateUserInfo',
-    updateSocketStatus = 'updateSocketStatus',
-    updatRecommenedRoomList = 'updatRecommenedRoomList',
-    updateEmojiList = 'updateEmojiList',
-    notification = 'notification',
-    createRoomSuccess = 'createRoomSuccess'
-}
-
-export enum ServerListenSocketEvents {
-    disconnect = 'disconnect',
-    sendMessage = 'sendMessage',
-    pausePlaying = 'pausePlaying',
-    startPlaying = 'startPlaying',
-    changeProgress = 'changeProgress',
-    addPlayListItems = 'addPlayListItems',
-    movePlayListItem = 'movePlayListItem',
-    deletePlayListItems = 'deletePlayListItems',
-    blockPlayListItems = 'blockPlayListItems',
-    unblockPlayListItems = 'unblockPlayListItems',
-    searchMedia = 'searchMedia', // 搜索音乐，专辑
-    getMediaDetail = 'getMediaDetail', // 获取 专辑详情
-    banUserComment = 'banUserComment', // 禁言
-    blockUser = 'blockUser', // 封禁用户
-    blockUserIp = 'blockUserIp', // 封禁ip
-    revokeAction = 'revokeAction', // 管理员撤回操作
-    createRoom = 'createRoom',
-    destroyRoom = 'destroyRoom',
-    joinRoom = 'joinRoom',
-    quitRoom = 'quitRoom',
-    getRoomData = 'loadRoomData', // 获取房间数据, 用于初始化
-    recommendRoom = 'recommendRoom', // 获取 推荐房间列表
-    getEmojiList = 'getEmojiList', // 获取表情包列表
-}
-
 export interface StaticModelClass<T = any> {
-    new (obj: Partial<T>): T;
+    new (obj?: Partial<T>): T;
     [key: string]: any;
+    _modelName: string;
     find: (ids: string[]) => Promise<T[]>;
     findOne: (id: string) => Promise<T>;
+    findAll: <U extends boolean>(onlyId?: U) =>  Promise<U extends true ? string[] : T[]>;
+    findByIndex: (feildName: string, value: any) => Promise<T>;
     delete: (ids: string[]) => Promise<any>;
     update: (ids: string[], cb: (item: T) => T) => Promise<T[]>;
-    fromJson: (str: string) => T
 }
 
 export interface ModelBase {
     id: string;
-    toJson: () => string;
+    createAt: string;
     save: () => Promise<this>;
     remove: () => Promise<this>;
 }
 
+export enum UserStatus {
+    normal, // 普通用户
+    superOfNormal, //  管理员普通用户视角
+    superAdmin, //管理员
+}
+
 export interface UserModel extends ModelBase {
-    isSuperAdmin: boolean;
+    readonly isSuperAdmin: boolean;
+    status: UserStatus;
     name?: string;
-    nowRoomId: string;
     ip: string;
     blockPlayItems: string[]; // 用户个人屏蔽的音乐id列表
-    allowComment: boolean;
+    createdRoom: string; // 创建的房间id
+    managedRoom: string; // 管理的房间id
+    readonly append: UserRoomRecord
+    allowComment: boolean; // 是否允许在房间内发表评论
+}
+
+export enum RoomTypes {
+    hallRoom, // 大厅
+    system, // 管理员创建的系统托管的房间
+    personal, // 个人创建的房间
+}
+
+export enum UserRoomRecordTypes {
+    others, // 普通房间人员
+    normalAdmin,
+    creator,
+    superAdmin,
+}
+export interface UserRoomRecord {
+    type: UserRoomRecordTypes;
+    userId: string;
+    userName: string;
+    nowRoomToken: string; // 房间token标识
+    nowRoomId: string; // 现在所属房间（可以为空）
+    nowRoomName: string; // 现在所属房间名称
+    nowRoomPassword: string; // 所属房间密码 （仅超级管理员,房间创建者/管理员可见）
+    allowComment: boolean; // 是否允许在房间内发表评论
 }
 
 export interface RoomModel extends ModelBase {
     creator: string; // 创建者id
     status: RoomStatus; // 
     isPublic: boolean;
-    isHallRoom: boolean; // 是否为大厅
+    readonly isHallRoom: boolean; // 是否为大厅
+    type: RoomTypes;
     max: number;
-    heat: number;
+    readonly heat: number;
     name: string;
-    nowPlayingInfo: {
-        id: string;
-        name: string;
-        artist: string;
-        src: string;
-        lyric: string;
-        pic: string;
-        isPaused: boolean;
-        progress:number;
-        endAt: number; // timestamp 秒
-        duration: number; // 秒
-        comment: {
-            content: string;
-            userId: number;
-            avatarUrl: string;
-            nickName: string;
-        };
+    nowPlayingInfo: NowPlayingInfo;
+    readonly playMode: RoomMusicPlayMode;
+    playModeInfo: {
+        mode: RoomMusicPlayMode;
+        autoPlayType?: string;
     };
-    joiners: string[];
+    readonly joiners: string[];
+    readonly normalJoiners: string[];
+    readonly admins: string[];
     banUsers: string[];
     blockIps: string[];
     blockUsers: string[];
     messageHistory: MessageItem[];
     playList: PlayListItem[];
     adminActions: AdminAction[];
+    vote?: {
+        id: string | number;
+        musicId: string;
+        agreeUids: string[];
+        disagreeUids: string[];
+    };
+    quit: (user: UserModel) => any;
 }
 
 export enum RoomStatus {
@@ -155,6 +150,11 @@ export interface MessageItem {
     tag?: string; // [tag][message]
     content: {
         text?: string;
+        atSign?: {  // @功能
+            atSignToUserName: string; // @到的人的姓名
+            atSignToUserId: string; // @到的人的id
+            atSignPostion: number; // @符号在消息内容中的位置
+        }[];
         title?: string;
         img?: string;
     };
@@ -168,27 +168,21 @@ export interface PlayListItem {
     artist: string; // 演唱者
     album: string; // 专辑
     duration: number; // 时长  ms
-    from: string; // 点歌人
-    fromId: string; // 点歌人id
+    from?: string; // 点歌人
+    fromId?: string; // 点歌人id
 }
 
 export enum MediaTypes {
     song = 1, // 单曲
     album, // 专辑
 }
-
-export enum ScoketStatus {
-    connected,
-    invalid,
-    roomBlocked,
-    globalBlocked,
-    closed,
-}
-
 export enum AdminActionTypes {
-    blockUser,
-    blockIp,
-    banUserComment,
+    blockUser, //屏蔽用户
+    blockIp, // 屏蔽ip
+    banUserComment, // 禁言
+    withdrwalMessage, // 撤回消息
+    awardAdmin, // 授予房间管理员权限
+    removeAdmin, // 撤销房间管理员权限
 }
 
 export interface AdminAction {
@@ -196,16 +190,41 @@ export interface AdminAction {
     type: AdminActionTypes;
     operator: string;
     operatorName: string;
-    isSuperAdmin: boolean;
+    operatorUserRoomType: UserRoomRecordTypes;
     room: string;
     time: string | number;
     detail: {
         ip?: string;
+        userName?: string;
         userId?: string;
+        message?: string;
     };
 }
 
 export enum CronTaskTypes {
     destroyRoom = 'destroyRoom',
     cutMusic = 'cutMusic',
+    roomRoutineTask = 'roomRoutineTask',
+    roomIpDataTask = 'roomIpDataTask',
+}
+
+export interface NowPlayingInfo {
+    id: string;
+    name: string;
+    artist: string;
+    src?: string;
+    lyric?: string;
+    pic?: string;
+    progress:number;
+    endAt: number; // 结束时间戳 秒
+    duration: number; // 秒
+    status: NowPlayingStatus; // 状态值
+    pausedAt?: number; // 暂停时间 秒
+    timestamp: number, // 信息更新服务端时间戳 毫秒
+    comment?: {
+        content: string;
+        userId: number;
+        avatarUrl: string;
+        nickName: string;
+    };
 }

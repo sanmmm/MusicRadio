@@ -1,12 +1,17 @@
 import uuid from 'uuid/v4'
+import crypto from 'crypto'
 
-import settings from 'root/settings'
 import {isSuperAdmin, safePushArrItem, safeRemoveArrItem} from 'root/lib/utils'
 import redisCli from 'root/lib/redis'
-import {UserModel, RoomModel, ModelBase, StaticModelClass, MessageItem, PlayListItem, AdminAction, RoomStatus, RoomTypes, NowPlayingInfo, UserStatus} from 'root/type'
-import {NowPlayingStatus} from 'global/common/enums'
-import {userRoomInfoMap, roomHeatMap, roomJoinersMap, roomAdminsMap} from 'root/lib/store'
-
+import {ModelBase, UserModel, RoomModel, StaticModelClass, MessageItem, PlayListItem, AdminAction, RoomStatus, RoomTypes, 
+    NowPlayingInfo, UserStatus, UserRoomRecordTypes, UserRoomRecord} from 'root/type'
+import {userRoomInfoMap, roomHeatMap, roomJoinersMap, roomAdminsMap, roomNormalJoinersMap, roomUpdatedUserRecordsMap, modelMemberIdsMap, 
+    redisSetCache, isRedisSetCahceLoaded, redisSetToArrayCache} from 'root/lib/store'
+import bitSymbols from 'root/config/bitSybmols.json'
+import globalConfigs from 'global/common/config';
+import settings from 'root/settings';
+import { RoomMusicPlayMode } from 'global/common/enums';
+import { playingInfo } from '../../.history/frontend/src/mockData/index_20200427101440';
 export namespace ModelDescriptors {
     const modelNameSet = new Set<string>()
     const collectedModelUniqueKeys = new Set<string>()
@@ -19,14 +24,14 @@ export namespace ModelDescriptors {
             }
             const isBaseModel = modelName === 'base'
             if (!isBaseModel) {
-                if (Object.getPrototypeOf(constructor) !== BaseModel) {
+                if (Object.getPrototypeOf(constructor) !== BaseModelDef) {
                     throw new Error('父类继承错误!')
                 }
                 if (modelNameSet.has(modelName)) {
                     throw new Error('不能重复注册 model')
                 }
             }
-            const baseModelObj = isBaseModel ? constructor : BaseModel
+            const baseModelObj = isBaseModel ? constructor : BaseModelDef
             modelNameSet.add(modelName)
             constructor._modelName = modelName
             const uniqueKeys = new Set<string>([...baseModelObj._uniqueKeys, ...collectedModelUniqueKeys])
@@ -47,34 +52,34 @@ export namespace ModelDescriptors {
         collectedModelDynamicKeys.add(propertyName)
     }
 
-    const isModelInstanceObj = (obj) => obj instanceof BaseModel
-    const isModelObj = (obj) => obj instanceof BaseModel.constructor
+    const isModelInstanceObj = (obj) => obj instanceof BaseModelDef
+    const isModelObj = (obj) => obj instanceof BaseModelDef.constructor
 
-    export function getUniqueKeys (obj: BaseModel) {
+    export function getUniqueKeys (obj: BaseModelDef) {
         if (isModelInstanceObj(obj)) {
             return Object.getPrototypeOf(obj).constructor._uniqueKeys
         }
         throw new Error('invalid object')
     }
 
-    export function getDynamicKeys (obj: BaseModel) {
+    export function getDynamicKeys (obj: BaseModelDef) {
         if (isModelInstanceObj(obj)) {
             return Object.getPrototypeOf(obj).constructor._dynamicKeys
         }
         throw new Error('invalid object')
     }
 
-    export function getModelName (obj: BaseModel | typeof BaseModel) {
+    export function getModelName (obj: BaseModelDef | typeof BaseModelDef) {
         if (isModelInstanceObj(obj)) {
             return Object.getPrototypeOf(obj).constructor._modelName
         }
         if (isModelObj(obj)) {
-            return (obj as typeof BaseModel)._modelName
+            return (obj as typeof BaseModelDef)._modelName
         }
         throw new Error('invalid object')
     }
 
-    export function getIndexRedisKey(obj: BaseModel | typeof BaseModel, feildName: string, value: any) {
+    export function getIndexRedisKey(obj: BaseModelDef | typeof BaseModelDef, feildName: string, value: any) {
         if (['object', 'symbol'].includes(typeof value)) {
             throw new Error('invalid value type')
         }
@@ -85,12 +90,110 @@ export namespace ModelDescriptors {
 
 }
 
+namespace UtilFuncs {
+    export async function addToRedisSet (key: string, value: string) {
+        await redisCli.sadd(key, value)
+        const isLoaded = isRedisSetCahceLoaded.get(key)
+        if (!isLoaded) {
+            await loadRedisSetCache(key)
+        }
+        const setCache = redisSetCache.get(key), setCacheList = redisSetToArrayCache.get(key)
+        if (!setCache.has(value)) {
+            setCache.add(value)
+            setCacheList.push(value)
+        }
+    }
+
+    export async function removeItemFromRedisSet (key: string, value: string) {
+        await redisCli.srem(key, value)
+        const isLoaded = isRedisSetCahceLoaded.get(key)
+        if (!isLoaded) {
+            await loadRedisSetCache(key)
+        }
+        const setCache = redisSetCache.get(key), setCacheList = redisSetToArrayCache.get(key)
+        if (setCache.has(value)) {
+            const findIndex = setCacheList.findIndex(item => item === value)
+            if (findIndex > -1) {
+                setCacheList.splice(findIndex, 1)
+            }
+            setCache.delete(value)
+        }
+    }
+
+    export async function getAllItemsOfRedisSet (key: string) {
+        const isLoaded = isRedisSetCahceLoaded.get(key)
+        if (!isLoaded) {
+            await loadRedisSetCache(key)
+        }
+        const setList = redisSetToArrayCache.get(key)
+        return setList
+    }
+
+    export async function loadRedisSetCache (key: string) {
+        const isLoaded = isRedisSetCahceLoaded.get(key)
+        if (isLoaded) {
+            return
+        }
+        const set = new Set<string>(), setList = []
+        let cursor = 0
+        do {
+            const [nextCursor, items] = await redisCli.sscan(key, cursor, 'count', 1000)
+            items.forEach(item => {
+                set.add(item)
+                setList.push(item)
+            })
+            cursor = Number(nextCursor)
+        } while (!isNaN(cursor) && cursor !== 0)
+        redisSetCache.set(key, set)
+        redisSetToArrayCache.set(key, setList)
+        isRedisSetCahceLoaded.set(key, true)
+        console.log(`load redis key:${key} cache end --------------------`)
+    }
+
+    export function getModelMemberIdsRedisKey (modelName: string) {
+        return `musicradio-model-${modelName}-allMembers`
+    }
+
+    export function getPublicRoomIdsRedisKey () {
+        return `musicradio-model-room-publicMembers`
+    }
+
+    const digit = bitSymbols.length
+    const base = Math.pow(digit, 3)
+
+    export function decimalToCustomSystemValue (num: number) {
+        const bitArr = []
+        let i = num + base
+        while (i !== 0) {
+            bitArr.unshift(bitSymbols[i % digit])
+            i = Math.floor(i / digit)
+        }
+        return bitArr.join('')
+    }
+
+    export function customSystemValueToDecimal (value: string) {
+        const number = value.split('').reverse().reduce((num, bitSymbol, i) => {
+            const v = bitSymbols.indexOf(bitSymbol)
+            return num + v * Math.pow(digit, i)    
+        }, 0)
+        return number - base
+    }
+
+    export function generateRoomPassword (length = 4) {
+        return Math.random().toString(32).slice(2, 2 + length)
+    }
+}
+
 @ModelDescriptors.modelDecorator('base')
-export class BaseModel {
+export class BaseModelDef implements ModelBase {
     static _modelName: string = 'base';
     static _uniqueKeys: Set<string> = new Set();
     static _dynamicKeys: Set<string> = new Set();
     id: string;
+    createAt: string; // 创建时间
+
+    @ModelDescriptors.uniqueDecorator
+    protected numberId: number
     protected isInit: boolean = true;
 
     @ModelDescriptors.dynamicDecorator
@@ -103,27 +206,30 @@ export class BaseModel {
         return `musicradio-modelid:${id}`
     }
     static async find (ids: string[]) {
-        ids = ids.map(BaseModel.generateKey)
+        if (ids.length === 0 ) {
+            return []
+        }
+        ids = ids.map(BaseModelDef.generateKey)
         const dataArr = (await redisCli.mget(...ids)) || []
         return dataArr.map(str => str && this._fromJson(str) as any)
     }
     static async findOne (id: string) {
-        id = BaseModel.generateKey(id)
+        id = BaseModelDef.generateKey(id)
         const dataStr = await redisCli.get(id)
         return dataStr && this._fromJson(dataStr) as any
     }
     static async delete (ids: string[]) {
-        ids = ids.map(BaseModel.generateKey)
+        ids = ids.map(BaseModelDef.generateKey)
         await redisCli.del(...ids)
     }
     static async update (ids: string[], cb) {
-        ids = ids.map(BaseModel.generateKey)
-        const dataArr = await BaseModel.find(ids)
+        ids = ids.map(BaseModelDef.generateKey)
+        const dataArr = await BaseModelDef.find(ids)
         const map = new Map<string, string>()
         const updatedItems = []
         dataArr.forEach((item) => {
             const updatedItem = cb(item)
-            map.set(BaseModel.generateKey(item.id), updatedItem._toJson())
+            map.set(BaseModelDef.generateKey(item.id), updatedItem._toJson())
             updatedItems.push(updatedItem)
         })
         await redisCli.mset(map)
@@ -142,12 +248,28 @@ export class BaseModel {
         }
         return await this.findOne(aimId)
     }
+
+    static async findAll<U extends boolean> (onlyId?: U) {
+        const modelName = ModelDescriptors.getModelName(this)
+        const key = UtilFuncs.getModelMemberIdsRedisKey(modelName)
+        const ids = await UtilFuncs.getAllItemsOfRedisSet(key)
+        return (onlyId ? ids : this.find(ids)) as U extends true ? string[] : any[]
+    }
+
+    static async loadAllMembers () {
+        console.log(`初始化加载${ModelDescriptors.getModelName(this)}的member id列表到内存中`)
+        const modelName = ModelDescriptors.getModelName(this)
+        const redisKey = UtilFuncs.getModelMemberIdsRedisKey(modelName)
+        await UtilFuncs.loadRedisSetCache(redisKey)
+    }
+
     private static _fromJson (str: string) {
         const obj = new this(JSON.parse(str))
         obj.snapshotObj = Object.defineProperties({}, Object.getOwnPropertyDescriptors(obj))
         obj.isInit = false
         return obj
     }
+
     private _patchResolveModifieldFeilds () {
         const uniqueKeys: Set<string> = ModelDescriptors.getUniqueKeys(this)
         const modifiedFeildNames: string[] = []
@@ -195,6 +317,7 @@ export class BaseModel {
             }
         }
     }
+
     private _toJson () {
         const dynamicKeys: Set<string> = ModelDescriptors.getDynamicKeys(this)
         return JSON.stringify(this, (key, value) => {
@@ -204,28 +327,47 @@ export class BaseModel {
             return value
         })
     }
+
+    getNumberId () {
+        return this.numberId
+    }
+
     async save () {
         if (!this.id) {
             this.id = uuid().replace(/-/g, '')
         }
+        const modelName = ModelDescriptors.getModelName(this)
+        let time = Date.now()
         if (this.isInit) {
-            const hasExisted = await redisCli.exists(BaseModel.generateKey(this.id))
+            const hasExisted = await redisCli.exists(BaseModelDef.generateKey(this.id))
             if (hasExisted) {
                 throw new Error(`duplicated id: ${this.id}`)
             }
             this.isInit = false
+            this.createAt = new Date().toString()
+            // 生成数字id
+            this.numberId = await redisCli.incr(`musicradio-model-${modelName}-numberIdcursor`)
         }
         const indexTool = this._patchResolveModifieldFeilds()
         await indexTool.validateBeforeSave()
-        await redisCli.set(BaseModel.generateKey(this.id), this._toJson())
+        await redisCli.set(BaseModelDef.generateKey(this.id), this._toJson())
         await indexTool.updateIndexAfterSave()
+        console.log((Date.now() - time) / 1000, modelName, 'save used time-----------------')
+        if (this.isInit) {
+              // 记录id值
+              const allIdKey = UtilFuncs.getModelMemberIdsRedisKey(modelName)
+              await UtilFuncs.addToRedisSet(allIdKey, this.id)
+        }
         return this
     }
+    
     async remove () {
         if (!this.id) {
             throw new Error(`invalid id: ${this.id}`)
         }
-        await redisCli.del(BaseModel.generateKey(this.id))
+        await redisCli.del(BaseModelDef.generateKey(this.id))
+        const modelName = ModelDescriptors.getModelName(this)
+        await UtilFuncs.removeItemFromRedisSet(UtilFuncs.getModelMemberIdsRedisKey(modelName), this.id)
         return this
     }
 }
@@ -235,11 +377,25 @@ function defineModel <U, T extends StaticModelClass> (m: T) {
 }
 
 @ModelDescriptors.modelDecorator('user')
-class UserModelDef extends BaseModel implements UserModel{
+class UserModelDef extends BaseModelDef implements UserModel{
     constructor (obj = {}) {
         super(obj)
         Object.assign(this, obj)
     }
+    static getUserRoomRecords (userIds: string[]) {
+        return userIds.map(userId => userRoomInfoMap.get(userId))
+    }
+    static updateUserRoomRecords (userId, updatedObj: Partial<UserRoomRecord>, isReplaced = false) {
+        if (isReplaced) {
+            userRoomInfoMap.set(userId, updatedObj as UserRoomRecord)
+            return updatedObj as UserRoomRecord
+        }
+        const record = userRoomInfoMap.get(userId)
+        Object.assign(record, updatedObj)
+        userRoomInfoMap.set(userId, record)
+        return record
+    }
+    private password: string;
     status: UserStatus = UserStatus.normal;
     get isSuperAdmin () {
         return this.status === UserStatus.superAdmin
@@ -247,15 +403,19 @@ class UserModelDef extends BaseModel implements UserModel{
     @ModelDescriptors.uniqueDecorator
     name: string;
     createdRoom: string;
+    managedRoom: string;
     ip: string;
     blockPlayItems: string[] = [];
     get append () {
         return userRoomInfoMap.get(this.id) || {
+            type: UserRoomRecordTypes.others,
+            userId: this.id,
+            userName:'',
             nowRoomId: null,
             nowRoomName: '',
+            nowRoomToken: '',
+            nowRoomPassword: '',
             allowComment: true,
-            isRoomCreator: false,
-            isSuperAdmin: false,
         }
     }
     get allowComment () {
@@ -266,31 +426,71 @@ class UserModelDef extends BaseModel implements UserModel{
         info.allowComment = value
         userRoomInfoMap.set(this.id, info)
     }
+
+    private generatePasswordHash (passwordStr: string) {
+        const hash = crypto.createHash('sha256')
+        hash.update(settings.hashSalt + passwordStr)
+        return hash.digest('hex')
+    }
+
+    comparePassword (passwordStr: string) {
+        return this.password === this.generatePasswordHash(passwordStr)
+    }
+
+    setPassword (passwordStr: string) {
+        this.password = this.generatePasswordHash(passwordStr)
+    }
 }
 
 export const User = defineModel<UserModelDef, typeof UserModelDef>(UserModelDef)
 
 @ModelDescriptors.modelDecorator('room')
-class RoomModelDef extends BaseModel implements RoomModel{
+class RoomModelDef extends BaseModelDef implements RoomModel{
     constructor (obj = {}) {
         super(obj)
         Object.assign(this, obj)
     }
+    
     creator: string;
     status: RoomStatus = RoomStatus.active;
     isPublic: boolean = true;
+    private password: string;
     get isHallRoom (): boolean {
         return this.type === RoomTypes.hallRoom
     }
     type: RoomTypes = RoomTypes.personal;
-    max: number = -1;
+    max: number = -1; // -1 表示房间不限人数
+    
+    get token () {
+        if (!this.numberId) {
+            throw new Error('numberId 尚未生成')
+        }
+        if (this.isHallRoom) {
+            return globalConfigs.hallRoomToken
+        }
+        return UtilFuncs.decimalToCustomSystemValue(this.numberId)
+    }
+
+    @ModelDescriptors.uniqueDecorator
     name: string;
+    
     nowPlayingInfo: NowPlayingInfo;
+    get playMode(): RoomMusicPlayMode {
+        return this.playModeInfo.mode
+    }
+    playModeInfo = {
+        mode: RoomMusicPlayMode.demand,
+    }
     get heat (): number {
-        return roomHeatMap.get(this.id) || 0
+        return roomHeatMap.get(this.id) || (
+            this.type === RoomTypes.personal ? 1 : 0
+        )
     }
     get joiners (): string[] {
         return roomJoinersMap.get(this.id) || []
+    }
+    get normalJoiners () {
+        return roomNormalJoinersMap.get(this.id) || []
     }
     get admins (): string[] {
         return roomAdminsMap.get(this.id) || []
@@ -308,64 +508,172 @@ class RoomModelDef extends BaseModel implements RoomModel{
         disagreeUids: string[],
     }
 
-    static getRoomListKey () {
-        return 'musicradio:roomlist'
+    static async findRoomByToken (token: string) {
+        if (token === globalConfigs.hallRoomToken) {
+            return await this.findOne(globalConfigs.hallRoomId) as RoomModelDef
+        }
+        const numberId = UtilFuncs.customSystemValueToDecimal(token)
+        const room = await this.findByIndex('numberId', numberId)
+        return room as RoomModelDef
     }
 
-    static async getRoomIdList () {
-        return redisCli.smembers(this.getRoomListKey())
+    static getRoomUpdatedUserRecords (roomId) {
+        let map = roomUpdatedUserRecordsMap.get(roomId)
+        if (!map) {
+            map = new Map()
+            roomUpdatedUserRecordsMap.set(roomId, map)
+        }
+        return map
+    }
+
+    static clearRoomUpdatedUserRecords (roomId) {
+        roomUpdatedUserRecordsMap.get(roomId).clear()
+    }
+
+    static async getPublicRooms (onlyId = false) {
+        const ids = await UtilFuncs.getAllItemsOfRedisSet(UtilFuncs.getPublicRoomIdsRedisKey())
+        if (onlyId) {
+            return ids
+        } else {
+            return this.find(ids)
+        }
     }
 
     async save () {
         let isInit = this.isInit
+        if (isInit && !this.isPublic && !this.password) {
+            this.password = UtilFuncs.generateRoomPassword()
+        }
         const res = await super.save()
-        if (isInit && this.id !== hallRoomId) {
-            await redisCli.sadd(Room.getRoomListKey(), this.id)
+        if (isInit && this.isPublic) {
+            // 记录对外开放的房间id
+            await UtilFuncs.addToRedisSet(UtilFuncs.getPublicRoomIdsRedisKey(), this.id)
         }
         return res
     }
 
     async remove () {
         const res = await super.remove()
-        await redisCli.srem(Room.getRoomListKey(), this.id)
+        if (this.isPublic) {
+            await UtilFuncs.removeItemFromRedisSet(UtilFuncs.getPublicRoomIdsRedisKey(), this.id)
+        }
         this.joiners.forEach(userId => {
             userRoomInfoMap.delete(userId)
         })
         roomHeatMap.delete(this.id)
         roomJoinersMap.delete(this.id)
+        roomNormalJoinersMap.delete(this.id)
+        roomAdminsMap.delete(this.id)
+        roomUpdatedUserRecordsMap.delete(this.id)
         return res
     }
 
     join (user: UserModel) {
-        const isAdmin = isSuperAdmin(user)
+        const isSuper = isSuperAdmin(user)
+        const isRoomCreator = !isSuper && this.creator === user.id
+        const isAdmin = isSuper || isRoomCreator
         if (!isAdmin) {
             if (!this.isHallRoom && this.max !== -1 && this.heat === this.max) {
                 throw new Error('房间超员')
             }
             roomHeatMap.set(this.id, this.heat + 1)
         }
-        const isRoomCreator = user.id === this.creator
-        if (isAdmin || isRoomCreator) {
-            roomAdminsMap.set(this.id, safePushArrItem(this.admins, user.id))
-        }
         roomJoinersMap.set(this.id, safePushArrItem(this.joiners, user.id))
+        if (isAdmin) {
+            roomAdminsMap.set(this.id, safePushArrItem(this.admins, user.id))
+        } else {
+            roomNormalJoinersMap.set(this.id, safePushArrItem(this.normalJoiners, user.id))
+        }
         userRoomInfoMap.set(user.id, {
-            allowComment: isAdmin || isRoomCreator || !this.banUsers.includes(user.id),
+            userId: user.id,
+            userName: user.name,
+            allowComment: isSuper || isRoomCreator || !this.banUsers.includes(user.id),
             nowRoomId: this.id,
             nowRoomName: this.name,
-            isRoomCreator,
-            isSuperAdmin: isAdmin
+            nowRoomToken: this.token,
+            nowRoomPassword: isAdmin ? this.password : '',
+            type: isRoomCreator ? UserRoomRecordTypes.creator : (
+                isSuper ? UserRoomRecordTypes.superAdmin : UserRoomRecordTypes.others
+            )
+        })
+        const updatedRecordMap = Room.getRoomUpdatedUserRecords(this.id)
+        updatedRecordMap.set(user.id, {
+            ...user.append,
         })
     }
 
     quit (user: UserModel) {
+        const isSuper = isSuperAdmin(user)
+        const isRoomCreator = !isSuper && this.creator === user.id
         const findIndex = this.joiners.indexOf(user.id)
         if (findIndex > -1) {
             roomJoinersMap.set(this.id, safeRemoveArrItem(this.joiners, user.id))            
-            !isSuperAdmin(user) && roomHeatMap.set(this.id, this.heat - 1)
+            if (user.append.type === UserRoomRecordTypes.others) {
+                roomNormalJoinersMap.set(this.id, safeRemoveArrItem(this.normalJoiners, user.id))
+            } else {
+                roomAdminsMap.set(this.id, safeRemoveArrItem(this.admins, user.id))
+            }
+            !(isSuper || isRoomCreator) && roomHeatMap.set(this.id, this.heat - 1)
+            const userRecord = userRoomInfoMap.get(user.id)
             userRoomInfoMap.delete(user.id)
+            const updatedRecordMap = Room.getRoomUpdatedUserRecords(this.id)
+            updatedRecordMap.set(user.id, {
+                ...userRecord,
+                isOffline: true,
+            })
         }
     }
+
+    awardAdmin (user: UserModel) {
+        const record = User.updateUserRoomRecords(user.id, {
+            type: UserRoomRecordTypes.normalAdmin,
+            nowRoomPassword: this.password,
+        })
+        const updatedRecordMap = Room.getRoomUpdatedUserRecords(this.id)
+        updatedRecordMap.set(user.id, record)
+        roomNormalJoinersMap.set(this.id, safeRemoveArrItem(roomNormalJoinersMap.get(this.id), user.id))
+        roomAdminsMap.set(this.id, safePushArrItem(roomAdminsMap.get(this.id), user.id))
+    }
+
+    removeAdmin (user: UserModel) {
+        const record = User.updateUserRoomRecords(user.id, {
+            type: UserRoomRecordTypes.others,
+            nowRoomPassword: '',
+        })
+        const updatedRecordMap = Room.getRoomUpdatedUserRecords(this.id)
+        updatedRecordMap.set(user.id, record)
+        roomNormalJoinersMap.set(this.id, safePushArrItem(roomNormalJoinersMap.get(this.id), user.id))
+        roomAdminsMap.set(this.id, safeRemoveArrItem(roomAdminsMap.get(this.id), user.id))
+    }
+
+    getRoomUserRecords () {
+        return this.joiners.map(userId => userRoomInfoMap.get(userId))
+    }
+
+    isJoinAble (reqUser: UserModel) {
+        if (isSuperAdmin(reqUser) || reqUser.id === this.creator) {
+            return true
+        }
+        if (this.blockUsers.includes(reqUser.id) || this.blockIps.includes(reqUser.ip)){
+            return false
+        }
+        const heat = this.heat
+        if (this.isHallRoom || this.max === -1 || heat < this.max) {
+            return true
+        }   
+        return false
+    }
+
+    validatePassword (password: string) {
+        // TODO 加密
+        console.log(this.password)
+        return password === this.password
+    }
+
+    getRoomPassword () {
+        return this.password
+    }
+
 }
 
 export const Room = defineModel<RoomModelDef, typeof RoomModelDef>( RoomModelDef)

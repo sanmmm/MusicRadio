@@ -2,19 +2,19 @@ import got from 'got'
 
 import redisCli from 'root/lib/redis'
 import settings from 'root/settings'
-import {MediaTypes} from 'root/type'
+import { MediaTypes } from 'root/type'
 
 const serverUrl = settings.neteaseApiServer.replace('\/$/g', '')
 
 namespace Utils {
-    export const musicSrcCacheExpire = 3600 * 6
+    export const musicSrcCacheExpire = 60 * 4
     export const musicBaseInfoCacheExpire = 3600 * 24 * 3
     export const musicLyricCacheExpire = 3600 * 24 * 7
     export const musicCommentsChacheExpire = 3600 * 24 * 7
-    
-    export const getMusicItemBaseInfoKey = (ids: string | string[]) => `musicbaseInfo:${typeof ids === 'string' ? ids : ids.join(',')}`
 
-    export function extractBaseMusicInfo (item) {
+    export const getMusicItemBaseInfoKey = (id: string | string[]) => `musicbaseInfo:${id instanceof Array ? id.join(',') : id}`
+
+    export function extractBaseMusicInfo(item) {
         return {
             id: item.id + '',
             name: item.name,
@@ -22,7 +22,7 @@ namespace Utils {
             album: item.al.name,
             pic: item.al.picUrl,
             duration: Math.ceil(item.dt / 1000),
-            free: !item.fee
+            free: item.fee !== 1
         }
     }
 
@@ -37,7 +37,7 @@ namespace Utils {
 
 }
 
-export async function getMusicInfo (ids: string[]) {
+export async function getMusicInfo(ids: string[]) {
     const baseInfoArr = await getMusicBaseInfo(ids)
 
     const srcArr = await redisCli.tryGet(`musicsrc${ids.join(',')}`, async () => {
@@ -62,7 +62,7 @@ export async function getMusicInfo (ids: string[]) {
                 json: true
             })
             return (reqRes.body.hotComments as any[]).map(item => {
-                const {user: {userId, avatarUrl, nickname: nickName}, content} = item
+                const { user: { userId, avatarUrl, nickname: nickName }, content } = item
                 return {
                     userId,
                     avatarUrl,
@@ -79,7 +79,7 @@ export async function getMusicInfo (ids: string[]) {
                 },
                 json: true
             })
-            return reqRes.body.lrc.lyric
+            return reqRes.body.lrc && reqRes.body.lrc.lyric
         }, Utils.musicLyricCacheExpire)
         return {
             ...item,
@@ -91,21 +91,22 @@ export async function getMusicInfo (ids: string[]) {
 
 }
 
-export async function getAlbumInfo (id: string) {
-    return await redisCli.tryGet(`albumn:${id}`, async (cacheKey) => {
+export async function getAlbumInfo(id: string) {
+    return redisCli.tryGet(`albumn:${id}`, async (cacheKey) => {
         const reqRes = await got.get(serverUrl + '/album', {
             json: true,
             query: {
                 id
             }
         })
-        const {songs, album} = reqRes.body
+        const { songs, album } = reqRes.body
 
-        const musicList = await Promise.all((songs as any[]).map(s => {
+        const musicList = await Promise.all((songs as any[]).map(async s => {
             const info = Utils.extractBaseMusicInfo(s)
-            return redisCli.tryGet(Utils.getMusicItemBaseInfoKey(s.id), () => {
-                return info
+            await redisCli.tryGet(Utils.getMusicItemBaseInfoKey(info.id), () => {
+                return [info]
             }, Utils.musicBaseInfoCacheExpire, [cacheKey])
+            return info
         }))
         const albumInfo = {
             id: album.id + '',
@@ -118,8 +119,8 @@ export async function getAlbumInfo (id: string) {
     }, Utils.albumInfoCacheExpire)
 }
 
-export async function searchMedia (searchStr: string, type: MediaTypes) {
-    return redisCli.tryGet(`musicsearch:${searchStr}`, async (searchCacheKey) => {
+export async function searchMedia(searchStr: string, type: MediaTypes) {
+    return redisCli.tryGet(`musicsearch:${searchStr}:${type}`, async (searchCacheKey) => {
         const reqRes = await got.get(serverUrl + '/search', {
             json: true,
             query: {
@@ -140,14 +141,14 @@ export async function searchMedia (searchStr: string, type: MediaTypes) {
                 pic: item.picUrl,
                 desc: artistStr,
             } : {
-                ...baseInfo,
-                desc: `《${item.album.name}》-${artistStr}`
-            }
+                    ...baseInfo,
+                    desc: `《${item.album.name}》-${artistStr}`
+                }
         })
     }, Utils.searchCacheExpire)
 }
 
-export function getMusicBaseInfo (id: string | string[]) {
+export function getMusicBaseInfo(id: string[]) {
     return redisCli.tryGet(Utils.getMusicItemBaseInfoKey(id), async (cacheKey) => {
         const reqRes = await got.get(serverUrl + '/song/detail', {
             json: true,
@@ -155,21 +156,72 @@ export function getMusicBaseInfo (id: string | string[]) {
                 ids: id
             }
         })
-        const {songs, privileges} = reqRes.body as {songs: any[], privileges: any[]}
-        return Promise.all(songs.map(s => {
+        const { songs, privileges } = reqRes.body as { songs: any[], privileges: any[] }
+        return Promise.all(songs.map(async s => {
             const info = Utils.extractBaseMusicInfo(s)
-            return redisCli.tryGet(Utils.getMusicItemBaseInfoKey(info.id), () => {
-                return info
+            redisCli.tryGet(Utils.getMusicItemBaseInfoKey(info.id), () => {
+                return [info]
             }, Utils.musicBaseInfoCacheExpire, [cacheKey])
+            return info
         }))
     }, Utils.musicBaseInfoCacheExpire)
 }
 
+export function getPlayListInfo (playListId: string) {
+    return redisCli.tryGet(`playlistDetail:${playListId}`, async (cacheKey) => {
+        const reqRes = await got.get(serverUrl + '/playlist/detail', {
+            json: true,
+            query: {
+                id: playListId,
+            }
+        })
+        const {playlist} = reqRes.body
+        const {name, description, id, tracks} = playlist
+        const musicList = await Promise.all((tracks as any[]).map(async item => {
+            const info = Utils.extractBaseMusicInfo(item)
+            await redisCli.tryGet(Utils.getMusicItemBaseInfoKey(item.id), () => {
+                return [
+                    info
+                ]
+            }, Utils.musicBaseInfoCacheExpire, [cacheKey])
+            return info
+        }))
+        return {
+            name,
+            description,
+            id,
+            musicList,
+        }
+    }, 3600 * 24)
+}
 
-async function test () {
+export function getHighQualityMusicList (cat: string) {
+    return redisCli.tryGet(`highquality:${cat}`, async (cacheKey) => {
+        const reqRes = await got.get(serverUrl + '/top/playlist/highquality', {
+            json: true,
+            query: {
+                cat,
+                limit: 5
+            }
+        })
+        const {playlists} = reqRes.body
+        return (playlists as any[]).map(item => {
+            const {name, description, id} = item
+            return {
+                name,
+                description,
+                id,
+            }
+        })
+    }, 3600 * 24)
+}
+
+async function test() {
     // console.log((await getMusicInfo(['347230']))[0])
     // console.log(await getAlbumInfo('2301158'))
     // console.log(await searchMusic('许嵩', MediaTypes.album))
+    // console.log(await getPlayListInfo('24381616'))
+    // console.log(await getHighQualityMusicList('流行'))
 }
 
 test()

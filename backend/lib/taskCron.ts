@@ -8,6 +8,8 @@ const getTaskSetRedisKey = () => {
     return 'musicradio:cronTask'
 }
 
+const jobIdToObjMap = new Map<string, Cron.CronJob>()
+
 interface TaskInfo<T = any> {
     taskId: string;
     taskType: CronTaskTypes;
@@ -16,16 +18,16 @@ interface TaskInfo<T = any> {
 }
 
 namespace expiredCronTaskQueue {
-    const dataQueneMap: Map<string, Set<TaskInfo>> = new Map()
+    const dataQueneMap: Map<string, Set<TaskInfo['data']>> = new Map()
     const cbMap: Map<string, cb> = new Map()
     
-    function pushToDataQueneMap (type: CronTaskTypes, info: TaskInfo) {
+    function pushToDataQueneMap (type: CronTaskTypes, data: TaskInfo['data']) {
         let taskDataSet = dataQueneMap.get(type)
         if (!taskDataSet) {
             taskDataSet = new Set()
             dataQueneMap.set(type, taskDataSet)
         }
-        taskDataSet.add(info)
+        taskDataSet.add(data)
         return taskDataSet
     }
 
@@ -33,17 +35,17 @@ namespace expiredCronTaskQueue {
     export function publish (type: CronTaskTypes, info: TaskInfo) {
         const cb = cbMap.get(type)
         if (!cb) {
-            pushToDataQueneMap(type, info)
+            pushToDataQueneMap(type, info.data)
         }
-        cb(info)
+        cb(info.data)
     }
 
     export function subscribe (type: CronTaskTypes, cb: cb) {
         cbMap.set(type, cb)
         const waittingTasks = (dataQueneMap.get(type) || new Set())
-        waittingTasks.forEach(taskInfo => {
-            cb(taskInfo)
-            waittingTasks.delete(taskInfo)
+        waittingTasks.forEach(taskData => {
+            cb(taskData)
+            waittingTasks.delete(taskData)
         })
     }
 
@@ -53,33 +55,69 @@ namespace expiredCronTaskQueue {
 
 }   
 
-function addCronJob(expireAt: number, taskInfo: TaskInfo) {
-    new Cron.CronJob(new Date(taskInfo.expireAt * 1000), async () => {
-        const newlyInfo = JSON.parse(await redisCli.hget(getTaskSetRedisKey(), taskInfo.taskId))
-        if (!newlyInfo) {
-            return
-        }
-        console.log(`cron task: ${taskInfo.taskType}/${taskInfo.taskId} arrived`)
-        expiredCronTaskQueue.publish(taskInfo.taskType, newlyInfo)
-    }, null, true)
+async function stopCronJob (taskId: string) {
+    const findJob = jobIdToObjMap.get(taskId)
+    if (findJob) {
+        findJob.stop()
+    }
+    jobIdToObjMap.delete(taskId)
+    await redisCli.hdel(getTaskSetRedisKey(), taskId)
 }
 
-async function init () {
-    const existedTasks = await redisCli.hgetall(getTaskSetRedisKey())
-    Object.entries(existedTasks).forEach(([key, value]) => {
-        const taskInfo: TaskInfo = JSON.parse(value as string)
-        if (!value || !taskInfo) {
+function addCronJob(expireAt: number, taskInfo: TaskInfo) {
+    console.log(expireAt, 'cron task')
+    const start = Date.now()
+    const job = new Cron.CronJob(new Date(expireAt * 1000), async () => {
+        const stop = Date.now()
+        console.log(expireAt, stop / 1000, 'stop cron', (stop - start) / 1000)
+        const newlyInfo = JSON.parse(await redisCli.hget(getTaskSetRedisKey(), taskInfo.taskId))
+        if (newlyInfo) {
+            console.log(`cron task: ${taskInfo.taskType}/${taskInfo.taskId} arrived`)
+            expiredCronTaskQueue.publish(taskInfo.taskType, newlyInfo)
+        }
+        await stopCronJob(taskInfo.taskId)
+    }, null, true)
+    jobIdToObjMap.set(taskInfo.taskId, job)
+}
+
+export async function init () {
+    // const existedTasks = await redisCli.hgetall(getTaskSetRedisKey())
+    let cursor = 0, exisetdTaskList: TaskInfo[] = []
+    do {
+        const [nextCursor, resArr] = await redisCli.hscan(getTaskSetRedisKey(), cursor, 'count', 1000)
+        cursor = Number(nextCursor)
+        for (let i=0; i < resArr.length; i+=2) {
+            const [field, value] = resArr.slice(i, i + 2)
+            if (value) {
+                const taskInfo: TaskInfo = JSON.parse(value)
+                exisetdTaskList.push(taskInfo)
+            }
+        }
+    } while (cursor !== 0 && !isNaN(cursor))
+    exisetdTaskList.forEach(async (taskInfo) => {
+        if (!taskInfo) {
             return
         }
         if (taskInfo.expireAt * 1000 <= Date.now()) {
             expiredCronTaskQueue.publish(taskInfo.taskType, taskInfo)
+            await redisCli.hdel(getTaskSetRedisKey(), taskInfo.taskId)
             return
         }
         addCronJob(taskInfo.expireAt, taskInfo)
     })
+    // Object.entries(existedTasks).forEach(async ([key, value]) => {
+    //     const taskInfo: TaskInfo = JSON.parse(value as string)
+    //     if (!value || !taskInfo) {
+    //         return
+    //     }
+    //     if (taskInfo.expireAt * 1000 <= Date.now()) {
+    //         expiredCronTaskQueue.publish(taskInfo.taskType, taskInfo)
+    //         await redisCli.hdel(getTaskSetRedisKey(), taskInfo.taskId)
+    //         return
+    //     }
+    //     addCronJob(taskInfo.expireAt, taskInfo)
+    // })
 }
-
-init()
 
 export async function pushCronTask(taskType: CronTaskTypes, data: any, expire: number) {
     const taskId = uuidV4()
@@ -96,7 +134,7 @@ export async function pushCronTask(taskType: CronTaskTypes, data: any, expire: n
 }
 
 export async function cancelCaronTask(taskId: string) {
-    await redisCli.hdel(getTaskSetRedisKey(), taskId)
+    await stopCronJob(taskId)
 }
 
 export function listen<T= any>(type: CronTaskTypes, cb: expiredCronTaskQueue.cb) {

@@ -9,18 +9,22 @@
         "sourceMap": true,
         "lib": [
             "es7",
-            "es2017.object"
+            "es2017.object",
+            "DOM",
         ],
         "outDir": "../build",
         "baseUrl": ".",
+        "jsx": "react",
         "paths": {
             "root/*": ["./*"],
             "global/*": ["../*"]
         },
         "experimentalDecorators": true,
+        "downlevelIteration": true,
         "strictNullChecks": false,
+        "resolveJsonModule": true,
     },
-    "files": ["app.ts",],
-    "include": ["**/*.ts"],
+    "files": ["app.ts"],
+    "include": ["**/*.ts", "**/*.tsx"],
     "exclude": []
 }
