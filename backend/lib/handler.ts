@@ -2,7 +2,7 @@ import socketIo from 'socket.io'
 import { Router, Request, Response } from 'express';
 import Mint from 'mint-filter'
 import got from 'got';
-import express, {Express} from 'express'
+import express, { Express } from 'express'
 import isDeepEqual from 'deep-equal'
 
 import settings from 'root/settings'
@@ -124,12 +124,6 @@ namespace HandleHttpRoute {
             const matcher = router[item.method]
             matcher.call(router, item.route, item.handler)
         })
-        router.post('/test123', (req, res) => {
-            res.json({
-                code: 0
-            })
-        })
-        console.log(router.stack)
         app.use('/', router)
     }
 }
@@ -359,14 +353,14 @@ namespace UtilFuncs {
         }
     }
 
-    export function checkIsAutoPlayMode (room: RoomModel, actionName: string = '该操作') {
+    export function checkIsAutoPlayMode(room: RoomModel, actionName: string = '该操作') {
         if (room.playMode === RoomMusicPlayMode.auto) {
             throw new ResponseError(`当前为自动随机播放模式, 不支持${actionName}`)
         }
     }
 
-    export function getRoomPlayInfoFromMsg (obj) {
-        const {mode, autoPlayType} = obj
+    export function getRoomPlayInfoFromMsg(obj) {
+        const { mode, autoPlayType } = obj
         if (mode === RoomMusicPlayMode.demand) {
             return {
                 mode,
@@ -403,6 +397,16 @@ namespace UtilFuncs {
         return WordFilter.validator(str)
     }
 
+    export function getRenderAdminPageData (user: UserModel) {
+        return {
+            user: user && {
+                ...user,
+                password: undefined
+            },
+            httpServerUrl: settings.httpServer,
+            basePath: '/admin',
+        }
+    }
 }
 
 // 全站房间可视化数据记录和处理
@@ -478,7 +482,7 @@ namespace RoomIpActionDataRecord {
             return `musicradio:ipdata:taskId:${taskType}`
         }
 
-        export async function startTask (taskType: SubCronTaskTypes, expire: number, extraData = null) {
+        export async function startTask(taskType: SubCronTaskTypes, expire: number, extraData = null) {
             const taskId = await redisCli.get(getTaskIdRedisKey(taskType))
             if (taskId) {
                 return
@@ -492,7 +496,7 @@ namespace RoomIpActionDataRecord {
             await redisCli.set(getTaskIdRedisKey(taskType), freshTaskId, 'EX', expire)
         }
 
-        export async function stopTask (taskType: SubCronTaskTypes) {
+        export async function stopTask(taskType: SubCronTaskTypes) {
             const redisKey = getTaskIdRedisKey(taskType)
             const taskId = await redisCli.get(redisKey)
             if (!taskId) {
@@ -502,10 +506,10 @@ namespace RoomIpActionDataRecord {
             await redisCli.del(redisKey)
         }
 
-        export function registerListener (cb: (data: IpDataCronTaskData) => any) {
+        export function registerListener(cb: (data: IpDataCronTaskData) => any) {
             CronTask.listen(CronTaskTypes.roomIpDataTask, async (data: IpDataCronTaskData) => {
                 try {
-                    const {subTaskType, taskExpire, extra} = data
+                    const { subTaskType, taskExpire, extra } = data
                     await stopTask(subTaskType)
                     await startTask(subTaskType, taskExpire, extra)
                     await cb(data)
@@ -580,7 +584,7 @@ namespace RoomIpActionDataRecord {
                 }
             }
             @catchError()
-            static async handleReqIpBaseInfo (ip: string) {
+            static async handleReqIpBaseInfo(ip: string) {
                 const info = await reqIpBaseInfo(ip)
                 if (!info) {
                     await deleteIpData(ip)
@@ -596,9 +600,9 @@ namespace RoomIpActionDataRecord {
             }
         }
 
-        const {handleReqIpBaseInfo} = Funcs
+        const { handleReqIpBaseInfo } = Funcs
 
-        export const {handleRefreshApiReqCounter} = Funcs
+        export const { handleRefreshApiReqCounter } = Funcs
 
         export function getIpBaseInfo(ip: string) {
             notResolvedIpSet.add(ip)
@@ -619,7 +623,7 @@ namespace RoomIpActionDataRecord {
         do {
             const [nextCursor, ipDataStrList] = await redisCli.hscan(ipToDataHashKey, cursor, 'count', 1000)
             cursor = Number(nextCursor)
-            for (let i = 0; i < ipDataStrList.length; i+=2) {
+            for (let i = 0; i < ipDataStrList.length; i += 2) {
                 const [ip, ipDataStr] = ipDataStrList.slice(i, i + 2)
                 const obj: IpDataDef = JSON.parse(ipDataStr)
                 ipDataMap.set(obj.ip, obj)
@@ -661,22 +665,22 @@ namespace RoomIpActionDataRecord {
         }
     }
 
-    async function deleteIpData (ip: string) {
+    async function deleteIpData(ip: string) {
         ipDataMap.delete(ip)
         resolvedIps.delete(ip)
         await redisCli.hdel(ipToDataHashKey, ip)
     }
 
     // 数据计算整理分析
-    async function calcIpData (expire: number, inc = false) {
+    async function calcIpData(expire: number, inc = false) {
         let map = new Map<string, CalculatedCoordData>()
         Array.from(resolvedIps).forEach(ip => {
             const ipData = ipDataMap.get(ip)
             if (!ipData.info) {
                 return
             }
-            const {lat, lon, region, regionName, } = ipData.info
-            const {heat, musicList, messages} = ipData
+            const { lat, lon, region, regionName, } = ipData.info
+            const { heat, musicList, messages } = ipData
             const mapKey = `${lat}/${lon}`
             let coordData = map.get(mapKey)
             if (!coordData) {
@@ -706,7 +710,7 @@ namespace RoomIpActionDataRecord {
             let count = 0, resArr = []
             const ipArr = [...resolvedIps]
             for (let ip of ipArr) {
-                count ++
+                count++
                 resolvedIps.delete(ip)
                 ipDataMap.delete(ip)
                 pipe.hdel(ipToDataHashKey, ip)
@@ -725,15 +729,15 @@ namespace RoomIpActionDataRecord {
                 }
             })
         }
-    }   
+    }
 
     class Handlers {
         @catchError()
-        static async handleIpDataCrontTaskArrived (data: IpDataCronTaskManage.IpDataCronTaskData) {
-            const {subTaskType} = data
+        static async handleIpDataCrontTaskArrived(data: IpDataCronTaskManage.IpDataCronTaskData) {
+            const { subTaskType } = data
             console.log(subTaskType, 'arrvied===')
             if (subTaskType === SubCronTaskTypes.calcData) {
-                const {extra} = data
+                const { extra } = data
                 await calcIpData(extra.expire, extra.inc)
             } else if (subTaskType === SubCronTaskTypes.refreshIpReqCounter) {
                 await IpDataApiManage.handleRefreshApiReqCounter()
@@ -745,7 +749,7 @@ namespace RoomIpActionDataRecord {
             if (!vars.isStarted) {
                 return
             }
-            console.log('user connected' )
+            console.log('user connected')
             const ip = user.ip
             const ipData = getIpData(ip)
             ipData.heat += 1
@@ -815,11 +819,11 @@ namespace RoomIpActionDataRecord {
         }
     }
 
-    const {handleIpDataCrontTaskArrived} = Handlers
+    const { handleIpDataCrontTaskArrived } = Handlers
     IpDataCronTaskManage.registerListener(handleIpDataCrontTaskArrived)
 
-    export const {start, stop, userConnected, playMusics, sendTextMessage} = Handlers
-    export function getRoomCoordData () {
+    export const { start, stop, userConnected, playMusics, sendTextMessage } = Handlers
+    export function getRoomCoordData() {
         return vars.roomCoordData
     }
 }
@@ -1028,12 +1032,12 @@ namespace ManageRoomPlaying {
                 throw new Error('invlid play mode' + room.playMode)
             }
             // if (room.playMode === RoomMusicPlayMode.demand) {
-                await removeNowPlaying(room)
-                const leftPlayList = room.playList
-                if (!leftPlayList.length) {
-                    console.log(`房间: ${room.id}列表播放结束`)
-                    return
-                }
+            await removeNowPlaying(room)
+            const leftPlayList = room.playList
+            if (!leftPlayList.length) {
+                console.log(`房间: ${room.id}列表播放结束`)
+                return
+            }
             // } 
             // else if (room.playMode === RoomMusicPlayMode.auto) {
             //     // const selected = 
@@ -1722,14 +1726,14 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.switchPlayMode)
     @UtilFuncs.socketApiCatchError()
-    static async switchRoomPlayMode (socket: SocketIO.Socket, msg: { roomId: string, mode: RoomMusicPlayMode, autoPlayType: string}, ackFunc?: Function) {
+    static async switchRoomPlayMode(socket: SocketIO.Socket, msg: { roomId: string, mode: RoomMusicPlayMode, autoPlayType: string }, ackFunc?: Function) {
         const { roomId, mode, autoPlayType } = msg
         const reqUser = socket.session.user
         const room = await Room.findOne(roomId)
         if (!UtilFuncs.isRoomAdmin(room, reqUser)) {
             throw new ResponseError('越权操作')
         }
-        if (!Object.values(RoomMusicPlayMode).includes(mode))  {
+        if (!Object.values(RoomMusicPlayMode).includes(mode)) {
             throw new ResponseError('无效参数')
         }
         let needStartPlaying = false, oldPlayList = room.playList
@@ -2665,7 +2669,7 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.getRoomCoordHotData)
     @UtilFuncs.socketApiCatchError()
-    static async getRoomCoordHotData (socket: SocketIO.Socket, msg: null, ackFunc: Function) {
+    static async getRoomCoordHotData(socket: SocketIO.Socket, msg: null, ackFunc: Function) {
         const data = RoomIpActionDataRecord.getRoomCoordData()
         ackFunc && ackFunc({
             success: true,
@@ -2729,22 +2733,34 @@ class Handler {
     }
 
     // express route handler
-    @HandleHttpRoute.get('/register')
+    @HandleHttpRoute.get('/')
     @UtilFuncs.routeHandlerCatchError()
-    static async clientRegister(req: Request, res: Response) {
+    static async renderIndex(req: Request, res: Response) {
         res.send('success')
     }
     
-    @HandleHttpRoute.get('/')
+    @HandleHttpRoute.get('/admin/register')
     @UtilFuncs.routeHandlerCatchError()
-    static async renderIndex (req: Request, res: Response) {
-        res.render('index', {
-            checkTokenUrl: settings.httpServer + '/admin/checktoken',
-            registerUrl: settings.httpServer + '/admin/register',
-        })
+    static async clientRegister(req: Request, res: Response) {
+        const reqUser = req.session.user
+        res.render('admin', UtilFuncs.getRenderAdminPageData(reqUser))
     }
 
-    @HandleHttpRoute.post('/admin/register')
+    @HandleHttpRoute.get('/admin/login')
+    @UtilFuncs.routeHandlerCatchError()
+    static async renderLogin(req: Request, res: Response) {
+        const reqUser = req.session.user
+        res.render('admin', UtilFuncs.getRenderAdminPageData(reqUser))
+    }
+
+    @HandleHttpRoute.get('/admin/main')
+    @UtilFuncs.routeHandlerCatchError()
+    static async renderAdminPage (req: Request, res: Response) {
+        const reqUser = req.session.user
+        res.render('admin', UtilFuncs.getRenderAdminPageData(reqUser))
+    }
+
+    @HandleHttpRoute.post('/api/admin/register')
     @UtilFuncs.routeHandlerCatchError()
     static async registerSuperAdmin(req: Request, res: Response) {
         const { token, userName, password } = req.body
@@ -2758,6 +2774,7 @@ class Handler {
         }
         const user = new User({
             name: userName,
+            status: UserStatus.superAdmin,
         })
         user.setPassword(password)
         await user.save()
@@ -2767,10 +2784,10 @@ class Handler {
         })
     }
 
-    @HandleHttpRoute.get('/admin/checktoken')
+    @HandleHttpRoute.get('/api/admin/checktoken')
     @UtilFuncs.routeHandlerCatchError()
     static async checkSuperAdminToken(req: Request, res: Response) {
-        const { token } = req.body
+        const { token } = req.query
         const isValid = await UtilFuncs.validateSuperAdminToken(token)
         if (!isValid) {
             throw new ResponseError('无效注册码')
@@ -2780,10 +2797,14 @@ class Handler {
         })
     }
 
-    @HandleHttpRoute.post('/admin/login')
+    @HandleHttpRoute.post('/api/admin/login')
     @UtilFuncs.routeHandlerCatchError()
     static async superAdminLogin(req: Request, res: Response) {
         const { userName, password } = req.body
+        const reqUser = req.session.user
+        if (isSuperAdmin(reqUser)) {
+            throw new Error('您已经登录为超级管理员')
+        }
         const findUser = await User.findByIndex('name', userName)
         if (!findUser) {
             throw new ResponseError('invalid user name')
@@ -2810,14 +2831,14 @@ class Handler {
         })
     }
 
-    @HandleHttpRoute.post('/admin/logout')
+    @HandleHttpRoute.post('/api/admin/logout')
     @UtilFuncs.routeHandlerCatchError()
     static async superAdminLogOut(req: Request, res: Response) {
         if (!req.session.isAuthenticated) {
             throw new ResponseError('已退出, 请不要重复操作')
         }
         const sessionUser = req.session.user
-        if (isSuperAdmin(sessionUser)) {
+        if (!isSuperAdmin(sessionUser)) {
             throw new Error('越权操作')
         }
         const socketId = UtilFuncs.getUserNowSocketId(sessionUser.id)
@@ -2851,7 +2872,7 @@ export default async function (io, app) {
         }
         // handle connect
         Handler.connected(socket)
-        
+
         // handle disconnect
         socket.on(ServerListenSocketEvents.disconnect, async function (reason) {
             const socket = this

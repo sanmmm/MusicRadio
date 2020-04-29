@@ -1,7 +1,6 @@
 import React from 'react'
-import jss, { Styles, Classes } from 'jss'
+import jss, { Styles, Classes, } from 'jss'
 import preset from 'jss-preset-default'
-
 
 jss.setup(preset())
 
@@ -9,7 +8,7 @@ const getRandomVariableName = (baseName?: string) => [baseName, Math.random().to
 
 export const useScript = function <T>(func: (global: T) => any, deps: Partial<T> = {}) {
     const depStrVarName = getRandomVariableName('depsStr')
-    const depVarName = getRandomVariableName('dep')
+    const depVarName = getRandomVariableName('deps')
     const funcName = func.name || getRandomVariableName('func')
 
     const scriptStr = `
@@ -29,7 +28,8 @@ const sheetDataMap = new Map<string, {
     classes: Classes;
     sheetStr: string;
 }>()
-export function useStyle<Name extends any>(key: string, obj: Partial<Styles<Name>>) {
+
+export function useStyle<Name extends string | number | symbol>(key: string, obj: Partial<Styles<Name>>) {
     let sheetData = sheetDataMap.get(key)
     if (!sheetData) {
         const sheet = jss.createStyleSheet(obj)
@@ -45,3 +45,5 @@ export function useStyle<Name extends any>(key: string, obj: Partial<Styles<Name
         classes,
     ] as [JSX.Element, Classes<Name>]
 }
+
+

@@ -20,6 +20,7 @@
   "author": "sanmmm",
   "license": "MIT",
   "dependencies": {
+    "classnames": "^2.2.6",
     "compression": "^1.7.4",
     "cookie": "^0.4.0",
     "cookie-parser": "^1.4.4",
