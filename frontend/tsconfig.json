@@ -11,7 +11,8 @@
     "strict": false,
     "strictNullChecks": false,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
+      "@global/*": ["../*"]
     },
     "allowSyntheticDefaultImports": true
   }

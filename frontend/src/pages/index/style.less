@@ -1,5 +1,60 @@
 @import '~@/base.less';
 
+.basic {
+    height: 100%;
+    width: 100%;
+    .socketStatusPage {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        width: 100%;
+        .closedIcon {
+            font-size: 6rem !important;
+            text-align: center;
+            cursor: pointer;
+        }
+        .loadingIcon {
+            font-size: 3rem !important;
+        }
+    }
+
+}
+
+.setNameBox {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 1rem;
+    width: 80vw;
+    max-width: 600px;
+    text-align: center;
+    .nextIcon {
+        margin-top: 2rem;
+        font-size: 4rem !important;
+        cursor: pointer;
+        display: inline-block;
+        &:hover {
+            transform: scale(1.1);
+        }
+    }
+}
+
+.loadingIcon {
+    margin: 0 .5rem;
+    display: inline-block;
+    font-size: 1.6rem !important;
+    animation: loadingAnimation 2s linear infinite;
+}
+
+.pagePcContentBase {
+    width: 90%;
+    margin: 0 auto;
+    min-width: @minContentWidth;
+    max-width: @maxContentWidth;
+}
+
 .radioPageOuter {
     height: 100%;
     .radioPage {
@@ -19,10 +74,8 @@
         &.normal {
             display: flex;
             align-items: flex-start;
-            width: 90%;
             height: 100%;
-            min-width: 960px;
-            max-width: 1300px;
+            .pagePcContentBase();
             margin: 0 auto;
             > * {
                 + * {
@@ -30,8 +83,9 @@
                 }
             }
             > .left {
-                flex-basis: 0;
-                flex-grow: 6;
+                width: 66%;
+                height: 100%;
+                overflow: hidden;
                 .leftBase();
                 .fixPlayerBox {
                     position: fixed;
@@ -46,28 +100,61 @@
                 }
             }      
             > .right {
+                width: 30%;
                 height: 100%;
-                flex-basis: 0;
-                flex-grow: 3;
                 display: flex;
                 flex-direction: column;
-                .hideTabContant {
-                    display: none;
-                }
-                .chatTabContent {
-                    min-height: 0;
+                .chatListTabContent {
+                    height: 100%;
                     display: flex;
                     flex-direction: column;
+                    justify-content: space-between;
                     position: relative;
                     > * {
                         width: 100%;
                         box-sizing: border-box;
+                    }
+                    > .chatList {
                         min-height: 0;
+                        flex-grow: 1;
                     }
                 }
-                .messageBox {
-                    flex-shrink: 0;
+                .hideTabContant {
+                    display: none;
                 }
+                .tabContentBoxOuter {
+                    width: 100%;
+                    overflow: hidden;
+                    min-height: 0;
+                    flex-grow: 1;
+                    .tabContentBox {
+                        width: 200%;
+                        height: 100%;
+                        display: flex;
+                        align-items: flex-start;
+                        > *{
+                            flex-basis: 0;
+                            flex-grow: 1;
+                            box-sizing: border-box;
+                        }
+                        &.moveLeft {
+                            transform: translateX(-50%);
+                        }
+                        .chatTabContent {
+                            height: 100%;
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: space-between;
+                            position: relative;
+                            > * {
+                                width: 100%;
+                                box-sizing: border-box;
+                                min-height: 0;
+                            }
+                        } 
+                    }
+                }
+                
             } 
            
         }
@@ -100,6 +187,7 @@
 
 
 .sendMessageBox {
+    flex-shrink: 0;
     &.mobile {
         background-color: #4B4B4B;
     }
@@ -108,10 +196,9 @@
         align-items: center;
         justify-content: center;
         padding: 0 .5rem;
-        > :global(.iconfont) {
+        .iconfont {
             cursor: pointer;
             font-size: 1.1rem !important;
-            line-height: 2em;
             padding: 0 .3rem;
         }
         &.focus {
@@ -126,9 +213,7 @@
         padding: 0 .4rem;
         > * {
             cursor: pointer;
-            & + * {
-                margin-left: 1rem;
-            }
+            margin-right: 1rem;
             padding: .5rem 0;
             :global(.iconfont) {
                 margin-right: .5rem;
@@ -145,6 +230,10 @@
                 padding: 0 .5rem;
             }
         }
+        .disabled {
+            pointer-events: none;
+            color: rgba(225, 225, 225, 0.5);
+        }
     }
     .mask {
         width: 100%;
@@ -155,7 +244,7 @@
         left: 0;
         > * {
             background-color: #4B4B4B;
-            filter: brightness(105%);
+            filter: brightness(115%);
             max-height: 100%;
         }
     }
@@ -177,15 +266,10 @@
             }
         }
         .content {
-            // display: flex;
-            // flex-direction: column;
             height: 450px;
             > * {
                 height: 100%;
             }
-            // > * {
-            //     min-height: 0;
-            // }
         }
     }
     .drawerStartAnimation {
@@ -194,6 +278,20 @@
     .drawerEndAnimation {
         transform: translateY(100%);
         animation: drawerEndAnimation 0.4s ease-out;
+    }
+    .chatListWrapper {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        div:first-child {
+            min-height: 0;
+            flex-grow: 1;
+        }
+    }
+    .infoListBox {
+        li {
+            margin-top: 1rem;
+        }
     }
 }
 
@@ -210,5 +308,47 @@
         transform: translateY(0);
     } to {
         transform:  translateY(100%);
+    }
+}
+
+@keyframes loadingAnimation {
+    from {
+        transform: rotate(0deg);
+    } to {
+        transform: rotate(360deg);
+    }
+}
+
+.roomList {
+    height: 100%;
+    padding: 1rem 0;
+    box-sizing: border-box;
+    &.normal {
+        .pagePcContentBase();
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .list {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        &.noData {
+            color: @highLightColor;
+            min-height: 0;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    }
+    >.bottom {
+        padding: 1rem;
+        text-align: center;
+    }
+    .floatButton {
+        position: fixed;
+        right: 10vw;
+        bottom: 10vh;
     }
 }

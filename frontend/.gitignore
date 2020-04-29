@@ -18,3 +18,6 @@
 .umi-production
 
 src/assets/success.ts
+src/mockData
+src/__tests__
+

@@ -1,48 +1,71 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './index.less';
 import 'react-perfect-scrollbar/dist/css/styles.css';
 import { connect } from 'dva'
+import router from 'umi/router'
 import { useMediaQuery } from 'react-responsive'
+import bindClass from 'classnames'
 
-import {WindowHeightProvider} from '@/components/windowHeightListen/index'
-import configs from '@/config'
-import { ConnectProps, ConnectState, PlayListModelState } from '@/models/connect'
+import Notification from '@/components/notification'
+import {HashRouter} from '@/components/hashRouter'
+import { WindowHeightProvider } from '@/components/windowHeightListen/index'
+import configs from 'config/base.conf'
+import settings from 'config/settings'
+import globalConfigs from '@global/common/config'
+import { ConnectProps, ConnectState, PlayListModelState, CenterModelState } from '@/models/connect'
+import { ScoketStatus } from '@global/common/enums'
+import Header from './header'
+
 
 interface LayoutProps extends ConnectProps {
-  nowPlaying: PlayListModelState['nowPlaying']
+  nowPlaying: PlayListModelState['nowPlaying'];
+  userInfo: CenterModelState['userInfo'];
+  nowRoomInfo: CenterModelState['nowRoomInfo'];
+  socketStatus: CenterModelState['nowSocketStatus'];
 }
 
-const BasicLayout: React.FC<LayoutProps> = props => {
-  const { nowPlaying } = props
-  const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
 
+const BasicLayout: React.FC<LayoutProps> = props => {
+  const { nowPlaying, dispatch } = props
+  const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
   useEffect(() => {
+    dispatch({
+      type: 'center/saveData',
+      payload: {
+        isMobile
+      }
+    })
     if (isMobile) {
       document.documentElement.style.fontSize = "14px"
     }
   }, [])
+
   return (
     <WindowHeightProvider>
+      <Notification />
       <div className={styles.normal}>
-        <div className={styles.header}>
-          {<img src={configs.logoUrl} className={styles.logo} />}
-        </div>
-        {props.children}
+        <Header />
+        <HashRouter>
+          {props.children}
+        </HashRouter>
         <div className={styles.mask}>
         </div>
-        {
-          !!nowPlaying && <div className={styles.playerBackground} style={{
-            backgroundImage: `url("${nowPlaying.pic}")`
-          }}>
-          </div>}
+        <div className={styles.playerBackground} style={{
+          backgroundImage: `url("${nowPlaying ? nowPlaying.pic : settings.defaultMaskImg}")`
+        }}>
+        </div>
+      </div>
+      <div>
       </div>
     </WindowHeightProvider>
   );
 };
 
-export default connect(({ playList }: ConnectState) => {
-  const { nowPlaying } = playList
+export default connect(({ playList: { nowPlaying }, center: { nowSocketStatus, userInfo, nowRoomInfo } }: ConnectState) => {
   return {
-    nowPlaying
+    nowPlaying,
+    nowRoomInfo,
+    socketStatus: nowSocketStatus,
+    userInfo,
   }
 })(BasicLayout);

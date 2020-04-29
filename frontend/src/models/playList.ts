@@ -3,7 +3,7 @@ import { Effect, Subscription } from 'dva'
 
 import socket from '@/services/socket'
 import { ServerListenSocketEvents, ClientListenSocketEvents, NowPlayingStatus } from '@global/common/enums'
-import { PlayListItem } from '@/typeConfig'
+import { PlayListItem } from 'config/type.conf'
 
 export interface NowPlayingInfo {
     id: string;
@@ -30,6 +30,13 @@ export interface PlayListModelState {
     nowPlaying: NowPlayingInfo;
 }
 
+const getInitState = () => {
+    return {
+        playList: [],
+        nowPlaying: null
+    } as PlayListModelState
+}
+
 export interface PlayListModelType {
     namespace: 'playList';
     state: PlayListModelState;
@@ -48,7 +55,8 @@ export interface PlayListModelType {
         moveItem: Reducer<PlayListModelState>;
         deleteItem: Reducer<PlayListModelState>;
         addItems: Reducer<PlayListModelState>;
-        saveData: Reducer<PlayListModelState>
+        saveData: Reducer<PlayListModelState>;
+        initState: Reducer<PlayListModelState>
     };
     subscriptions: {
         listenScoket: Subscription
@@ -104,6 +112,14 @@ const PlayListModel: PlayListModelType = {
                 ...state,
                 ...payload
             }
+        },
+        initState: (state, {payload = {}}) => {
+            const {exclude = []} = payload
+            const oldValues: Partial<PlayListModelState> = {}
+            exclude.forEach(key => {
+                oldValues[key] = state[key]
+            })
+            return Object.assign(getInitState(), oldValues)
         },
         updateNowPlayingInfo: (state, {payload}) => {
             const {nowPlaying: oldData} = state

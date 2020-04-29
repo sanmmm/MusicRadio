@@ -237,7 +237,6 @@ const ChatList: React.FC<ChatListProps> = function (props) {
 
     const updateUnreadNoticeItemsDirection = () =>  {
         const {unreadAtSignMessagePositon, unreadVoteMessagePosition, containerClientHeight, containerScrollTop} = getSyncState()
-        console.log(getSyncState())
         const max = containerClientHeight + containerScrollTop
         const min = containerScrollTop
         const getDirection = (offsetTop: number) => {

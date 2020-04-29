@@ -232,7 +232,6 @@ const CoordDataVisualization = React.memo<Props>((props) => {
             handleShowTip(0)
         }
         return () => {
-            console.log('clear')
             const timer = loopTimerRef.current
             if (timer) {
                 clearInterval(timer)
@@ -266,7 +265,6 @@ const CoordDataVisualization = React.memo<Props>((props) => {
     }
 
     const handleAfterHide = useCallback(() => {
-        console.log('after hide')
         handleShowTip()
     }, [])
 
@@ -282,7 +280,6 @@ const CoordDataVisualization = React.memo<Props>((props) => {
     }
 
     const loadData = () => {
-        console.log('inner ----')
         dispatch({
             type: 'center/getRoomGlobalCoordHotData',
             payload: {},

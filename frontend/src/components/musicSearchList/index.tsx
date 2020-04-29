@@ -177,7 +177,6 @@ const MusicSearchList: React.FC<Props> = (props) => {
                                         (inputRef, isFocus) => <div className={styles.searchArea}>
                                             <CustomTextFeild inputRef={inputRef} fullWidth={true} placeholder="搜索音乐" value={searchValue}
                                                 onChange={(e) => {
-                                                    console.log(e.target.value, 'v')
                                                     setSearchValue(e.target.value)
                                                 }}
                                                 onKeyDown={handleKeyDown}

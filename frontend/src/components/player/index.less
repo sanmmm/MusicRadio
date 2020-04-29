@@ -310,24 +310,12 @@
     @itemHeight: 2em;
     height: @itemHeight * 4;
     text-align: center;
-    // &::before {
-    //     content: "";
-    //     display: block;
-    //     height: @itemHeight / 3;
-    //     width: 100%;
-    //     background: linear-gradient(180deg,hsla(0,0%,100%,0) 0,hsla(0,0%,100%,.8));
-    //     position: absolute;
-    //     top: 0;
-    //     left: 0;
-    // }
+    
     &::after {
         content: "";
         display: block;
         height: @itemHeight * 0.2;
         width: 100%;
-        // background: linear-gradient(0deg, rgba(0, 0, 0, 0.5),rgba(0, 0, 0, .8));
-
-        // background: linear-gradient(180deg,hsla(0,0%,100%,0) 0,hsla(0,0%,100%, .7));
         position: absolute;
         bottom: 0;
         left: 0;

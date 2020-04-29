@@ -1,8 +1,8 @@
 export const dva = {
     config: {
         onError(e) {
-            e.preventDefault();
-            console.error(e.message);
+            e.preventDefault()
+            console.error('dva error:', e.message);
         },
     },
     plugins: [

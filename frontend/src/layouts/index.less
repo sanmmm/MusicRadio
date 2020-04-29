@@ -1,42 +1,128 @@
 @import '~@/base.less';
 
 .normal {
-  font-family: poppin,Tahoma,Arial, sans-serif;
-  color: @normalTextColor;
+  font-family: poppin, Tahoma, Arial, sans-serif;
+  color      : @normalTextColor;
+  height: 100%;
+  width: 100%;
   .header {
     position: fixed;
-    top: 0;
-    left: 0;
-    height: @headerHeight;
-    z-index: 200;
-    .logo {
-      width: calc(@headerHeight * 0.9);
-      height: calc(@headerHeight * 0.9);
-      margin-left: 20px;
+    top     : 0;
+    left    : 0;
+    height  : @headerHeight;
+    z-index : 200;
+    width: 100%;
+    color: @themeColor;
+   
+    > .content {
+      display: flex;
+      align-items: center;
+      width: 90%;
+      height: 100%;
+      box-sizing: border-box;
+      min-width: @minContentWidth;
+      margin: 0 auto;
+      > * {
+        & + * {
+          padding-left: 1rem;
+        }
+      }
+      .logo {
+        width      : calc(@headerHeight * 0.9);
+        margin-left: 20px;
+      }
+      .center {
+        min-width: 0;
+        flex-grow: 1;
+        > * {
+          max-width: 30vw;
+        }
+      }
+      .right {
+        display: flex;
+        align-items: center;
+        > .onlinePerson {
+          display: flex;
+          align-items: center;
+          margin: 0 2rem;
+        }
+        > * {
+          margin-right: 1rem;
+        }
+      }
     }
+
+    &.mobile {
+      height: @mobileHeaderHeight;
+      background-color: #4B4B4B;
+      filter: brightness(110%);
+      > .content {
+        min-width: 100%;
+        > .center {
+          > * {
+            max-width: none;
+          }
+        }
+      }
+    }    
   }
+
+  scroll-behavior:smooth;
 }
 
 .mask {
-  background-color: rgba(0,0,0,.5);
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -2;
+  background-color: rgba(0, 0, 0, .5);
+  position        : absolute;
+  top             : 0;
+  left            : 0;
+  width           : 100%;
+  height          : 100%;
+  z-index         : -2;
 }
 
 .playerBackground {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: -4;
-  width: 100%;
-  height: 100%;
+  position           : absolute;
+  top                : 0;
+  left               : 0;
+  z-index            : -4;
+  width              : 100%;
+  height             : 100%;
   background-position: 50%;
-  background-size: cover;
-  background-repeat: no-repeat;
-  opacity: .6;
-  filter: blur(60px);
+  background-size    : cover;
+  background-repeat  : no-repeat;
+  opacity            : .6;
+  filter             : blur(60px);
+}
+
+
+.pre {
+  display        : flex;
+  align-items    : center;
+  justify-content: center;
+  height         : 100vh;
+  color          : rgb(155, 155, 155);
+  font-size      : 1.2rem;
+
+  .content {
+    text-align: center;
+
+    :global(.iconfont) {
+      font-size: 80px;
+      color    : #99CCCC;
+      cursor   : pointer;
+    }
+
+    .warning {
+      color : #CC0033;
+      cursor: auto;
+    }
+
+    .label {
+      margin-top: 2rem;
+    }
+
+    .action {
+      margin-top: 1.5rem;
+    }
+  }
 }

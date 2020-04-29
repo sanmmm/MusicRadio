@@ -183,7 +183,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
 
     _setVolume(ratio: number, syncLocalStorage = true) {
         syncLocalStorage && setLocalStorageData(LocalStorageKeys.volume, ratio)
-        console.log('set ratio', ratio)
         this.audioEle.volume = ratio
     }
 
@@ -225,7 +224,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         if (this.state.isDragCursor) {
             const { pageX, screenY } = e
             const ratio = this._calcTimeRatio(pageX)
-            console.log(ratio)
             this._setTimeRatio(ratio)
         }
     }
@@ -297,7 +295,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     _refreshMusicBuffered() {
-        console.log('pregress change')
         if (!this.audioEle) {
             console.warn('播放器元素未挂载!')
             return
@@ -320,7 +317,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
 
     _handleTimeUpdate() {
         const { duration } = this.props
-        console.log('progress update:', this.audioEle.currentTime)
         this.setState({
             timeRatio: this.audioEle.currentTime / duration,
         })
@@ -328,7 +324,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
 
     _getIsProgressPending(isPaused: boolean) {
         const { timeRatio, musicBuffered, isSeeking: isWaitLoading } = this.state
-        console.log(musicBuffered, this.audioEle && this.audioEle.buffered)
         return !isPaused && (
             isWaitLoading || !musicBuffered.some(({ startRatio, endRatio }) => {
                 return timeRatio >= startRatio && timeRatio <= endRatio
@@ -392,16 +387,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             }
         })
         this._closeSwitchModeDialog()
-    }
-
-    _handlePlayingProgressNotReady () {
-        console.log('suspend')
-        this._refreshMusicBuffered()
-        // if (this.audioEle.paused) {
-        //     this.setState({
-        //         isWaitLoading: true,
-        //     })
-        // }
     }
 
     _contralAble() {
@@ -559,7 +544,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             style={{ display: 'none' }}
             ref={ele => this.audioEle = ele}
             preload="auto"
-            onLoadStart={_ => console.log('start----------load')}
             onProgress={this._refreshMusicBuffered.bind(this)}
             onTimeUpdate={this._handleTimeUpdate}
             onCanPlay={_ => {
