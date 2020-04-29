@@ -30,15 +30,15 @@
     padding: 1rem 0;
     display: flex;
     flex-direction: column;
-    .info {
-        margin-top: .8rem;
+    .tip {
+        margin-bottom: 1rem;
     }
     .actionsBox {
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
-        justify-content: flex-end;
-        margin-top: .8rem;
+        justify-content: flex-start;
+        margin-bottom: 1rem;
         &.normal {
             > * {
                 .actionBtnBase();
@@ -71,6 +71,7 @@
     }
     .tableContainer {
         flex-grow: 1;
+        height: 0;
     }
 }
 

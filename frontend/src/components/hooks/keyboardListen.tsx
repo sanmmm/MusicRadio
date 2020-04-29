@@ -25,33 +25,47 @@ export default function useKeyBoardListener(options?: Options) {
         const handleShow = () => {
             setIsShow(true)
         }
-        const handlerHide = () => {
+        const handleHide = () => {
             setIsShow(false)
         }
+
         const focusHandler = (e) => {
             e.stopPropagation()
             handleShow()
         }
+        const unRegister: [string, EventListenerOrEventListenerObject][] = []
         inputBoxRef.current.addEventListener('focus', focusHandler)
+        unRegister.push(['focus', focusHandler])
         if (isAndroid) {
             const originHeight = document.documentElement.clientHeight || document.body.clientHeight;
             const resizeHandler = (e) => {
                 e.stopPropagation()
                 const nowHeight = document.documentElement.clientHeight || document.body.clientHeight;
-                if (nowHeight > originHeight) {
-                    handlerHide()
+                if (nowHeight === originHeight) {
+                    handleHide()
                 }
             }
             
             window.addEventListener('resize', resizeHandler)
+            unRegister.push(['resize', resizeHandler])
         } else {
             const blurHandler = (e) => {
                 e.stopPropagation()                    
-                handlerHide()
+                handleHide()
             }
             inputBoxRef.current.addEventListener('blur', blurHandler)
+            unRegister.push(['blur', blurHandler])
+        }
+
+        return () => {
+            if (!inputBoxRef.current) {
+                return
+            }
+            unRegister.forEach(([eventName, handler]) => {
+                inputBoxRef.current.removeEventListener(eventName, handler)
+            })
         }
        
-    }, [isAndroid, isiOS, options])
+    }, [isAndroid, isiOS])
     return [inputBoxRef, isShow] as [React.MutableRefObject<any>, boolean]
 }

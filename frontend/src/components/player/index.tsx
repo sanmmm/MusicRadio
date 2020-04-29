@@ -1,21 +1,37 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import bindClass from 'classnames'
-import MediaQuery from 'react-responsive'
 import { connect } from 'dva'
+import { Dialog, Select, MenuItem, DialogContent, DialogTitle, FormControl, FormControlLabel, Button, InputLabel } from '@material-ui/core'
 
 import { ConnectProps, ConnectState, PlayListModelState } from '@/models/connect'
-import { NowPlayingStatus } from '@global/common/enums'
-import { LocalStorageKeys } from '@/typeConfig'
-import { getLocalStorageData, setLocalStorageData } from '@/utils'
+import { NowPlayingStatus, RoomMusicPlayMode, RoomPlayModeInfo } from '@global/common/enums';
+import { LocalStorageKeys } from 'config/type.conf'
+import { getLocalStorageData, setLocalStorageData, throttle } from '@/utils';
 import { VolumeSlider } from '@/utils/styleInject'
 import Lyric from './lyric'
 import SignalIcon from '@/components/signalIcon'
+import RoomName from '@/components/roomName';
+import CustomIcon from '@/components/CustomIcon'
 import styles from './index.less'
-import configs from '@/config'
+import configs from 'config/base.conf'
+import globalConfig from '@global/common/config';
+
+const RoomPlayModeConfigs = {
+    [RoomMusicPlayMode.auto]: {
+        icon: 'random-play',
+        title: '随机播放',
+    },
+    [RoomMusicPlayMode.demand]: {
+        icon: 'in-order-play',
+        title: '列表播放',
+    },
+}
 
 type ReduxPlayingInfo = PlayListModelState['nowPlaying']
 
 interface PlayerProps extends ConnectProps, ReduxPlayingInfo {
+    openDanmu: boolean;
     nowRoomId: string;
     isRoomAdmin: boolean;
     musicId: string;
@@ -23,6 +39,8 @@ interface PlayerProps extends ConnectProps, ReduxPlayingInfo {
     isPaused: boolean;
     simpleMode?: boolean;
     isMobile: boolean;
+    nowRoomPlayMode: RoomMusicPlayMode;
+    roomPlayModeInfo: RoomPlayModeInfo;
 }
 
 interface PlayerState {
@@ -34,7 +52,9 @@ interface PlayerState {
     musicBuffered: {
         startRatio: number;
         endRatio: number;
-    }[]
+    }[];
+    showSelectPlayModeDialog: boolean;
+    isSeeking: boolean;
 }
 
 
@@ -59,6 +79,8 @@ class Player extends React.Component<PlayerProps, PlayerState> {
     commentLineHeight: number // em
     commentBoxEle: HTMLDivElement
     needTodoActionArr: NeedToDoActions[]
+    playerEle: HTMLElement;
+    roomNameEle: HTMLElement;
     constructor(props) {
         super(props)
         this.state = {
@@ -67,6 +89,8 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             isDragCursor: false,
             commentTextAlign: 'left',
             musicBuffered: [],
+            showSelectPlayModeDialog: false,
+            isSeeking: false,
         }
         this.needTodoActionArr = []
         this.commentLineHeight = 1.8
@@ -74,6 +98,11 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         this._handleMouseUp = this._handleMouseUp.bind(this)
         this._changePlayingStatus = this._changePlayingStatus.bind(this)
         this._handleKeyDown = this._handleKeyDown.bind(this)
+        this._handleTimeUpdate = throttle(this._handleTimeUpdate.bind(this), 500)
+        this._closeSwitchModeDialog = this._closeSwitchModeDialog.bind(this)
+        this._switchRoomPlayMode = this._switchRoomPlayMode.bind(this)
+        this.playerEle = document.getElementById(configs.playerHeaderIdSelectorName)
+        this.roomNameEle = document.getElementById(configs.roomNameSelectorName)
     }
 
     componentDidMount() {
@@ -81,7 +110,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         window.addEventListener('keydown', this._handleKeyDown)
     }
 
-    componentWillUnmount () {
+    componentWillUnmount() {
         window.removeEventListener('keydown', this._handleKeyDown)
     }
 
@@ -113,7 +142,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 })
                 this._setVolume(volumeRatio)
             }
-         
+
         }
     }
 
@@ -135,7 +164,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         if (nextProps.comment && nextProps.comment !== this.props.comment) {
             this._calcCommentFontSize(nextProps)
         }
-        if (nextProps.isBlocked !== this.props.isBlocked) {
+        if (musicIdChanged || nextProps.isBlocked !== this.props.isBlocked) {
             this.needTodoActionArr.push(NeedToDoActions.blockMusic)
         }
     }
@@ -145,6 +174,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             console.log('music not loaded!', this.audioEle, this.audioEle.readyState)
             return
         }
+        console.log('start play')
         this._refreshMusicBuffered()
         this._calcTimeRatioByEndAtOrProgress()
         this._setVolume(this.state.volumeRatio)
@@ -153,6 +183,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
 
     _setVolume(ratio: number, syncLocalStorage = true) {
         syncLocalStorage && setLocalStorageData(LocalStorageKeys.volume, ratio)
+        console.log('set ratio', ratio)
         this.audioEle.volume = ratio
     }
 
@@ -170,10 +201,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
 
     _setTimeRatio(ratio: number) {
         const { duration } = this.props
-        if (!ratio || !duration) {
-            console.log('invalid params', ratio, duration)
-            return
-        }
         this.setState(prev => ({
             ...prev,
             timeRatio: ratio
@@ -265,6 +292,10 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }))
     }
 
+    _isReallyPaused () {
+        return this.props.isPaused || this.state.isDragCursor 
+    }
+
     _refreshMusicBuffered() {
         console.log('pregress change')
         if (!this.audioEle) {
@@ -283,24 +314,39 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             })
         }
         this.setState({
-            musicBuffered
+            musicBuffered,
+        })
+    }
+
+    _handleTimeUpdate() {
+        const { duration } = this.props
+        console.log('progress update:', this.audioEle.currentTime)
+        this.setState({
+            timeRatio: this.audioEle.currentTime / duration,
         })
     }
 
     _getIsProgressPending(isPaused: boolean) {
-        const { timeRatio, musicBuffered } = this.state
-        return !isPaused && !musicBuffered.some(({ startRatio, endRatio }) => {
-            return timeRatio >= startRatio && timeRatio <= endRatio
-        })
+        const { timeRatio, musicBuffered, isSeeking: isWaitLoading } = this.state
+        console.log(musicBuffered, this.audioEle && this.audioEle.buffered)
+        return !isPaused && (
+            isWaitLoading || !musicBuffered.some(({ startRatio, endRatio }) => {
+                return timeRatio >= startRatio && timeRatio <= endRatio
+            })
+        )
     }
 
-    _handleKeyDown (e) {
+    _handleKeyDown(e) {
         if (e && e.code && e.code.toLocaleLowerCase() === 'space') {
+            const target = e.target
+            if (target instanceof HTMLInputElement) {
+                return
+            }
             this._changePlayingStatus()
         }
     }
 
-    _changePlayingStatus () {
+    _changePlayingStatus() {
         if (!this._contralAble()) {
             return
         }
@@ -315,15 +361,58 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         })
     }
 
-    _contralAble () {
-        const {isRoomAdmin, status: playingStatus} = this.props
+    _setOpenDanmu() {
+        this.props.dispatch({
+            type: 'center/saveData',
+            payload: {
+                openDanmu: !this.props.openDanmu
+            }
+        })
+        setLocalStorageData(LocalStorageKeys.openDanmu, !this.props.openDanmu)
+    }
+
+    _showSwitchModeDialog() {
+        this.setState({
+            showSelectPlayModeDialog: true,
+        })
+    }
+
+    _closeSwitchModeDialog() {
+        this.setState({
+            showSelectPlayModeDialog: false,
+        })
+    }
+
+    _switchRoomPlayMode(data) {
+        this.props.dispatch({
+            type: 'center/swtichRoomPlayMode',
+            payload: {
+                roomId: this.props.nowRoomId,
+                ...data,
+            }
+        })
+        this._closeSwitchModeDialog()
+    }
+
+    _handlePlayingProgressNotReady () {
+        console.log('suspend')
+        this._refreshMusicBuffered()
+        // if (this.audioEle.paused) {
+        //     this.setState({
+        //         isWaitLoading: true,
+        //     })
+        // }
+    }
+
+    _contralAble() {
+        const { isRoomAdmin, status: playingStatus } = this.props
         const contralAble = isRoomAdmin && playingStatus && playingStatus !== NowPlayingStatus.preloading
         return contralAble
     }
 
     render() {
         const { src, lyric, duration, pic, name, artist, comment, simpleMode, isMobile, musicId,
-            isPaused, status: playingStatus, isRoomAdmin } = this.props
+            isPaused, status: playingStatus, isRoomAdmin, nowRoomPlayMode } = this.props
         const { timeRatio, volumeRatio, commentFontSize, commentTextAlign, isDragCursor } = this.state
         const curcorSize = 8
         const progressLineHeight = 2
@@ -334,7 +423,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             avatarUrl: '',
             userId: '',
         }
-        const isReallyPaused = isDragCursor || isPaused
+        const isReallyPaused = this._isReallyPaused()
         const isProgressPending = this._getIsProgressPending(isReallyPaused)
         const controlAble = this._contralAble()
 
@@ -344,7 +433,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         const commentNode = <div className={styles.commentBox}>
             <div className={bindClass(styles.showData, !comment && styles.hide)} ref={ele => this.commentBoxEle = ele}
             >
-                <div className={styles.top} ref={ele => this.commentTopEle = ele}><span className="iconfont icon-quoteleft"></span></div>
+                <div className={styles.top} ref={ele => this.commentTopEle = ele}><CustomIcon>quoteleft</CustomIcon></div>
                 {
                     !!commentFontSize && <p
                         style={{ fontSize: commentFontSize, lineHeight: `${this.commentLineHeight}em`, textAlign: commentTextAlign }}
@@ -363,13 +452,13 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     暂无热评
                     </div>}
         </div>
-        const controllNode = <div className={styles.controlBox}>
+        const controlNode = <div className={styles.controlBox}>
             <div className={styles.left}>
                 <div className={styles.musicBaseInfo}>
                     {
                         !isPaused && <SignalIcon />
                     }
-                    <span className={styles.content}>
+                    <div className={styles.content}>
                         {
                             !!musicId ? [
                                 [name, artist].filter(i => !!i).join('-'),
@@ -380,9 +469,9 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                                     isRoomAdmin ? '请选择播放音乐！' : '暂无音乐'
                                 )
                         }
-                    </span>
+                    </div>
                 </div>
-                <div className={bindClass(styles.progressOuter, controlAble && styles.controlAble)} onMouseDown={controlAble && this._startDragCursor.bind(this)} >
+                <div className={bindClass(styles.progressOuter, controlAble && styles.controlAble)} onMouseDown={controlAble ? this._startDragCursor.bind(this) : null} >
                     <div className={styles.progress} ref={ele => this.progressEle = ele} style={{ height: progressLineHeight }} >
                         <div className={styles.base} >
                         </div>
@@ -407,27 +496,48 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     </div>
                 </div>
                 {
-                    !isMobile && <div className={styles.volumeBox}>
-                        <span className={bindClass(styles.actionIcon, 'iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}
+                    !isMobile && <div className={styles.bottomBox}>
+                        <div className={styles.left}>
+                            <CustomIcon onClick={this._setOpenDanmu.bind(this)} title={
+                                this.props.openDanmu ? '关闭弹幕' : '开启弹幕'
+                            } style={{
+                                fontSize: 20
+                            }}>
+                                {
+                                    this.props.openDanmu ? 'danmu-disabled' : 'danmu'
+                                }
+                            </CustomIcon>
+                            <span className={bindClass(styles.volumeActionIcon, 'iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}
                                 onClick={e => {
                                     const ratio = this.state.volumeRatio > 0 ? 0 : (this.lastVolumeRatioValue || 1)
                                     this.lastVolumeRatioValue = ratio
                                     this.setState({ volumeRatio: ratio })
                                     this._setVolume(ratio)
                                 }}
-                        >
-                            <VolumeSlider className={styles.slider} value={volumeRatio} min={0} max={1} step={0.01} 
-                                onChange={(_, ratio: number) => {
-                                    this.setState({
-                                        volumeRatio: ratio
-                                    })
-                                    this._setVolume(ratio)
-                                }} 
-                                aria-labelledby="continuous-slider" 
-                                onClick={e => e.stopPropagation()}
-                            />
-                        </span>
-
+                            >
+                                <VolumeSlider className={styles.slider} value={volumeRatio} min={0} max={1} step={0.01}
+                                    onChange={(_, ratio: number) => {
+                                        this.setState({
+                                            volumeRatio: ratio
+                                        })
+                                        this._setVolume(ratio)
+                                    }}
+                                    aria-labelledby="continuous-slider"
+                                    onClick={e => e.stopPropagation()}
+                                />
+                            </span>
+                        </div>
+                        <div className={styles.right}>
+                            {
+                                (() => {
+                                    const config = RoomPlayModeConfigs[nowRoomPlayMode]
+                                    return !!config && (
+                                        isRoomAdmin ? <CustomIcon title={config.title} className={styles.clickAble} onClick={this._showSwitchModeDialog.bind(this)}>{config.icon}</CustomIcon> :
+                                    <span>{config.title}中</span>
+                                    )
+                                })()
+                            }
+                        </div>
                     </div>}
             </div>
 
@@ -436,11 +546,52 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 <div
                     className={styles.right}
                     onClick={this._changePlayingStatus}>
-                    <span className={bindClass('iconfont', (isDragCursor || isPaused) ? 'icon-play' : 'icon-pause')}></span>
+                    <CustomIcon className={styles.iconfont}>
+                        {
+                            (isDragCursor || isPaused) ? 'play' : 'pause'
+                        }
+                    </CustomIcon>
                 </div>
             }
         </div>
-        return <div className={bindClass(styles.playerBox, simpleMode && styles.simpleMode, isMobile ? styles.mobileMode : styles.normal)}>
+
+        const audio = <audio src={src}
+            style={{ display: 'none' }}
+            ref={ele => this.audioEle = ele}
+            preload="auto"
+            onLoadStart={_ => console.log('start----------load')}
+            onProgress={this._refreshMusicBuffered.bind(this)}
+            onTimeUpdate={this._handleTimeUpdate}
+            onCanPlay={_ => {
+                if (this.audioEle.readyState !== 4) {
+                    return
+                }
+                if (this.props.isPaused) {
+                    return
+                }
+                if (!this.audioEle.paused) {
+                    return
+                }
+                this._startPlay()
+            }}
+            onEnded={_ => {
+                this.setState({
+                    timeRatio: 1,
+                })
+            }}
+            onSeeking={() => {
+                this.setState({
+                    isSeeking: true,
+                })
+            }}
+            onSeeked={() => {
+                this.setState({
+                    isSeeking: false,
+                })
+            }}
+        ></audio>
+
+        const returnNode = <div className={bindClass(styles.playerBox, simpleMode && styles.simpleMode, isMobile ? styles.mobileMode : styles.normal)}>
             {
                 !isMobile && <div className={styles.left}>
                     <div className={bindClass(!isPaused && styles.rotate, styles.picBox, simpleMode && styles.simpleMode)}>
@@ -450,66 +601,118 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                         !simpleMode && lyRicNode
                     }
                 </div>}
-            <audio src={src}
-                style={{ display: 'none' }}
-                ref={ele => this.audioEle = ele}
-                preload="auto"
-                onProgress={this._refreshMusicBuffered.bind(this)}
-                onTimeUpdate={event => {
-                    // console.log('player time update:', this.audioEle.currentTime)
-                    this.setState({
-                        timeRatio: this.audioEle.currentTime / duration
-                    })
-                }}
-                onLoadedData={_ => {
-                    // console.log('on play', this.audioEle.paused, this.audioEle.readyState)
-                    if (this.audioEle.readyState !== 4) {
-                        return
-                    }
-                    if (this.props.isPaused) {
-                        return
-                    }
-                    if (!this.audioEle.paused) {
-                        return
-                    }
-                    this._startPlay()
-                }}
-                onEnded={_ => {
-                    this.setState({
-                        timeRatio: 1,
-                    })
-                }}
-            ></audio>
             {
                 isMobile ? <div className={styles.mobileMain}>
                     {commentNode}
                     {lyRicNode}
-                    {controllNode}
+                    {controlNode}
                 </div> :
                     <div className={bindClass(styles.main, simpleMode && styles.simpleMode)}>
                         {
                             !simpleMode && commentNode
                         }
                         {
-                            controllNode
+                            controlNode
                         }
                     </div>}
-
-
         </div>
+        return <React.Fragment>
+            <SwitchPlayModeDialog open={this.state.showSelectPlayModeDialog}
+                isMobile={this.props.isMobile}
+                playModeInfo={this.props.roomPlayModeInfo}
+                onClose={this._closeSwitchModeDialog}
+                onSubmit={this._switchRoomPlayMode}
+            />
+            {!simpleMode && createPortal(<RoomName />, this.roomNameEle)}
+            {createPortal(audio, this.playerEle)}
+            {(!isMobile && simpleMode) ? createPortal(returnNode, this.playerEle) : returnNode}
+        </React.Fragment>
     }
 }
-export default connect<Exclude<PlayerProps, 'simpleMode' | 'isMobile'>, any, Pick<PlayerProps, 'simpleMode' | 'isMobile'>>(
-    ({ playList: { nowPlaying }, center: { nowRoomInfo, userInfo, blockPlayItems } }: ConnectState
-) => {
-    const musicId = nowPlaying && nowPlaying.id
-    const isBlocked = (blockPlayItems || []).some(blockedId => blockedId === musicId),
-    return {
-        isRoomAdmin: userInfo && (userInfo.isRoomCreator || userInfo.isSuperAdmin),
-        nowRoomId: nowRoomInfo && nowRoomInfo.id,
-        musicId,
-        isBlocked,
-        isPaused: !(nowPlaying && nowPlaying.status === NowPlayingStatus.playing),
-        ...(nowPlaying || {}) as any
+
+export default connect<PlayerProps, any, Pick<PlayerProps, 'simpleMode' | 'isMobile'>>(
+    ({ playList: { nowPlaying }, center: { nowRoomInfo, userInfo, blockPlayItems, isRoomAdmin, openDanmu } }: ConnectState
+    ) => {
+        const musicId = nowPlaying && nowPlaying.id
+        const isBlocked = (blockPlayItems || []).some(blockedId => blockedId === musicId)
+        return {
+            openDanmu,
+            isRoomAdmin,
+            nowRoomId: nowRoomInfo && nowRoomInfo.id,
+            nowRoomPlayMode: nowRoomInfo && nowRoomInfo.playMode,
+            roomPlayModeInfo: nowRoomInfo && nowRoomInfo.playModeInfo,
+            musicId,
+            isBlocked,
+            isPaused: !(nowPlaying && nowPlaying.status === NowPlayingStatus.playing),
+            ...(nowPlaying || {}) as any
+        }
+    })(Player)
+
+
+
+const SwitchPlayModeDialog = React.memo<{
+    open: boolean;
+    playModeInfo: RoomPlayModeInfo;
+    isMobile: boolean;  
+    onClose: () => any;
+    onSubmit: (obj: {
+        mode: RoomMusicPlayMode;
+        autoPlayType?: string;
+    }) => any;
+}>(props => {
+    const {playModeInfo, open} = props
+    const [rooMode, setRoomMode] = useState(null)
+    const [autoPlayType, setAutoPlayType] = useState(null)
+    const handleModeSelect = (e) => {
+        setRoomMode(e.target.value)
+        setAutoPlayType(null)
     }
-})(Player)
+    const handleAutoPlayTypeSelect = (e) => setAutoPlayType(e.target.value)
+
+    useEffect(() => {
+        let roomMode = null, autoPlayType = null
+        if (playModeInfo) {
+            roomMode = String(playModeInfo.mode)
+            autoPlayType = playModeInfo.autoPlayType || null
+        }
+        setRoomMode(roomMode)
+        setAutoPlayType(autoPlayType)
+    }, [playModeInfo, open])
+
+    return <Dialog open={props.open} onClose={props.onClose} fullWidth={true} maxWidth={props.isMobile ? 'lg' : 'xs'}>
+        <DialogTitle>切换播放模式</DialogTitle>
+        <DialogContent>
+            <FormControl fullWidth={true}>
+                <FormControl fullWidth={true} margin="normal">
+                    <InputLabel>模式</InputLabel>
+                    <Select value={rooMode} onChange={handleModeSelect}>
+                            {
+                                Object.entries(RoomPlayModeConfigs).map(([type, config]) => {
+                                    return <MenuItem value={type}>{config.title}</MenuItem>
+                                })
+                            }
+                        </Select>
+                </FormControl>
+                {
+                    Number(rooMode) === RoomMusicPlayMode.auto && <FormControl fullWidth={true} margin="normal">
+                         <InputLabel>类型</InputLabel>
+                         <Select value={autoPlayType} onChange={handleAutoPlayTypeSelect}>
+                                {
+                                    globalConfig.roomAutoPlayTypes.map(type => <MenuItem value={type}>
+                                        {type}
+                                    </MenuItem>)}
+                            </Select>
+                    </FormControl>}
+                <FormControl fullWidth={true} margin="normal">
+                    <Button color="primary" variant="contained" onClick={props.onSubmit.bind(null, {
+                        mode: Number(rooMode),
+                        autoPlayType,
+                    })}>
+                        提交
+                    </Button>
+
+                </FormControl>
+            </FormControl>
+        </DialogContent>
+    </Dialog>
+})

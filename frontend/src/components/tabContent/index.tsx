@@ -5,33 +5,40 @@ import styles from './style.less'
 
 interface Props {
     activeKey: string | number;
-    children: React.ReactElement[]
+    children: React.ReactNode;
 }
 
-const decimalToPercent = (num: number) => `${num.toFixed(2).slice(2)}%`
+const decimalToPercent = (num: number) => `${(num * 100).toFixed(2)}%`
 
-interface TabContent extends React.FC<Props>{
-    Item: typeof TabContentItem
+type TabContent = React.FC<Props> & {
+    Item: typeof TabContentItem 
 }
 
 const TabContent: TabContent = function (props) {
     const {activeKey, children} = props
-    const childLength = React.Children.count(children)
-    const childWidthRatio = childLength ? 1 / childLength : 0
-    let offsetIndex = 0
+    let childLength = 0, offsetIndex = 0
+    const renderChildArr: React.ReactElement[] = []
     React.Children.forEach(children, (child, index) => {
-        const {key, props: {style = {}}} = child
+        if (!child) {
+            return
+        }
+        childLength ++
+        renderChildArr.push(child)
+        const {key} = child
         if (key === activeKey) {
             offsetIndex = index
         }
     })
+    const childWidthRatio = childLength ? 1 / childLength : 0
     return <div className={styles.tabContentBox}>
         <div className={styles.container} style={{
                 transform: `translateX(-${decimalToPercent(childWidthRatio * offsetIndex)})`,
                 width: `${childLength * 100}%`
                 }}>
             {
-                children
+                renderChildArr.map(child => React.cloneElement(child, {
+                    width: child.props.width || decimalToPercent(childWidthRatio),
+                }))
             }
         </div>
     </div>
@@ -40,11 +47,13 @@ const TabContent: TabContent = function (props) {
 const TabContentItem: React.FC<{
     key: string;
     children: React.ReactNode;
+    width?: string | number;
 }> = (props) => {
-    return <div className={styles.tabContentItem}>
+    return <div className={styles.tabContentItem} style={{width: props.width}}>
         {props.children}
     </div>
 }
+
 TabContent.Item = TabContentItem
 
 export default TabContent

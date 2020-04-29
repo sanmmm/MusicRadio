@@ -13,19 +13,17 @@
         left: 0;
         transition: all 0.3s ease-in-out;
         z-index: 40;
-        &.highLight {
-            > .content {
-                color: white;
-                filter: none;
-                &.emoji {
-                    color: @advancedColor;
-                }
-                &.advanced {
-                    color: @advancedColor;
-                }
-                &.notice {
-                    color: @noticeColor;
-                }
+        > .content {
+            color: white;
+            filter: none;
+            &.emoji {
+                color: @advancedColor;
+            }
+            &.advanced {
+                color: @advancedColor;
+            }
+            &.notice {
+                color: @noticeColor;
             }
         }
         > .placeholder {
@@ -40,7 +38,7 @@
             border-radius: 8px;
             padding: 0 1rem;
             cursor: pointer;
-            filter: brightness(50%);
+            filter: brightness(80%);
         }
     }
 }

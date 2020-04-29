@@ -6,18 +6,24 @@ import { useDrag, useDrop, DropTargetMonitor, DndProvider } from 'react-dnd'
 import { Checkbox } from '@material-ui/core'
 import { withStyles } from '@material-ui/core/styles'
 
-import styleConfig from '@/baseStyle.conf'
+import styleConfig from 'config/baseStyle.conf'
 import useSyncState from '@/components/hooks/syncAccessState'
 import styles from './style.less'
+import CustomIcon from '@/components/CustomIcon';
 
 const CustomCheckbox = withStyles({
     root: {
-        color: styleConfig.themeColor,
+        color: `${styleConfig.themeColor} !important`,
         '&$checked': {
             color: styleConfig.highLightColor,
         },
+        '&$disabled': {
+            color: styleConfig.normalTextColor,
+        }
     },
     checked: {},
+    disabled: {
+    }
 })(Checkbox)
 
 interface Props<T = any> {
@@ -34,8 +40,8 @@ interface Props<T = any> {
     drag?: {
         onMove: (fromIndex: number, toIndex: number) => any;
     };
-    rowClassName: (item: T, index: number) => string | string;
-    rowSelection: {
+    rowClassName?: (item: T, index: number) => string | string;
+    rowSelection?: {
         selectedRowKeys: string[];
         onChange: (keys: string[], items: T[]) => any;
     }
@@ -48,7 +54,7 @@ const ListRender = React.memo<Props>(function (props) {
         checkedKeys: new Set<string>(),
         dataSource: [],
         rowKey,
-        onChange: rowSelection.onChange,
+        onChange: rowSelection && rowSelection.onChange,
     })
     if (rowSelection) {
         setSyncState({
@@ -100,6 +106,7 @@ const ListRender = React.memo<Props>(function (props) {
         }
         onChange && onChange(checkedKeys, checkedItms)
     }, [])
+    const defaultColWidth = columns.length !== 0 ? `${(1 / columns.length).toFixed(2).slice(2)}%` : 0
 
     const table = <div className={bindClass(styles.table, className)}>
         <div className={styles.tableContent}>
@@ -108,10 +115,10 @@ const ListRender = React.memo<Props>(function (props) {
                     {
                         !!rowSelection &&
                         <CustomCheckbox disabled={!dataSource.length} 
-                        checked={rowSelection && dataSource.length && rowSelection.selectedRowKeys.length === dataSource.length} onChange={handleCheckAll} />
+                        checked={Boolean(rowSelection && dataSource.length && rowSelection.selectedRowKeys.length === dataSource.length)} onChange={handleCheckAll} />
                     }
                     {
-                        columns.map((obj, index) => <div className={styles.cell} key={obj.dataKey ? obj.dataKey as string : index} style={{ width: obj.width }}>
+                        columns.map((obj, index) => <div className={styles.cell} key={obj.dataKey ? obj.dataKey as string : index} style={{ width: obj.width || defaultColWidth }}>
                             {obj.title || ''}
                         </div>)}
                 </div>
@@ -125,7 +132,7 @@ const ListRender = React.memo<Props>(function (props) {
                             item={rowItem} index={index} columns={columns}
                             drag={drag} rowClassName={rowClassName}
                             checkAble={!!rowSelection}
-                            checked={rowSelection.selectedRowKeys.includes(key)}
+                            checked={!!rowSelection && rowSelection.selectedRowKeys.includes(key)}
                             onCheck={handleItemCheck}
                         />
                     })
@@ -140,7 +147,7 @@ const ListRender = React.memo<Props>(function (props) {
         </div>
         {
             loading && <div className={styles.loading}>
-                <span className={bindClass('iconfont icon-load', styles.icon)}></span>
+                <CustomIcon className={styles.icon}>load</CustomIcon>
             </div>}
     </div>
     return drag ? <DndProvider backend={DragBackend}>
@@ -165,18 +172,19 @@ const TableRow = React.memo<RowProps>(function (props) {
     const handleCheck = useCallback((e) => {
         onCheck && onCheck(keyName, item, e.target.checked)
     }, [onCheck, keyName])
+    const defaultColWidth = columns.length !== 0 ? `${(1 / columns.length).toFixed(2).slice(2)}%` : 0
 
     const content = <React.Fragment>
         {
             checkAble && <CustomCheckbox checked={checked} onChange={handleCheck} />}
         {
-            columns.map((obj, colIndex) => <div key={colIndex} className={styles.cell} style={{ width: obj.width }}>
+            columns.map((obj, colIndex) => <div key={colIndex} className={styles.cell} style={{ width: obj.width || defaultColWidth }}>
                 {obj.render ? obj.render(item, rowIndex) : (
                     obj.dataKey ? item[obj.dataKey] : null
                 )}
             </div>)}
     </React.Fragment>
-    const classStr = bindClass(typeof rowClassName === 'string' ? rowClassName : rowClassName(item, rowIndex), styles.line)
+    const classStr = bindClass(rowClassName && (typeof rowClassName === 'string' ? rowClassName : rowClassName(item, rowIndex)), styles.line)
     const trProps = {
         className: classStr,
         onClick: () => { },

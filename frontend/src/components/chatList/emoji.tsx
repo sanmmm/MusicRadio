@@ -5,14 +5,18 @@ import ScrollBar from 'react-perfect-scrollbar'
 import { useMediaQuery } from 'react-responsive'
 
 import { throttle } from '@/utils'
-import configs from '@/config'
+import configs from 'config/base.conf'
 import styles from './index.less'
 import { ConnectState, ChatListModelState, ConnectProps } from '@/models/connect'
+import CustomIcon from '@/components/CustomIcon';
 
 interface Props extends ConnectProps {
+    roomId: string;
     emojiList: ChatListModelState['emojiList'];
     hasMore: boolean;
     loadingEmojiList: boolean;
+    sendMessagePending: boolean;
+    onClose: () => any;
 }
 
 const pageSize = 20
@@ -20,18 +24,18 @@ const pageSize = 20
 enum ImageLoadingStatus { loadEnd = 1, loading = 2 }
 
 
-const Loading: React.FC<{ full?: boolean, text?: string }> = function (props) {
-    const { full = false, text = '' } = props
-    return <div className={bindClass(styles.loading, full && styles.full)}>
-        <span className="iconfont icon-load"></span>
+const Loading = React.memo<{ full?: boolean, text?: string, className?: string }>((props) => {
+    const { full = false, text = '', className: appendClass } = props
+    return <div className={bindClass(styles.loading, full && styles.full, appendClass)}>
+        <CustomIcon>load</CustomIcon>
         {
             !!text && <span className={styles.text}>{text}</span>}
     </div>
-}
+})
 
 
-const EmojiSearchLsit: React.FC<Props> = function (props) {
-    const { emojiList, hasMore, dispatch, loadingEmojiList } = props
+const EmojiSearchLsit = React.memo<Props>(function (props) {
+    const { emojiList, hasMore, dispatch, loadingEmojiList, sendMessagePending, roomId } = props
     const boxRef = useRef(null)
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
     const emojiItemPerLine = isMobile ? 4 : 3
@@ -119,6 +123,23 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
         }
     }, 400, true)
 
+    const handleEmojiClick = (item: Props['emojiList'][0]) => {
+        if (sendMessagePending) {
+            // TODO 
+            return
+        }
+        dispatch({
+            type: 'chatList/sendMessage',
+            payload: {
+                emojiId: item.id,
+                roomId
+            }
+        }).then(success => {
+            if (success) {
+                props.onClose && props.onClose()
+            }
+        })
+    }
 
     return <div onWheel={e => e.stopPropagation()} ref={boxRef} className={styles.emojiSearchBox}>
         <div className={styles.container}>
@@ -133,7 +154,9 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
                         emojiList.map(e => {
                             const isImgLoading = visibleImgMap[e.id] === ImageLoadingStatus.loading
                             return <div key={e.id} data-id={e.id} className={styles.item} title={e.title}
-                                style={{ width: `${(1 / emojiItemPerLine) * 100}%` }}>
+                                    style={{ width: `${(1 / emojiItemPerLine) * 100}%` }}
+                                    onClick={handleEmojiClick.bind(null, e)}
+                                >
                                 {
                                     visibleImgMap[e.id] && <React.Fragment>
                                         <img src={e.src}
@@ -145,7 +168,7 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
                                                 })
                                             }} />
                                         {
-                                            isImgLoading && <span className="iconfont icon-load"></span>
+                                            isImgLoading && <CustomIcon>load</CustomIcon>
                                         }
                                     </React.Fragment>
                                 }
@@ -171,12 +194,14 @@ const EmojiSearchLsit: React.FC<Props> = function (props) {
                     )}
         </div>
     </div>
-}
+})
 
-export default connect(({ chatList, loading }: ConnectState) => {
+export default connect(({ chatList, loading, center: {userInfo}}: ConnectState) => {
     return {
+        roomId: userInfo && userInfo.nowRoomId,
         loadingEmojiList: loading.effects['chatList/reqEmojiList'],
         emojiList: chatList.emojiList,
         hasMore: chatList.hasMoreEmoji,
+        sendMessagePending: loading.effects['chatList/sendMessage'],
     }
 })(EmojiSearchLsit)

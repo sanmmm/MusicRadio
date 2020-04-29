@@ -1,71 +1,85 @@
 @import '~@/base.less';
 
 .chatListBox {
-    padding: 1rem;
+    padding : 1rem;
     position: relative;
+
     .noticeBox {
         position: absolute;
-        z-index: 20;
-        bottom: 1rem;
-        right: 3rem;
+        z-index : 20;
+        bottom  : 1rem;
+        right   : 3rem;
     }
-    .messageItemSubArr {
-        margin-bottom: .8rem;   
-    }
-    .messageItem {
-        color: white;
-        text-align: left; 
 
-        & + .messageItem {
+    .messageItemSubArr {
+        margin-bottom: .8rem;
+    }
+
+    .messageItem {
+        color     : white;
+        text-align: left;
+
+        &+.messageItem {
             margin-top: .6rem;
         }
+
         &.unread {
             color: white;
         }
+
         .contentBase {
-            background-color: rgba(0,0,0,0.5);
-            color: white;
-            font-size: 1rem;
-            border-radius: 6px;
-            padding: .4rem .8rem;
-            text-align: left;
-            display: inline-block;
-            cursor: pointer;
+            background-color: rgba(0, 0, 0, 0.5);
+            color           : white;
+            font-size       : 1rem;
+            border-radius   : 6px;
+            padding         : .4rem .8rem;
+            text-align      : left;
+            display         : inline-block;
+            cursor          : pointer;
         }
+
         &.time {
             text-align: center;
-            > span {
+
+            >span {
                 .contentBase();
                 font-size: 1rem;
-                padding: 3px .6rem;
+                padding  : 3px .6rem;
             }
         }
+
         &.response {
             text-align: center;
-            > span {
+
+            >span {
                 .contentBase();
                 padding: 3px .6rem;
             }
         }
 
         .header {
-            font-size: 14px;
+            font-size    : 14px;
             margin-bottom: .3rem;
         }
+
         .content {
             .contentBase();
+
             &.emoji {
                 max-width: 40%;
+
                 img {
-                    max-width: 100%;
+                    max-width : 100%;
                     max-height: 25vh;
-                    display: inline-block;
-                    margin: 0;
+                    display   : inline-block;
+                    margin    : 0;
                 }
             }
+
             &.notice {
                 color: @noticeColor;
             }
+
             &.advanced {
                 color: @advancedColor;
             }
@@ -80,10 +94,12 @@
 @keyframes loading {
     0% {
         transform: rotate(0deg);
-    } 
+    }
+
     50% {
         transform: rotate(180deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -91,77 +107,89 @@
 
 
 .emojiSearchBox {
-    height: 100%;
+    height  : 100%;
     position: relative;
-    color: @normalTextColor;
+    color   : @normalTextColor;
+
     &::before {
-        content: "";
-        display: inline-block;
-        width: 0;
+        content    : "";
+        display    : inline-block;
+        width      : 0;
         padding-top: 100%;
     }
+
     .loading {
-        width: 100%;
-        box-sizing: border-box;
-        padding: 1rem;
-        display: flex;
-        align-items: center;
+        width          : 100%;
+        box-sizing     : border-box;
+        padding        : 1rem;
+        display        : flex;
+        align-items    : center;
         justify-content: center;
-        color: @themeColor;
+        color          : @themeColor;
+
         &.full {
             height: 100%;
         }
+
         :global(.icon-load) {
-            color: @themeColor;
+            color    : @themeColor;
             animation: loading 1s linear infinite;
         }
-        > .text {
+
+        >.text {
             margin-left: .6rem;
         }
     }
+
     .container {
-       position: absolute;
-       width: 100%;
-       height: 100%;
-       top: 0;
-       left: 0;
-        .emojiList  {
-            width: 100%;
-            height: 100%;
-            box-sizing: border-box;
-            padding: .7rem;
-            display: flex;
-            align-items: center;
+        position: absolute;
+        width   : 100%;
+        height  : 100%;
+        top     : 0;
+        left    : 0;
+
+        .emojiList {
+            width          : 100%;
+            height         : 100%;
+            box-sizing     : border-box;
+            padding        : .7rem;
+            display        : flex;
+            align-items    : center;
             justify-content: flex-start;
-            flex-wrap: wrap;
+            flex-wrap      : wrap;
+
             .item {
-                position: relative;
-                display: flex;
-                align-items: center;
+                position       : relative;
+                display        : flex;
+                align-items    : center;
                 justify-content: center;
-                cursor: pointer;
+                cursor         : pointer;
+
                 &::before {
-                    content: "";
-                    display: block;
+                    content    : "";
+                    display    : block;
                     padding-top: 100%;
                 }
+
                 img {
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    padding: .8rem .5rem 0;
+                    position  : absolute;
+                    top       : 0;
+                    left      : 0;
+                    width     : 100%;
+                    height    : 100%;
+                    padding   : .8rem .5rem 0;
                     box-sizing: border-box;
                     object-fit: contain;
+
                     &.loading {
                         display: none;
                     }
                 }
+
                 :global(.icon-load) {
-                    display: inline-block;
+                    display  : inline-block;
                     font-size: 1.8rem;
-                    color: @themeColor;
+                    color    : @themeColor;
                     animation: loading 1s linear infinite;
                 }
             }
@@ -171,80 +199,94 @@
 
 
 .noMore {
-    width: 100%;
-    text-align: center;
+    width      : 100%;
+    text-align : center;
     line-height: 2em;
 }
 
 .noData {
-    width: 100%;
-    height: 50%;
-    min-width: 50px;
-    display: flex;
-    align-items: center;
+    width          : 100%;
+    height         : 50%;
+    min-width      : 50px;
+    display        : flex;
+    align-items    : center;
     justify-content: center;
 }
 
 .chatListNoticeItem {
-    margin-top: .7rem;
-    padding: .4rem .6rem;
-    border-radius: 5px;
-    color: @highLightColor;
+    margin-top      : .7rem;
+    padding         : .4rem .6rem;
+    border-radius   : 5px;
+    color           : @highLightColor;
     background-color: white;
-    border: 1px solid rgba(155,155,155,0.5);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    opacity: 0;
-    transform: translateY(100%);
-    position: relative;
+    border          : 1px solid rgba(155, 155, 155, 0.5);
+    cursor          : pointer;
+    display         : flex;
+    align-items     : center;
+    opacity         : 0;
+    transform       : translateY(100%);
+    position        : relative;
+
     &.show {
-        opacity: 1;
+        opacity  : 1;
         transform: translateY(0);
         animation: showAnimation 0.5s linear;
     }
+
     &.swipe {
         animation: closeAnimation 0.5s linear;
     }
+
     &.hide {
         animation: hideAnimation 0.5s linear;
     }
+
     @keyframes showAnimation {
         from {
-            opacity: 0;
+            opacity  : 0;
             transform: translateY(100%);
-        } to {
-            opacity: 1;
+        }
+
+        to {
+            opacity  : 1;
             transform: translateY(0);
         }
     }
+
     @keyframes hideAnimation {
         from {
-            opacity: 1;
+            opacity  : 1;
             transform: translateY(0);
-        } to {
-            opacity: 0;
+        }
+
+        to {
+            opacity  : 0;
             transform: translateY(100%);
         }
     }
+
     @keyframes closeAnimation {
         from {
-            opacity: 1;
+            opacity  : 1;
             transform: translateY(0);
-        } to {
-            opacity: 0;
+        }
+
+        to {
+            opacity  : 0;
             transform: translate(70%, 0);
         }
     }
-    > .icon {
+
+    >.icon {
         padding-right: .4rem;
     }
-    > .close {
-        position: absolute;
+
+    >.close {
+        position        : absolute;
         background-color: white;
-        border-radius: 50%;
-        top: 0;
-        right: 0;
-        transform: translate(50%, -50%);
+        border-radius   : 50%;
+        top             : 0;
+        right           : 0;
+        transform       : translate(50%, -50%);
     }
 }

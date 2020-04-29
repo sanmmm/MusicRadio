@@ -1,42 +1,40 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 import bindClass from 'classnames'
 
 import styles from './index.less'
+import SignalIcon from '@/components/signalIcon';
+import globalConfigs from '@global/common/config';
+import CustomIcon from '@/components/CustomIcon';
 
 interface Props {
     pic: string;
     playing: string;
     title: string;
     heat: number;
-    onClick?: () => any
+    onClick?: () => any;
+    width?: string | number;
+    id: string;
+    className?: string;
 }
 
-const animationDuration = 2
-
 const RoomItemShow: React.FC<Props> = (props) => {
-    const { pic, playing, title, heat = 0 } = props
-    const randomValues = useMemo(() => {
-        return [1, 2, 3, 4].map(i => Math.random() * animationDuration)
-    }, [])
-    return <div className={styles.roomItem} onClick={props.onClick || null}>
+    const { pic, playing, title, heat = 0, id, className } = props
+    return <div className={bindClass(styles.roomItem, className || '')} onClick={props.onClick || null}>
         <div className={styles.main}>
-            <img src={pic} />
-            <div className={styles.heat}><span className="iconfont icon-persons"></span><span>{heat}</span></div>
+            <div className={styles.background}>
+                {
+                    !!pic ? <img src={pic}/> : <div className={styles.noData}>暂无播放</div>}
+            </div>
+            <div className={styles.heat}><CustomIcon>persons</CustomIcon><span>{heat}</span></div>
             {!!playing && <div className={styles.playing}>
-                <div className={styles.radioRandomSignalIcon}>
-                    {randomValues.map(delay => <div
-                        key={delay}
-                        style={{ animationDelay: `${delay}s`, animationDuration: `${animationDuration}s` }}
-                    >
-                    </div>)}
-                </div>
-                <div className={styles.text} title={playing}>正在播放: {playing}</div>
+                <SignalIcon />
+                <div className={styles.text} title={playing}>正在播放: {playing || '暂无'}</div>
             </div>}
             <div className={styles.playIcon}>
-                <div className={bindClass('iconfont', 'icon-play-circle')}></div>
+                <CustomIcon>play-circle</CustomIcon>
             </div>
         </div>
-        <div className={styles.title} title={title}>{title}</div>
+        <div className={styles.title} title={title}>{title || (id === globalConfigs.hallRoomId ? '大厅' : '未命名')}</div>
     </div>
 }
 

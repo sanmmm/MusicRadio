@@ -9,10 +9,12 @@ import { useSwipeable } from 'react-swipeable'
 import { ConnectState, ConnectProps, ChatListModelState } from '@/models/connect'
 import useSyncState from '@/components/hooks/syncAccessState'
 import usePreventSwipe from '@/components/hooks/preventScrollAndSwipe'
-import { MessageTypes, MessageItem, ChatListNoticeTypes } from '@/typeConfig'
+import { MessageTypes, MessageItem, ChatListNoticeTypes } from 'config/type.conf'
 import {throttle} from '@/utils'
-import configs from '@/config'
+import configs from 'config/base.conf'
 import styles from './index.less'
+import bindclass from 'classnames';
+import CustomIcon from '@/components/CustomIcon';
 
 interface ChatListProps extends ConnectProps {
     unreadMessageIds: string[];
@@ -22,6 +24,7 @@ interface ChatListProps extends ConnectProps {
     messageItemCount: number;
     unreadAtSignMessage: ChatListModelState['unreadAtSignMessage'];
     unreadVoteMessage: ChatListModelState['unreadVoteMessage'];
+    className?: string;
 }
 
 const inferIsReadingOffset = 60
@@ -38,7 +41,7 @@ enum Directions {
 }
 
 const ChatList: React.FC<ChatListProps> = function (props) {
-    const { nowUserId, renderMessages, unreadMessageIds, dispatch, isReading, messageItemCount, unreadVoteMessage, unreadAtSignMessage } = props
+    const { nowUserId, renderMessages, unreadMessageIds, dispatch, isReading, messageItemCount, unreadVoteMessage, unreadAtSignMessage, className } = props
     const [getSyncState, setSyncState] = useSyncState({
         unreadMessagePosition: new Map(),
         containerScrollTop: 0,
@@ -66,7 +69,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
             payload: {
                 onScrollToBottom: () => {
                     if (placeholderRef.current) {
-                        placeholderRef.current.scrollIntoView()
+                        placeholderRef.current.scrollIntoView(false)
                     }
                 }
             }
@@ -84,14 +87,14 @@ const ChatList: React.FC<ChatListProps> = function (props) {
     useEffect(() => {
         if (renderMessages.length) {
             if (placeholderRef.current) {
-                placeholderRef.current.scrollIntoView()
+                placeholderRef.current.scrollIntoView(false)
             }
         }
     }, [renderMessages.length !== 0])
 
     useEffect(() => {
         if (isReading && placeholderRef.current && !!messageItemCount) {
-            placeholderRef.current.scrollIntoView()
+            placeholderRef.current.scrollIntoView(false)
         }
     }, [messageItemCount])
 
@@ -111,6 +114,9 @@ const ChatList: React.FC<ChatListProps> = function (props) {
 
     const updateUnreadMessageItemStatus = () => {
         const { containerScrollTop, containerClientHeight, containerBottomOffset, unreadMessagePosition } = getSyncState()
+        if (!unreadMessagePosition || !unreadMessagePosition.size) {
+            return
+        }
         const markReadArr = []
         unreadMessagePosition.forEach((postion, id) => {
             if (containerScrollTop + containerClientHeight > postion) {
@@ -163,6 +169,9 @@ const ChatList: React.FC<ChatListProps> = function (props) {
     }, [])
 
     const updateSyncStateContainerInfo = (containerNode: HTMLElement) => {
+        if (!containerNode) {
+            return
+        }
         const { scrollTop, clientHeight, scrollHeight } = containerNode
         const obj = {
             containerScrollTop: scrollTop,
@@ -228,6 +237,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
 
     const updateUnreadNoticeItemsDirection = () =>  {
         const {unreadAtSignMessagePositon, unreadVoteMessagePosition, containerClientHeight, containerScrollTop} = getSyncState()
+        console.log(getSyncState())
         const max = containerClientHeight + containerScrollTop
         const min = containerScrollTop
         const getDirection = (offsetTop: number) => {
@@ -261,14 +271,15 @@ const ChatList: React.FC<ChatListProps> = function (props) {
 
     const handleUnreadMessageNoticeClick = useCallback(() => {
         if (placeholderRef.current) {
-            placeholderRef.current.scrollIntoView()
+            placeholderRef.current.scrollIntoView(false)
         }
         
     }, [])
 
     const handleUnreadAtSignNoticeClick = useCallback(() => {
-        if (placeholderRef.current) {
-            placeholderRef.current.scrollIntoView()
+        const {unreadAtSignMessagePositon} = getSyncState()
+        if (containerRef.current) {
+            containerRef.current.scrollTop = unreadAtSignMessagePositon
         }
         dispatch({
             type: 'chatList/saveData',
@@ -279,8 +290,9 @@ const ChatList: React.FC<ChatListProps> = function (props) {
     }, [])
 
     const handleUnreadVoteNoticeClick = useCallback(() => {
-        if (placeholderRef.current) {
-            placeholderRef.current.scrollIntoView()
+        const {unreadVoteMessagePosition} = getSyncState()
+        if (containerRef.current) {
+            containerRef.current.scrollTop = unreadVoteMessagePosition
         }
         dispatch({
             type: 'chatList/saveData',
@@ -305,7 +317,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
     }, [])
 
     const handleVoteMessageItemRef = useCallback((ele) => {
-        if (ele) {
+        if (!ele) {
             return
         }
         getElementNodeOffsetTopPostion(ele, (offsetTop) => {
@@ -324,7 +336,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
         [unreadAtSignMessageId]: handleAtSignMessageItemRef,
         [unreadVoteMessageId]: handleVoteMessageItemRef,
     }
-    return <div className={styles.chatListBox} ref={chatListBoxRef}>
+    return <div className={bindclass(styles.chatListBox, className || '')} ref={chatListBoxRef}>
         <div className={styles.noticeBox} >
             <NoticeItem
                 onClose={handleUnreadAtSignNoticeClose}
@@ -407,7 +419,7 @@ const ChatListItem = React.memo<{
 
     let content = null
     if (m.type === MessageTypes.notification) {
-        content = <div key={m.id} className={bindClass(styles.messageItem, unread && styles.unread, styles.response)} ref={onRef ? onRef : null}>
+        content = <div key={m.id} data-id={m.id} className={bindClass(styles.messageItem, unread && styles.unread, styles.response)} ref={onRef ? onRef : null}>
             <span onClick={props.handleClick.bind(null, m)}>{m.content.text}</span>
         </div>
     } else {
@@ -524,15 +536,19 @@ const NoticeItem = React.memo<{
     >
         {
             !!arrowDirection &&
-            <span className={bindClass(styles.icon, 'iconfont', arrowDirection === Directions.up ? 'icon-double-arrow-up' : 'icon-double-arrow-down')}></span>
+            <CustomIcon className={styles.icon}>
+                {
+                    arrowDirection === Directions.up ? 'double-arrow-up' : 'double-arrow-down'
+                }
+        </CustomIcon>
         }
         <span>{text}</span>
         {
-            !isMobile && <span className={bindClass('iconfont icon-close', styles.close)}
-                onClick={e => {
-                    e.stopPropagation()
-                    handleClose()
-                }}
-            ></span>}
+            !isMobile && <CustomIcon className={styles.close} onClick={e => {
+                e.stopPropagation()
+                handleClose()
+            }}>
+                close
+            </CustomIcon>}
     </div>
 })

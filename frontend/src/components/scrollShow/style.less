@@ -1,0 +1,28 @@
+.container {
+    display: flex;
+    align-items: center;
+    &.rightDirection {
+        justify-content: flex-start;
+    }
+    &.leftDirection {
+        justify-content: flex-end;
+    }
+    &.bothDirection {
+        justify-content: center;
+    }
+    > .content {
+        display: inline-block;
+        transition-property: all;
+        flex-basis: 0;
+        overflow: hidden;
+        text-align: center;
+        white-space: nowrap;
+        &.show {
+            flex-grow: 1;
+        }
+        > * {
+            white-space: nowrap;
+        }
+    }
+   
+}

@@ -17,7 +17,6 @@ interface Props {
 const FocusMobileInput: React.FC<Props> = (props) => {
     const [inputRef, isFocus] = useKeyBoardListen()
 
-    console.log('focus', isFocus, inputRef)
     return <div className={bindClass(isFocus && styles.focusMobileInputBox)}>
         {
             props.children(inputRef, isFocus)

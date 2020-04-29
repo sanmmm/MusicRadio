@@ -19,11 +19,6 @@
 
 .playerBox {
     color: @normalTextColor;
- 
-    &.simpleMode {
-        animation: toSimpleMode .5s ease-in-out;
-        align-items: center;
-    }
     &.normal {
         display: flex;
         align-items: flex-start;
@@ -42,6 +37,10 @@
             } 
             
         }
+    }
+    &.simpleMode {
+        animation: toSimpleMode .5s ease-in-out;
+        align-items: center;
     }
     &.mobileMode {
         > .mobileMain {
@@ -74,7 +73,7 @@
         > .right {
             flex-shrink: 0;
             margin-left: 3rem;
-            :global(.iconfont) {
+            .iconfont {
                 font-size: 1.3rem;
             }
             > * {
@@ -126,6 +125,7 @@
             margin: 0;
             min-height: 0;
             overflow: hidden;
+          
         }
         .bottom {
             display: flex;
@@ -140,6 +140,10 @@
                 margin-right: .8rem;
             }
             .nickName {
+                max-width: 60%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
                 cursor: pointer;
             }
         }
@@ -152,7 +156,8 @@
     display: flex;
     align-items: center;
     .content {
-        min-width: 0;
+        width: 0;
+        flex-grow: 1;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -260,29 +265,42 @@
     }
 }
 
-.volumeBox {
+.bottomBox {
     display: flex;
     align-items: center;
+    justify-content: space-between;
     margin-top: .5rem;
-
-    .actionIcon {
-        cursor: pointer;
-        position: relative;
-        padding-right: 0.5rem;
-        &:hover {
+    > .left {
+        display: flex;
+        align-items: center;
+        > * {
+            margin-right: .8rem;
+            cursor: pointer;
+        }
+        .volumeActionIcon {
+            cursor: pointer;
+            position: relative;
+            padding-right: 0.5rem;
+            &:hover {
+                .slider {
+                    visibility: visible;
+                }
+            }
             .slider {
-                visibility: visible;
+                visibility: hidden;
+                width: 70px;
+                position: absolute;
+                left: 100%;
+                top: 50%;
+                transform: translate(0, -50%);
             }
         }
-        .slider {
-            visibility: hidden;
-            width: 70px;
-            position: absolute;
-            left: 100%;
-            top: 50%;
-            transform: translate(0, -50%);
-        }
     }
+
+    .clickAble {
+        cursor: pointer;
+    }
+
 }
 
 

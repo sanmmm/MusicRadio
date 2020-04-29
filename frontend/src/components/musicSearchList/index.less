@@ -1,8 +1,9 @@
 @import '~@/base.less';
 
-.searchMusicListBox {
+.searchMediaListBox {
     color: @normalTextColor;
     line-height: 1;
+   
     .detailItemsList {
         width: 100%;
         margin-top: .8rem;
@@ -13,10 +14,12 @@
             padding: .5rem;
             display: flex;
             align-items: center;
+            cursor: pointer;
             > .left {
                 width: 40px;
                 height: 40px;
                 flex-shrink: 0;
+                margin-right: 1rem;
                 img {
                     width: 100%;
                     height: 100%;
@@ -31,7 +34,6 @@
                 display: flex;
                 align-items: center;
                 justify-content: space-between;
-                margin-left: 1rem;
                 > * {
                     & + * {
                         margin-left: 1rem;
@@ -70,6 +72,9 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        &.hide {
+            display: none;
+        }
         > * {
             width: 100%;
         }
@@ -179,4 +184,24 @@
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+.loading {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    > * {
+        font-size: 1.3rem;
+        animation: loadingAnimation 1s linear infinite;
+    }
+}
+
+@keyframes loadingAnimation {
+    from {
+        transform: rotate(0deg);
+    } to {
+        transform: rotate(360deg);
+    }
 }

@@ -13,7 +13,7 @@ const setMapDate = (componentKey: string, data) => {
 
 const generateKey = () => Date.now() + Math.random().toString(32).slice(2)
 
-
+// 类似 useRef 
 export default function<T> (initState?: T) {
     const [componentKey, ] = useState(generateKey())
     

@@ -6,10 +6,11 @@ import bindClass from 'classnames'
 
 import List from '@/components/list'
 import SignalIcon from '@/components/signalIcon'
-import { PlayListItem } from '@/typeConfig'
+import { PlayListItem } from 'config/type.conf'
 import { ConnectProps, ConnectState } from '@/models/connect'
-import configs from '@/config'
+import configs from 'config/base.conf'
 import styles from './index.less'
+import CustomIcon from '@/components/CustomIcon';
 
 
 const formatMusicDuration = (t: number) => {
@@ -101,6 +102,9 @@ const MusicList: React.FC<MusicListProps> = function (props) {
                 icon: 'delete',
                 label: '删除',
                 onClick: () => {
+                    if (!selectedIds.length) {
+                        return
+                    }
                     const ids = selectedIds
                     handleDeleteItems(ids)
                 }
@@ -109,6 +113,9 @@ const MusicList: React.FC<MusicListProps> = function (props) {
                 icon: 'clear',
                 label: '全部删除',
                 onClick: () => {
+                    if (!musicList.length) {
+                        return
+                    }
                     handleDeleteItems(musicList.map(item => item.id))
                 }
             },
@@ -136,11 +143,10 @@ const MusicList: React.FC<MusicListProps> = function (props) {
 
     return <div className={styles.musicList}>
         {
-            (!isMobile && isRoomAdmin) && <div>可通过拖拽调整列表顺序</div>
-        }
+            (!isMobile && isRoomAdmin) && <div className={styles.tip}>可通过拖拽调整列表顺序</div>}
         <div className={bindClass(styles.actionsBox, isMobile ? styles.mobile : styles.normal)}>
             {actions.map((i, index) => <div key={index} onClick={i.onClick}>
-                <span className={`iconfont icon-${i.icon}`}></span>
+                <CustomIcon style={{lineHeight: '1em'}}>{i.icon}</CustomIcon>
                 <span>{i.label}</span>
             </div>)}
         </div>
@@ -156,7 +162,7 @@ const MusicList: React.FC<MusicListProps> = function (props) {
                     render: (item: PlayListItem, index) => <div className={styles.musicNameCell}>
                         <span className={styles.name}>{item.name}</span>
                         {
-                            blockItemIdSet.has(item.id) ? <span className="iconfont icon-block"></span> :
+                            blockItemIdSet.has(item.id) ? <CustomIcon>block</CustomIcon> :
                             index === 0 && <SignalIcon />
                         }
                     </div>,
@@ -177,14 +183,14 @@ const MusicList: React.FC<MusicListProps> = function (props) {
                     title: '',
                     render: (item: PlayListItem) => <CustomPopover
                         trigger={
-                            <div className="iconfont icon-menu" ></div>
+                            <CustomIcon>menu</CustomIcon>
                         }>
                         <div className={styles.popoverActions}>
                             {
                                 isRoomAdmin &&
-                                <div className={styles.item} onClick={_ => handleDeleteItems([item.id])}><span className="iconfont icon-delete"></span><span>删除</span></div>
+                                <div className={styles.item} onClick={_ => handleDeleteItems([item.id])}><CustomIcon>delete</CustomIcon><span>删除</span></div>
                             }
-                            <div className={styles.item} onClick={handleBlockOrUnBlockItem.bind(null, item)}><span className="iconfont icon-block"></span><span>{blockItemIdSet.has(item.id) ? '取消屏蔽' : '屏蔽'}</span></div>
+                            <div className={styles.item} onClick={handleBlockOrUnBlockItem.bind(null, item)}><CustomIcon>block</CustomIcon><span>{blockItemIdSet.has(item.id) ? '取消屏蔽' : '屏蔽'}</span></div>
                         </div>
                     </CustomPopover>
                 }
@@ -200,12 +206,12 @@ const MusicList: React.FC<MusicListProps> = function (props) {
     </div>
 }
 
-export default connect(({ playList, center: { nowRoomInfo, userInfo, blockPlayItems }, loading }: ConnectState) => {
+export default connect(({ playList, center: { nowRoomInfo, userInfo, blockPlayItems, isRoomAdmin }, loading }: ConnectState) => {
     const actionPending = ['movePlayListItem', 'deletePlayListItem', 'blockPlayListItems', 'unblockPlayListItems'].some(s => loading.effects[`playList/${s}`])
     return {
         nowRoomId: nowRoomInfo && nowRoomInfo.id,
         musicList: playList.playList,
-        isRoomAdmin: userInfo && (userInfo.isSuperAdmin || userInfo.isRoomCreator),
+        isRoomAdmin: isRoomAdmin,
         actionPending,
         blockPlayItems,
     }
@@ -223,7 +229,7 @@ const CustomPopover: React.FC<CustomPopoverProps> = function (props) {
         <div onClick={e => setAnchorEle(e.target as Element)} style={{ cursor: 'pointer' }}>
             {trigger}
         </div>
-        <Popover open={Boolean(anchorEle)} anchorEl={anchorEle} onClose={_ => setAnchorEle(null)} onClick={e => {
+        <Popover anchorOrigin={{vertical: 'bottom', horizontal: "center"}} open={Boolean(anchorEle)} anchorEl={anchorEle} onClose={_ => setAnchorEle(null)} onClick={e => {
             e.stopPropagation()
             setAnchorEle(null)
         }}>

@@ -1,8 +1,8 @@
 import React, {useEffect, useRef} from 'react'
 
 export default function () {
-    const eleRef = useRef<any>(null)
-    useEffect(() => {
+    const eleRef = useRef<HTMLElement>(null)
+    const addEvent = () => {
         if (eleRef.current) {
             const handler = (e) => {
                 e.stopPropagation()
@@ -14,6 +14,9 @@ export default function () {
                 eleRef.current.removeEventListener('touchstart', handler)
             }
         }
-    }, [])
-    return eleRef
+    }
+    return (node) => {
+        eleRef.current = node
+        addEvent()
+    }
 }

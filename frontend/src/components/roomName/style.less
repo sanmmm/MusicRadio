@@ -1,0 +1,60 @@
+@import '~@/base.less';
+
+.roomHeaderInfo {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0 1rem;
+    color: @themeColor;
+    &.mobile {
+    }
+    > .nameLine {
+        display: flex;
+        align-items: center;
+        .nameBox {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            line-height: 2rem;
+            height: 2rem;
+            font-size: 1.3rem;
+            position: relative;
+            margin-left: 1rem;
+            &.mobile {
+                .unitBase {
+                    text-align: center;
+                }
+            }
+            .unitBase {
+            }
+            > .unit {
+                .unitBase();
+                & + .unit {
+                    padding-left: 1rem;
+                }
+                position: absolute;
+                top: 0;
+                left: 100%;
+                animation-name: slideCycle;
+                animation-timing-function: linear;
+                animation-iteration-count: infinite;
+                animation-fill-mode: forwards;
+            }
+        }
+    }
+    > .bottomLine {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .9rem;
+    }
+}
+
+@keyframes slideCycle {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-200%);
+    }
+    
+}

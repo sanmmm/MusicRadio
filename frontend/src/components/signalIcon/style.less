@@ -1,17 +1,19 @@
 .signalIcon {
-    display: flex;
-    overflow: hidden;
-    flex-shrink: 0;
     margin-right: .5rem;
+    height: 1rem;
+    overflow: hidden;
     &.paused {
         > * {
             animation-play-state: paused;
         }
     }
     > *{
+        line-height: 1rem;
+        display: inline-block;
+        vertical-align: bottom;
         animation: updown 2s ease-in-out infinite;
         width: 2px;
-        height: 0.8em;
+        height: 90%;
         border-radius: 25%;
         margin: 0 1px; 
     }

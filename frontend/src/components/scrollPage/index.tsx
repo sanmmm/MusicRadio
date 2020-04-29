@@ -1,25 +1,34 @@
 import React, { useState, useRef, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react'
 import bindclass from 'classnames'
 import { useSwipeable, Swipeable } from 'react-swipeable'
+import { useMediaQuery } from 'react-responsive';
 
-import useWindowHeightListen from '@/components/windowHeightListen'
-import styleConfigs from '@/baseStyle.conf'
 import { throttle } from '@/utils'
 import styles from './style.less'
+import configs from 'config/base.conf';
 
 interface Props {
     children: React.ReactElement<ItemProps, typeof ScrollPageItem>[];
     onPageChange?: (page: number) => any;
+    refObj: React.Ref<RefAttributes>;
 }
-const ScrollWrapper: React.FC<Props> = function (props, ref) {
+
+interface RefAttributes {
+    toPreviousPage: Function,
+    toNextPage: Function,
+}
+
+const ScrollWrapper: React.FC<Props> = function (props) {
+    const {refObj} = props
     const [focusPageIndex, setFocusPageIndex] = useState(0)
     const [pageHeight, setPageHeight] = useState(0)
-    const windowHeight = useWindowHeightListen()
     const containerRef = useRef<HTMLDivElement>(null)
     const boxRef = useRef<HTMLDivElement>(null)
+    const isMobile = useMediaQuery({query: configs.mobileMediaQuery})
+
     useEffect(() => {
-        const client = boxRef.current.getBoundingClientRect()
-        setPageHeight(client.height)
+        getPageHeight()
+        window.addEventListener('resize', throttle(getPageHeight, 300, true))
     }, [])
 
     useEffect(() => {
@@ -31,6 +40,15 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
     useEffect(() => {
         props.onPageChange && props.onPageChange(focusPageIndex)
     }, [focusPageIndex])
+
+    const getPageHeight = () => {
+        requestAnimationFrame(() => {
+            if (boxRef.current) {
+                const client = boxRef.current.getBoundingClientRect()
+                setPageHeight(client.height)
+            }
+        })
+    }
 
     const toPreviousPage = useMemo(() => {
         return throttle((e) => {
@@ -54,7 +72,7 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
         }, 900)
     }, [])
     const handlers = useSwipeable({ onSwipedUp: toNextPage, onSwipedDown: toPreviousPage })
-    useImperativeHandle(ref, () => {
+    useImperativeHandle(refObj, () => {
         return {
             toPreviousPage,
             toNextPage,
@@ -62,9 +80,6 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
     })
     return <div {...handlers}>
         <div ref={boxRef} className={styles.scrollOuterBox} 
-            style={{
-                height: windowHeight
-            }}
             onWheel={e => {
                 const { deltaY } = e
                 if (deltaY < 0) {
@@ -79,11 +94,7 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
                 {
                     React.Children.map(props.children, (child, index) => {
                         return <div key={index} 
-                            style={{
-                                height: `calc(${windowHeight}px - ${styleConfigs.headerHeight})`,
-                                marginTop: styleConfigs.headerHeight,
-                            }}
-                            className={bindclass(styles.scrollPageContainer, focusPageIndex === index && styles.focus)}
+                            className={bindclass(styles.scrollPageContainer, focusPageIndex === index && styles.focus, isMobile && styles.mobile)}
                             >
                             {
                                 React.cloneElement(child, {
@@ -98,8 +109,9 @@ const ScrollWrapper: React.FC<Props> = function (props, ref) {
     </div>
 }
 
-export default forwardRef(ScrollWrapper)
-
+export default forwardRef<RefAttributes, Pick<Props, Exclude<keyof Props, 'refObj'>>>(function (props, ref) {
+    return <ScrollWrapper refObj={ref} {...props} />
+})
 
 interface ItemProps {
     isShow?: boolean;

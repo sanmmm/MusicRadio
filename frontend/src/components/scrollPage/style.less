@@ -2,49 +2,33 @@
 
 .scrollOuterBox {
     width: 100vw;
+    height: 100vh;
     overflow: hidden;
     background-color: transparent;
     position: relative;
+    top: 0;
 }
 .scrollContainer {
     transition: all 0.4s ease-in-out;
     position: absolute;
     left: 0;
+    width: 100%;
 }
 
 .scrollPageContainer {
-    width: 100vw;
     margin-top: @headerHeight;
     height: calc(~"100vh - @{headerHeight}");
+    width: 100%;
     overflow: hidden;
+    &.mobile {
+        margin-top: @mobileHeaderHeight;
+        height: calc(~"100vh - @{mobileHeaderHeight}");
+    }
     &.focus {
         // animation: scrollEnd 1s ease-in-out;
     }
 }
 
-// @keyframes scrollEnd {
-//     0% {
-//         transform: scaleX(1);
-//     } 
-    
-//     25% {
-//         transform: scaleX(1.1);
-//     }
-
-//     50% {
-//         transform: scaleX(1);
-        
-//     }
-
-//     50% {
-//         transform: scaleX(0.9);
-        
-//     }
-
-//     0% {
-//         transform: scaleX(1);
-//     }
-// }
 @keyframes scrollEnd {
     0% {
         transform: scaleY(1);

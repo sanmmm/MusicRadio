@@ -53,7 +53,12 @@ export const hashRouter = {
     }
 }
 
-type childrenFunc = (appendClassName: string) => React.ReactNode
+export const useHashRouteStatus = function () {
+    const {base = '', url = '/'} = useContext(RouterCotext)
+    return joinPath(base, url)
+}
+
+type childrenFunc = (appendClassName?: string, pathname?: string) => React.ReactNode
 
 interface RouteProps {
     path: string;
@@ -108,7 +113,7 @@ const HashRoute: React.FC<RouteProps> = (props) => {
     const isShow = nowStatus > RouteStatus.notMatch
     const appendClassName = isShow && (nowStatus === RouteStatus.matched ? props.startAniamtiojn : props.endAnimation)
     return  isShow ? (
-        (typeof children === 'function' ? children(appendClassName) : children) as React.ReactElement
+        (typeof children === 'function' ? children(appendClassName, normalizedUrl) : children) as React.ReactElement
     ) : null
 }
 
