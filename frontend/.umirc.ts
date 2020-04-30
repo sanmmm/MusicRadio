@@ -1,12 +1,19 @@
 import { IConfig } from 'umi-types';
 import path from 'path'
+
 import settings from './config/settings'
 
+const isProductionMode = process.env.NODE_ENV === 'production'
 // ref: https://umijs.org/config/
 const config: IConfig = {
   treeShaking: true,
   context: {
     httpServerUrl: settings.httpServer,
+  },
+  publicPath: settings.publicPath || '/',
+  externals: {
+    'react': 'React',
+    'react-dom': 'ReactDOM',
   },
   routes: [
     {
@@ -69,11 +76,15 @@ const config: IConfig = {
       },
       'icon'
     ],
-    [
-      'transform-remove-console',
-      { "exclude": ["error", "warn"] }
-    ],
   ]
 }
+
+if (isProductionMode) {
+  config.extraBabelPlugins.push([
+    'transform-remove-console',
+    { "exclude": ["error", "warn"] }
+  ])
+}
+
 
 export default config;

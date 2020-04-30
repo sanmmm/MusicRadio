@@ -1,4 +1,5 @@
 import { MatchedSearchValue, SearchTreeType } from 'config/type.conf'
+import globalConfigs from '@global/common/config'
 
 enum TipTypes {
     blockMusic,
@@ -61,7 +62,7 @@ export const isPathEqual = (path1: string, path2: string) => path1.toLocaleLower
 
 export const joinPath = (path1, path2) => '/' + path1.split('/').concat(path2.split('/')).filter(s => !!s).join('/')
 
-export const getAuthToken = () => (new URL(location.href)).searchParams.get('token') || ''
+export const getAuthToken = () => (new URL(location.href)).searchParams.get(globalConfigs.authTokenFeildName) || ''
 
 
 export function getLocalStorageData<T = any>(key: string) {

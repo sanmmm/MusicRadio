@@ -51,7 +51,7 @@ const BasicLayout: React.FC<LayoutProps> = props => {
         <div className={styles.mask}>
         </div>
         <div className={styles.playerBackground} style={{
-          backgroundImage: `url("${nowPlaying ? nowPlaying.pic : settings.defaultMaskImg}")`
+          backgroundImage: `url("${(nowPlaying && nowPlaying.pic) || settings.defaultMaskImg}")`
         }}>
         </div>
       </div>

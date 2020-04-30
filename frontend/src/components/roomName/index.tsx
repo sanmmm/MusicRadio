@@ -66,7 +66,7 @@ const RoomInfoShow = React.memo<Props>((props) => {
                 status === Status.initial && roomName
             }
             {
-                status === Status.notOverlofw && <span className={styles.unitBase}>{roomName}</span>}
+                status === Status.notOverlofw && <div className={styles.unitBase}>{roomName}</div>}
             {
                 status === Status.overflow && <React.Fragment>
                     {

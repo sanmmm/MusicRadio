@@ -178,7 +178,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         this._refreshMusicBuffered()
         this._calcTimeRatioByEndAtOrProgress()
         this._setVolume(this.state.volumeRatio)
-        this.audioEle.play()
+        this.audioEle.play().catch(e => console.error(e))
     }
 
     _setVolume(ratio: number, syncLocalStorage = true) {
@@ -310,9 +310,10 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 endRatio: end / duration,
             })
         }
-        this.setState({
+        this.setState(state => ({
+            ...state,
             musicBuffered,
-        })
+        }))
     }
 
     _handleTimeUpdate() {
@@ -425,7 +426,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                         className={styles.content}>{renderCommentObj.content}</p>
                 }
                 <div className={styles.bottom} ref={ele => this.commentBotttomEle = ele}>
-                    <img src={renderCommentObj.avatarUrl} />
+                    <img src={renderCommentObj.avatarUrl || null} />
                     <span className={styles.nickName} title={`点击查看${renderCommentObj.nickName}的主页`}
                         onClick={_ => window.open(`https://music.163.com/#/user/home?id=${renderCommentObj.userId}`)}
                     >{renderCommentObj.nickName}</span>
@@ -547,9 +548,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             onProgress={this._refreshMusicBuffered.bind(this)}
             onTimeUpdate={this._handleTimeUpdate}
             onCanPlay={_ => {
-                if (this.audioEle.readyState !== 4) {
-                    return
-                }
                 if (this.props.isPaused) {
                     return
                 }
@@ -672,7 +670,7 @@ const SwitchPlayModeDialog = React.memo<{
                     <Select value={rooMode} onChange={handleModeSelect}>
                             {
                                 Object.entries(RoomPlayModeConfigs).map(([type, config]) => {
-                                    return <MenuItem value={type}>{config.title}</MenuItem>
+                                    return <MenuItem key={type} value={type}>{config.title}</MenuItem>
                                 })
                             }
                         </Select>

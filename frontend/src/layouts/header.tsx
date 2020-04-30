@@ -2,8 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { connect } from 'dva'
 import { Select, Dialog, DialogContent, Button, ListItem, ListItemText, ListItemIcon, IconButton, MenuItem } from '@material-ui/core';
 import { useMediaQuery } from 'react-responsive'
-import { Person as PersonIcon, ViewHeadline as HeadLineIcon, Delete as DeleteIcon, PlaylistAdd as CreateIcon, Cancel as CancelIcon,
-PlaceOutlined as PlaceIcon } from '@material-ui/icons'
+import {
+    Person as PersonIcon, ViewHeadline as HeadLineIcon, Delete as DeleteIcon, PlaylistAdd as CreateIcon, Cancel as CancelIcon,
+    PlaceOutlined as PlaceIcon
+} from '@material-ui/icons'
 import { makeStyles, withStyles } from '@material-ui/core/styles';
 import bindClass from 'classnames';
 
@@ -15,6 +17,7 @@ import configs from 'config/base.conf'
 import { ConnectProps, ConnectState, PlayListModelState, CenterModelState } from '@/models/connect'
 import globalConfig from '@global/common/config';
 import styleConfigs from 'config/baseStyle.conf';
+import settings from 'config/settings';
 
 const useStyle = makeStyles({
     button: {
@@ -88,7 +91,7 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
                 actionItems.push({
                     type: ActionTypes.showVisualization,
                     label: '大家在听',
-                    icon: <PlaceIcon/>
+                    icon: <PlaceIcon />
                 })
             }
             if (userInfo.status === UserStatus.superAdmin || !userInfo.isRoomCreator) {
@@ -113,7 +116,7 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
             if (!isInHallRoom && !isCreator) {
                 actionItems.push({
                     type: ActionTypes.quitRoom,
-                    icon: <CancelIcon/>,
+                    icon: <CancelIcon />,
                     label: '退出房间',
                 })
             }
@@ -170,7 +173,7 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
         const props = {
             key: item.type,
             'data-type': item.type,
-            onClick: handleActionClick// todo
+            onClick: handleActionClick
         }
         return isMobile ? (
             actionItems.length === 0 ? <IconButton {...props}>{React.cloneElement(item.icon, {
@@ -193,38 +196,41 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
     return <React.Fragment>
         <CreateRoom open={showCreateRoom} onClose={closeCreateRoomDialog} />
         <Dialog open={showVisualization} onClose={closeVisualizationDialog} fullWidth={isMobile} maxWidth="md">
-            <DialogContent style={{backgroundColor: 'rgba(0, 0, 0, 0.9'}}>
-                {showVisualization && <RoomHotDataVisualization/>}
+            <DialogContent style={{ backgroundColor: 'rgba(0, 0, 0, 0.9' }}>
+                {showVisualization && <RoomHotDataVisualization />}
             </DialogContent>
         </Dialog>
         <div className={bindClass(styles.header, isMobile && styles.mobile)}>
             <div className={styles.content}>
-                <div className={styles.logo}>
-                    logo
-            </div>
+                {
+                    !isMobile &&
+                    <div className={styles.logo}>
+                        {settings.logoText || settings.websiteName}
+                    </div>
+                }
                 <div className={styles.center}>
                     <div id={configs.roomNameSelectorName}></div>
                     <div id={configs.playerHeaderIdSelectorName} className={styles.player}></div>
                 </div>
                 {
                     !!userInfo && <div className={styles.right}>
-                    {
-                        isMobile && <React.Fragment>
-                            <IconButton onClick={_ => setShowActionDialog(true)}><HeadLineIcon style={{color: styleConfigs.themeColor}}/></IconButton>
-                            <Dialog open={showActionDialog} onClose={_ => setShowActionDialog(false)}>
+                        {
+                            isMobile && <React.Fragment>
+                                <IconButton onClick={_ => setShowActionDialog(true)}><HeadLineIcon style={{ color: styleConfigs.themeColor }} /></IconButton>
+                                <Dialog open={showActionDialog} onClose={_ => setShowActionDialog(false)}>
+                                    {actionItemsContent}
+                                </Dialog>
+                            </React.Fragment>
+                        }
+                        {
+                            !isMobile && <React.Fragment>
+                                <div title={`在线人数${nowRoomInfo ? nowRoomInfo.heat : 0}`} className={styles.onlinePerson}>
+                                    <PersonIcon style={{ color: 'white', marginRight: '.5rem' }} /><span>{nowRoomInfo ? nowRoomInfo.heat : 0}</span>
+                                </div>
                                 {actionItemsContent}
-                            </Dialog>
-                        </React.Fragment>
-                    }
-                    {
-                        !isMobile && <React.Fragment>
-                            <div title={`在线人数${nowRoomInfo ? nowRoomInfo.heat : 0}`} className={styles.onlinePerson}>
-                    <PersonIcon style={{color: 'white', marginRight: '.5rem'}}/><span>{nowRoomInfo ? nowRoomInfo.heat : 0}</span>
-                            </div>
-                            {actionItemsContent}
-                        </React.Fragment>
-                    }
-                </div>}
+                            </React.Fragment>
+                        }
+                    </div>}
             </div>
         </div>
     </React.Fragment>

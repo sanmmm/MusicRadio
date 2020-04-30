@@ -20,4 +20,6 @@
 src/assets/success.ts
 src/mockData
 src/__tests__
+settings.ts
+static
 

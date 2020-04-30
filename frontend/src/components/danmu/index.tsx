@@ -167,7 +167,7 @@ const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
     </div>
 }
 
-export default connect(({ chatList }: ConnectState) => {
+export default connect(({ chatList, }: ConnectState) => {
     const { danmuList, selectedMessageItem } = chatList
     return {
         danmuList,

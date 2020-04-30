@@ -3,6 +3,8 @@
   "scripts": {
     "start": "umi dev",
     "build": "umi build",
+    "publish": "umi build & cpy dist ../backend/static",
+    "analyze": "cross-env ANALYZE=1 umi build",
     "test": "umi test",
     "lint:es": "eslint --ext .js src mock tests",
     "lint:ts": "tslint \"src/**/*.ts\" \"src/**/*.tsx\"",
@@ -38,6 +40,9 @@
     "babel-eslint": "^9.0.0",
     "babel-plugin-import": "^1.12.2",
     "babel-plugin-transform-remove-console": "^6.9.4",
+    "cpy": "^8.1.0",
+    "cpy-cli": "^3.1.0",
+    "cross-env": "^7.0.2",
     "eslint": "^5.4.0",
     "eslint-config-umi": "^1.4.0",
     "eslint-plugin-flowtype": "^2.50.0",

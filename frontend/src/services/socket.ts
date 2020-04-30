@@ -15,7 +15,7 @@ namespace Io {
     
     export const getScoketActionId = () => Date.now() + Math.random().toString(32).slice(2)
     export const getWaittingGetResponseKey = (actionId: string) => `waittingGetResponse:${actionId}`
-    export const client = socketIoClient.connect(settings.socketServer, {
+    export const client = socketIoClient.connect(settings.socketServer || '/', {
         query: {
             [globalConfigs.authTokenFeildName]: authToken
         },

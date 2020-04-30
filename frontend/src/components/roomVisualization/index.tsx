@@ -1,16 +1,19 @@
-import React, {useRef, useEffect, useState, useCallback} from 'react'
+import React, { useRef, useEffect, useState, useCallback } from 'react'
 import { connect } from 'dva';
 import ReactEcharts from 'echarts-for-react/lib/core'
-import echarts, {ECharts} from 'echarts/lib/echarts'
-import 'echarts/map/js/china'
-import {Button} from '@material-ui/core'
+import echarts, { ECharts } from 'echarts/lib/echarts'
+import 'echarts/lib/chart/scatter'
+import 'echarts/lib/chart/effectScatter'
+import 'echarts/lib/component/geo'
+import 'echarts/lib/component/visualMap'
+import { Button } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles';
 import bindClass from 'classnames';
 
 import style from './style.less'
 import ScrollShow from '@/components/scrollShow'
 import { ConnectState, ConnectProps } from '@/models/connect';
-import {getArrRandomItem} from '@/utils'
+import { getArrRandomItem } from '@/utils'
 import CustomIcon from '@/components/CustomIcon';
 
 enum TipPositions {
@@ -36,8 +39,8 @@ const Utils = {
         [TipPositions.left]: 'left',
         [TipPositions.right]: 'right',
     },
-    getTipPositon: (pixel: number[], canvasSize: {width: number, height: number}) => {
-        const [x, y] = pixel, {width, height} = canvasSize
+    getTipPositon: (pixel: number[], canvasSize: { width: number, height: number }) => {
+        const [x, y] = pixel, { width, height } = canvasSize
         const [centerX, centerY] = [width / 2, height / 2]
         const all = [TipPositions.bottom, TipPositions.top, TipPositions.left, TipPositions.right]
         const notSelected = []
@@ -55,13 +58,26 @@ const Utils = {
                 return `translate(${xValue}, ${yValue})`
             }).join(' ')
         ) : `translate(${toValueStr(x || 0)}, ${toValueStr(y || 0)})`
+    },
+    fetchChinaMapData() {
+        return fetch('https://cdn.jsdelivr.net/npm/echarts@4.7.0/map/json/china.json')
+            .then((response) => {
+                return response.json();
+            })
+            .then(json => {
+                echarts.registerMap('china', json)
+                isMapDataRegistered = true
+                return json
+            })
     }
 }
 
-const useStyle =  makeStyles({
+Utils.fetchChinaMapData()
+
+const useStyle = makeStyles({
     tip: {
-        transform: ({tipPosition}: {tipPosition: TipPositions}) => {
-            const {tipOffsetSpace, effectScatterSize} = Utils
+        transform: ({ tipPosition }: { tipPosition: TipPositions }) => {
+            const { tipOffsetSpace, effectScatterSize } = Utils
             let x, y
             if (tipPosition === TipPositions.left) {
                 x = ['-100%', -tipOffsetSpace.horizontal - effectScatterSize]
@@ -72,7 +88,7 @@ const useStyle =  makeStyles({
             } else if (tipPosition === TipPositions.bottom) {
                 y = effectScatterSize + tipOffsetSpace.vertical
                 x = '-50%'
-            } else if (tipPosition === TipPositions.top){
+            } else if (tipPosition === TipPositions.top) {
                 y = [- (effectScatterSize + tipOffsetSpace.vertical), '-100%']
                 x = ['-50%', 0]
             }
@@ -81,13 +97,15 @@ const useStyle =  makeStyles({
     }
 })
 
+let isMapDataRegistered = false
+
 interface Props extends ConnectProps {
     isDataLoading: boolean;
     dataList: [];
 }
 
 const CoordDataVisualization = React.memo<Props>((props) => {
-    const {isDataLoading, dataList, dispatch} = props
+    const { isDataLoading, dataList, dispatch } = props
     const instanceRef = useRef<ECharts>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const [canvasWidth, setCanvasWidth] = useState(0)
@@ -102,11 +120,12 @@ const CoordDataVisualization = React.memo<Props>((props) => {
         } | string
     })
     const [showTip, setShowTip] = useState(false)
+    const [isMapRegistered, setIsMapRegisterd] = useState(isMapDataRegistered)
     const focusDataIndexRef = useRef(null as number)
     focusDataIndexRef.current = focusInfo ? focusInfo.index : -1
     const loopTimerRef = useRef(null)
     const scatterDataRef = useRef([] as any[][])
-    const canvasSizeRef = useRef({width: 0, height: 0})
+    const canvasSizeRef = useRef({ width: 0, height: 0 })
     const classes = useStyle({
         tipPosition: focusInfo && focusInfo.positionType,
     })
@@ -121,15 +140,15 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                 min: 0,
                 max: 6,
                 dimension: 2,
-                seriesIndex: 0, 
-                showLabel: false,   
-                show: false, 
-                inRange: {          
-                    color: ['#67D5B5', '#EE7785', '#C89EC4'], 
-                    symbolSize: [4, 10]               
+                seriesIndex: 0,
+                showLabel: false,
+                show: false,
+                inRange: {
+                    color: ['#67D5B5', '#EE7785', '#C89EC4'],
+                    symbolSize: [4, 10]
                 },
-                outOfRange: {  
-                    color: '#84B1ED',     
+                outOfRange: {
+                    color: '#84B1ED',
                     symbolSize: [12, 16]
                 }
             },
@@ -139,14 +158,14 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                 splitNumber: 3,
                 max: 6,
                 dimension: 2,
-                seriesIndex: 1, 
-                showLabel: false,   
-                show: false, 
-                inRange: {          
-                    color: ['#67D5B5', '#EE7785', '#C89EC4'], 
+                seriesIndex: 1,
+                showLabel: false,
+                show: false,
+                inRange: {
+                    color: ['#67D5B5', '#EE7785', '#C89EC4'],
                 },
-                outOfRange: {  
-                    color: '#84B1ED',     
+                outOfRange: {
+                    color: '#84B1ED',
                 }
             },
         ],
@@ -165,9 +184,9 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                 emphasis: {
                     areaColor: '#2a333d'
                 }
-            } 
+            }
         },
-        series: [ {
+        series: [{
             name: 'heat',
             type: 'scatter',
             coordinateSystem: 'geo',
@@ -186,14 +205,14 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                 }
             },
             data: scatterDataRef.current || [],
-         
-        },  {
+
+        }, {
             name: `effect`,
             type: 'effectScatter',
             coordinateSystem: 'geo',
             data: scatterDataRef.current,
             symbolSize: function (val, params) {
-                const {dataIndex} = params
+                const { dataIndex } = params
                 return focusDataIndexRef.current === dataIndex ? Utils.effectScatterSize : 0
             },
             showEffectOn: 'render',
@@ -214,7 +233,11 @@ const CoordDataVisualization = React.memo<Props>((props) => {
             type: 'center/getRoomGlobalCoordHotData',
             payload: {},
         })
-        
+        if (!isMapDataRegistered) {
+            Utils.fetchChinaMapData().then(json => {
+                setIsMapRegisterd(true)
+            })
+        }
     }, [])
 
     useEffect(() => {
@@ -239,18 +262,18 @@ const CoordDataVisualization = React.memo<Props>((props) => {
         }
     }, [dataList])
 
-    const {tipShowDuration, tipTransitionDuration} = Utils
+    const { tipShowDuration, tipTransitionDuration } = Utils
     const handleShowTip = (index?: number) => {
         const focusDataIndex = focusDataIndexRef.current
         const data = scatterDataRef.current
         const newIndex = index !== undefined ? index : (
-            focusDataIndex < data.length -1 ? focusDataIndex + 1 : 0
+            focusDataIndex < data.length - 1 ? focusDataIndex + 1 : 0
         )
         const position = instanceRef.current.convertToPixel({
             seriesIndex: 0,
         }, data[newIndex].slice(0, 2)) as number[]
         setShowTip(true)
-        
+
         const newDataItem = data[newIndex]
         const obj = getArrRandomItem(newDataItem[3])
         setFocusInfo({
@@ -289,7 +312,7 @@ const CoordDataVisualization = React.memo<Props>((props) => {
     const [left, top] = focusInfo ? focusInfo.pixelPosition : []
     const direction = Utils.positionTypeToShowDirection[focusInfo && focusInfo.positionType] || 'left'
     return <div className={style.roomVisualization} ref={containerRef}>
-        <ReactEcharts option={option} echarts={echarts} ref={handleRef} showLoading={isDataLoading} opts={{width: canvasWidth}} />
+        <ReactEcharts option={option} echarts={echarts} ref={handleRef} showLoading={isDataLoading || !isMapRegistered} opts={{ width: canvasWidth }} />
         <div
             className={bindClass(style.tooltip, classes.tip)}
             style={{
@@ -297,38 +320,41 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                 left,
             }}
         >
-        <ScrollShow 
-            key={focusInfo && focusInfo.index}
-            show={showTip}
-            transitionDuration={tipTransitionDuration / 1000}
-            direction={direction as any}
-            afterHide={handleAfterHide}
-        >
-            <span className={style.content}>
             {
-                !!focusInfo &&  (
-                    () => {
-                        const {detail} = focusInfo
-                        if (typeof detail === 'string') {
-                            return detail
+                isMapRegistered &&
+                <ScrollShow
+                    key={focusInfo && focusInfo.index}
+                    show={showTip}
+                    transitionDuration={tipTransitionDuration / 1000}
+                    direction={direction as any}
+                    afterHide={handleAfterHide}
+                >
+                    <span className={style.content}>
+                        {
+                            !!focusInfo && (
+                                () => {
+                                    const { detail } = focusInfo
+                                    if (typeof detail === 'string') {
+                                        return detail
+                                    }
+                                    const { name, content } = detail
+                                    return <React.Fragment>
+                                        <CustomIcon style={{ marginRight: '.5rem', color: 'rgb(49, 194, 12' }}>{!!name ? 'trumpet' : 'message'}</CustomIcon>
+                                        {
+                                            !!name ? `在听《${name}》` : `在说: ${content}`}
+                                    </React.Fragment>
+                                }
+                            )()
                         }
-                        const {name, content} = detail
-                        return <React.Fragment>
-                            <CustomIcon style={{marginRight: '.5rem', color: 'rgb(49, 194, 12'}}>{!!name ? 'trumpet' : 'message'}</CustomIcon>
-                            {
-                                !!name ? `在听《${name}》` : `在说: ${content}`}
-                        </React.Fragment>
-                    }
-                )()
+                    </span>
+                </ScrollShow>
             }
-            </span>
-        </ScrollShow>
         </div>
-        <Button color="primary" variant="contained" onClick={loadData} style={{marginTop: 30}}>刷新</Button>
+        <Button color="primary" variant="contained" onClick={loadData} style={{ marginTop: 30 }}>刷新</Button>
     </div>
 })
 
-export default connect(({center: {coordHotDataList}, loading}: ConnectState) => {
+export default connect(({ center: { coordHotDataList }, loading }: ConnectState) => {
     return {
         dataList: coordHotDataList,
         isDataLoading: loading.effects['center/getRoomGlobalCoordHotData'],
