@@ -407,6 +407,14 @@ namespace UtilFuncs {
             basePath: '/admin',
         }
     }
+    
+    // 从头顺序播放房间播放列表
+    export  async function startPlayFromPlayListInOrder (room: RoomModel, autoPlay = true) {
+        if (!room.playList.length){
+            throw new Error(`房间:${room.id}播放列表为空`)
+        }
+        await ManageRoomPlaying.initPlaying(room, room.playList[0], autoPlay)
+    }
 }
 
 // 全站房间可视化数据记录和处理
@@ -1023,20 +1031,21 @@ namespace ManageRoomPlaying {
             if (!Object.values(RoomMusicPlayMode).includes(room.playMode)) {
                 throw new Error('invlid play mode' + room.playMode)
             }
-            // if (room.playMode === RoomMusicPlayMode.demand) {
-            await removeNowPlaying(room)
-            const leftPlayList = room.playList
-            if (!leftPlayList.length) {
-                console.log(`房间: ${room.id}列表播放结束`)
+            if (room.playMode === RoomMusicPlayMode.demand) {
+                await removeNowPlaying(room)
+                const leftPlayList = room.playList
+                if (!leftPlayList.length) {
+                    console.log(`房间: ${room.id}列表播放结束`)
+                    return
+                }
+                await UtilFuncs.startPlayFromPlayListInOrder(room)
+            } else if (room.playMode === RoomMusicPlayMode.auto) {
+                await removeNowPlaying(room, false)
+                const selected = getArrRandomItem(room.playList)
+                await ManageRoomPlaying.initPlaying(room, selected)
+            } else {
                 return
             }
-            // } 
-            // else if (room.playMode === RoomMusicPlayMode.auto) {
-            //     // const selected = 
-            // } else {
-            //     return
-            // }
-            await startPlaying(room)
         }
 
     }
@@ -1121,14 +1130,14 @@ namespace ManageRoomPlaying {
         return baseInfo
     }
 
-    export const isPlayDataLoaded = (room: RoomModel) => room.nowPlayingInfo && room.nowPlayingInfo.status !== NowPlayingStatus.preloading
+    export const isPlayDataLoaded = (room: RoomModel) => !!room.nowPlayingInfo && room.nowPlayingInfo.status !== NowPlayingStatus.preloading
 
     export const isRoomPlaying = (room: RoomModel) => room.nowPlayingInfo && room.nowPlayingInfo.status === NowPlayingStatus.playing
 
     export const isRoomPaused = (room: RoomModel) => room.nowPlayingInfo && room.nowPlayingInfo.status === NowPlayingStatus.paused
 
 
-    export async function removeNowPlaying(room: RoomModel) {
+    export async function removeNowPlaying(room: RoomModel, removeFromPlayList = true) {
         const { nowPlayingInfo, playList } = room
         if (!nowPlayingInfo) {
             return
@@ -1136,10 +1145,12 @@ namespace ManageRoomPlaying {
         if (isRoomPlaying(room)) {
             await cancelSwitchMusicJob(room)
         }
-        const firstPlayListItemId = playList.length ? playList[0].id : null
-        if (nowPlayingInfo.id === firstPlayListItemId) {
-            const deletedItem = room.playList.shift()
-            Actions.deletePlayListItems(room.joiners, [deletedItem.id])
+        if (removeFromPlayList) {
+            const firstPlayListItemId = playList.length ? playList[0].id : null
+            if (nowPlayingInfo.id === firstPlayListItemId) {
+                const deletedItem = room.playList.shift()
+                Actions.deletePlayListItems(room.joiners, [deletedItem.id])
+            }
         }
         room.nowPlayingInfo = null
         room.vote = null
@@ -1148,26 +1159,23 @@ namespace ManageRoomPlaying {
         Actions.sendNowRoomPlayingInfo(room, room.joiners)
     }
 
-    export async function initPlaying(room: RoomModel) {
-        if (isPlayDataLoaded(room)) {
-            return
-        }
-        if (!room.playList.length) {
-            throw new Error(`当前房间:${room.id}播放内容为空`)
-        }
+    export async function initPlaying(room: RoomModel, playItem: PlayListItem, autoPlay = true) {
         // init music data
-        room.nowPlayingInfo = getNowPlayingBaseInfo(room.playList[0])
+        room.nowPlayingInfo = getNowPlayingBaseInfo(playItem)
         await room.save()
         Actions.sendNowRoomPlayingInfo(room, room.joiners)
         // load music data
-        room.nowPlayingInfo = await getPlayItemDetailInfo(room.playList[0].id)
+        room.nowPlayingInfo = await getPlayItemDetailInfo(playItem.id)
         await room.save()
         Actions.sendNowRoomPlayingInfo(room, room.joiners)
+        if (autoPlay) {
+            await startPlaying(room)
+        }
     }
 
     export async function startPlaying(room: RoomModel) {
         if (!isPlayDataLoaded(room)) {
-            await initPlaying(room)
+            throw new Error('room play data not loaded!')
         }
         if (isRoomPlaying(room)) {
             return
@@ -1736,8 +1744,9 @@ class Handler {
         room.playModeInfo = playModeInfo
         room.vote = null
         await room.save()
-        if (needStartPlaying) {
-            await ManageRoomPlaying.startPlaying(room)
+        if (needStartPlaying && room.playList.length !== 0) {
+            const playItem = room.playList[0]
+            await ManageRoomPlaying.initPlaying(room, playItem)
         }
         Actions.updateRoomBaseInfo(room.joiners, UtilFuncs.getRoomBaseInfo(room))
         Actions.deletePlayListItems(room.joiners, oldPlayList.map(i => i.id))
@@ -1867,8 +1876,8 @@ class Handler {
                 await ManageRoomPlaying.pausePlaying(room)
             }
             await ManageRoomPlaying.removeNowPlaying(room)
-
-            await ManageRoomPlaying.startPlaying(room)
+            
+            await UtilFuncs.startPlayFromPlayListInOrder(room)
             boradcastStr = '投票切歌成功'
         } else {
             Actions.updateRoomCutMusicVoteInfo(room, room.joiners)
@@ -2342,7 +2351,7 @@ class Handler {
         room.playList = safePushArrItem(room.playList, newMusics)
         await room.save()
         if (autoStartPlaying && !!room.playList.length) {
-            await ManageRoomPlaying.startPlaying(room)
+            await UtilFuncs.startPlayFromPlayListInOrder(room)
         }
         Actions.addPlayListItems(room.joiners, newMusics)
 
@@ -2391,10 +2400,7 @@ class Handler {
         Actions.deletePlayListItems(room.joiners, Array.from(toDelIds))
 
         if (!room.nowPlayingInfo && room.playList.length) {
-            await ManageRoomPlaying.initPlaying(room)
-            if (isRoomPlaying) {
-                await ManageRoomPlaying.startPlaying(room)
-            }
+            await UtilFuncs.startPlayFromPlayListInOrder(room, isRoomPlaying)
         }
         ackFunc && ackFunc({
             success: true
@@ -2442,10 +2448,7 @@ class Handler {
             }
             await ManageRoomPlaying.removeNowPlaying(room)
 
-            await ManageRoomPlaying.initPlaying(room)
-            if (isRoomPlaying) {
-                await ManageRoomPlaying.startPlaying(room)
-            }
+            await UtilFuncs.startPlayFromPlayListInOrder(room, isRoomPlaying)
         }
         ackFunc && ackFunc({
             success: true
