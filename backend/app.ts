@@ -1,3 +1,10 @@
+import registerPath from './registerPath'
+global.isBuildMode = process.env.IS_BUILD_MODE === '1'
+global.isProductionMode = process.env.NODE_ENV === 'production'
+if (isBuildMode) {
+    registerPath()
+}
+
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
@@ -28,24 +35,29 @@ app.use((req, res, next) => {
     }
     next()
 })
-app.use(session(sessionType))
-app.use('/static', express.static('static'))
+
+const staticPath = isBuildMode ? path.resolve(__dirname, '../../static') : 'static'
+app.use('/static', express.static(staticPath))
 app.use(express.urlencoded({
     extended: true
 }))
 app.use(express.json())
-app.use(cors({
-    origin: settings.corsOrigin,
-}))
+const needSetCors = settings.corsOrigin && settings.corsOrigin.length
+if (needSetCors) {
+    app.use(cors({
+        origin: settings.corsOrigin,
+    }))
+}
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'tsx');
 app.engine('tsx', reactViews.createEngine({
     transformViews: false,
 }));
+app.use(session(sessionType))
 
 const server = new http.Server(app)
 const io = socketIo(server, {
-    origins: settings.corsOrigin || '*:*'
+    origins: needSetCors ? settings.corsOrigin : '*:*'
 })
 io.use(session(sessionType))
 

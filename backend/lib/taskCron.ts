@@ -65,11 +65,9 @@ async function stopCronJob (taskId: string) {
 }
 
 function addCronJob(expireAt: number, taskInfo: TaskInfo) {
-    console.log(expireAt, 'cron task')
     const start = Date.now()
     const job = new Cron.CronJob(new Date(expireAt * 1000), async () => {
         const stop = Date.now()
-        console.log(expireAt, stop / 1000, 'stop cron', (stop - start) / 1000)
         const newlyInfo = JSON.parse(await redisCli.hget(getTaskSetRedisKey(), taskInfo.taskId))
         if (newlyInfo) {
             console.log(`cron task: ${taskInfo.taskType}/${taskInfo.taskId} arrived`)
@@ -81,7 +79,6 @@ function addCronJob(expireAt: number, taskInfo: TaskInfo) {
 }
 
 export async function init () {
-    // const existedTasks = await redisCli.hgetall(getTaskSetRedisKey())
     let cursor = 0, exisetdTaskList: TaskInfo[] = []
     do {
         const [nextCursor, resArr] = await redisCli.hscan(getTaskSetRedisKey(), cursor, 'count', 1000)
@@ -105,18 +102,6 @@ export async function init () {
         }
         addCronJob(taskInfo.expireAt, taskInfo)
     })
-    // Object.entries(existedTasks).forEach(async ([key, value]) => {
-    //     const taskInfo: TaskInfo = JSON.parse(value as string)
-    //     if (!value || !taskInfo) {
-    //         return
-    //     }
-    //     if (taskInfo.expireAt * 1000 <= Date.now()) {
-    //         expiredCronTaskQueue.publish(taskInfo.taskType, taskInfo)
-    //         await redisCli.hdel(getTaskSetRedisKey(), taskInfo.taskId)
-    //         return
-    //     }
-    //     addCronJob(taskInfo.expireAt, taskInfo)
-    // })
 }
 
 export async function pushCronTask(taskType: CronTaskTypes, data: any, expire: number) {

@@ -11,7 +11,7 @@ import bitSymbols from 'root/config/bitSybmols.json'
 import globalConfigs from 'global/common/config';
 import settings from 'root/settings';
 import { RoomMusicPlayMode } from 'global/common/enums';
-import { playingInfo } from '../../.history/frontend/src/mockData/index_20200427101440';
+
 export namespace ModelDescriptors {
     const modelNameSet = new Set<string>()
     const collectedModelUniqueKeys = new Set<string>()
@@ -338,7 +338,8 @@ export class BaseModelDef implements ModelBase {
         }
         const modelName = ModelDescriptors.getModelName(this)
         let time = Date.now()
-        if (this.isInit) {
+        const isInitial = this.isInit
+        if (isInitial) {
             const hasExisted = await redisCli.exists(BaseModelDef.generateKey(this.id))
             if (hasExisted) {
                 throw new Error(`duplicated id: ${this.id}`)
@@ -353,7 +354,7 @@ export class BaseModelDef implements ModelBase {
         await redisCli.set(BaseModelDef.generateKey(this.id), this._toJson())
         await indexTool.updateIndexAfterSave()
         console.log((Date.now() - time) / 1000, modelName, 'save used time-----------------')
-        if (this.isInit) {
+        if (isInitial) {
               // 记录id值
               const allIdKey = UtilFuncs.getModelMemberIdsRedisKey(modelName)
               await UtilFuncs.addToRedisSet(allIdKey, this.id)
@@ -665,8 +666,6 @@ class RoomModelDef extends BaseModelDef implements RoomModel{
     }
 
     validatePassword (password: string) {
-        // TODO 加密
-        console.log(this.password)
         return password === this.password
     }
 

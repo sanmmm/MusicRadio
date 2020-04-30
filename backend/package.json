@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "description": "Inspired by [SyncMusic](https://github.com/kasuganosoras/SyncMusic)",
   "scripts": {
-    "dev": "nodemon -e js,mjs,json,ts",
+    "dev": "cross-env NODE_ENV=development nodemon -e js,mjs,json,ts",
     "start": "ts-node -r tsconfig-paths/register app.ts",
-    "build": "tsc"
+    "build": "tsc --build tsconfig.json",
+    "server": "cross-env IS_BUILD_MODE=1 NODE_ENV=production node ./build/backend/app.js"
   },
   "repository": {
     "type": "git",

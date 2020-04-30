@@ -10,9 +10,9 @@
         "lib": [
             "es7",
             "es2017.object",
-            "DOM",
+            "DOM"
         ],
-        "outDir": "../build",
+        "outDir": "./build",
         "baseUrl": ".",
         "jsx": "react",
         "paths": {
@@ -22,9 +22,9 @@
         "experimentalDecorators": true,
         "downlevelIteration": true,
         "strictNullChecks": false,
-        "resolveJsonModule": true,
+        "resolveJsonModule": true
     },
     "files": ["app.ts"],
-    "include": ["**/*.ts", "**/*.tsx"],
-    "exclude": []
+    "include": ["**/*.ts", "**/*.tsx", "./path.js"],
+    "exclude": ["**/test/*"]
 }

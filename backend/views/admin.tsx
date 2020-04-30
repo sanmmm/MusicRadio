@@ -69,7 +69,6 @@ export default function IndexLayout(props) {
     basePath: string;
   }>(({ $, classes, user, isSuperAdmin, basePath = '', httpServerUrl = '' }) => {
 
-    const joinPath = (path: string) => `${basePath}${path}`
     enum PagePaths {
       success = '/main',
       login = '/login',
@@ -87,9 +86,6 @@ export default function IndexLayout(props) {
       pagePath: null as PagePaths,
     }
     
-    $(window).bind('pushstate', function (event) {
-      console.log(event)
-    })
     $(window).on('load', function () {
       if (isSuperAdmin) {
         redirectTo(PagePaths.success)
@@ -150,6 +146,12 @@ export default function IndexLayout(props) {
         userName,
         password,
       }
+    }
+
+    function goToIndexPage () {
+      const url = new URL(location.href)
+      url.pathname = '/'
+      location.href = url.toString()
     }
 
     function clearLoginOrRegisterData() {
@@ -274,7 +276,7 @@ export default function IndexLayout(props) {
         },
         success: function (res) {
           if (res.code === 0) {
-            location.href = '/'
+            goToIndexPage()
           }
         }
       })
@@ -284,9 +286,7 @@ export default function IndexLayout(props) {
       const nowPagePath = vars.pagePath
       redirectTo(nowPagePath === PagePaths.register ? PagePaths.login : PagePaths.register)
     })
-    $('#backToIndex').click(function () {
-      location.href = "/"
-    })
+    $('#backToIndex').click(goToIndexPage)
   }, {
     user: props.user,
     basePath: props.basePath,
@@ -325,7 +325,7 @@ export default function IndexLayout(props) {
       </div>
       <div className={bindClass(classes.success)} id="success">
         <div>
-          您已注册成功!
+          您已登录成功!
           <button type="button" className="btn btn-primary" id="backToIndex">返回首页</button>
           <button type="button" className="btn btn-secondary" id="logout">注销</button>
         </div>

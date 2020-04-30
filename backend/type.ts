@@ -1,4 +1,4 @@
-import {NowPlayingStatus, RoomMusicPlayMode} from 'global/common/enums'
+import { NowPlayingStatus, RoomMusicPlayMode } from 'global/common/enums'
 
 export interface SessionStoreData {
     userId: string;
@@ -18,6 +18,8 @@ export interface Session {
 
 declare global {
     var hallRoomId: string;
+    var isBuildMode: boolean;
+    var isProductionMode: boolean;
     namespace Express {
         interface Request {
             session?: Session
@@ -30,20 +32,22 @@ declare global {
     }
     namespace NodeJS {
         interface Global {
+            isBuildMode: boolean;
             hallRoomId: string;
+            isProductionMode: boolean;
         }
     }
 }
 
-export enum SessionTypes {ip, cookie, token}
+export enum SessionTypes { ip, cookie, token }
 
 export interface StaticModelClass<T = any> {
-    new (obj?: Partial<T>): T;
+    new(obj?: Partial<T>): T;
     [key: string]: any;
     _modelName: string;
     find: (ids: string[]) => Promise<T[]>;
     findOne: (id: string) => Promise<T>;
-    findAll: <U extends boolean>(onlyId?: U) =>  Promise<U extends true ? string[] : T[]>;
+    findAll: <U extends boolean>(onlyId?: U) => Promise<U extends true ? string[] : T[]>;
     findByIndex: (feildName: string, value: any) => Promise<T>;
     delete: (ids: string[]) => Promise<any>;
     update: (ids: string[], cb: (item: T) => T) => Promise<T[]>;
@@ -215,7 +219,7 @@ export interface NowPlayingInfo {
     src?: string;
     lyric?: string;
     pic?: string;
-    progress:number;
+    progress: number;
     endAt: number; // 结束时间戳 秒
     duration: number; // 秒
     status: NowPlayingStatus; // 状态值

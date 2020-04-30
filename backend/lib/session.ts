@@ -14,8 +14,7 @@ import {getRandomIp} from 'root/lib/utils'
 const {authTokenFeildName: authTokenKey} = globalConfigs
 
 const getIp = (str) => {
-    // TODO dev mode
-    if (settings.openRandomIpMode) {
+    if (global.isProductionMode && settings.openRandomIpMode) {
         return getRandomIp()
     }
     if (str.startsWith('::ffff:')) {
@@ -97,7 +96,6 @@ class Session implements SessionDef {
         await user.save()
         this.isAuthenticated = true
         this.user = user
-        console.log(this.user)
         if (isInitial) {
             this.storeData.userId = this.user.id
             this.storeData.defaultUserId = this.user.id
@@ -112,7 +110,6 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
         const req: http.IncomingMessage = isSocketMode ? (args[0] as Socket).request : args[0]
         const next: Function = isSocketMode ? args[1] : args[2]
         try {
-            console.log('inner session middleware')
             let sessionId = ''
             const ipAddress = getIp(req.socket.remoteAddress)
             if (type === SessionTypes.ip) {
@@ -125,13 +122,11 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
                 sessionId = signedCookies[settings.sessionKey]
             }
             if (type === SessionTypes.token) {
-                console.log(req.url, 'req url----------')
                 const searchStr = req.url.split('?').pop() || ''
                 const searchParams = new URLSearchParams(searchStr)
-                console.log(searchParams)
                 sessionId = searchParams.get(authTokenKey) as string
             }
-            console.log(sessionId)
+            console.log(`inner session middleware: ${sessionId}`)
             const session = new Session({
                 id: sessionId,
                 ip: ipAddress,

@@ -41,11 +41,11 @@ const uploadImgs = async (imgs = []) => {
                 // agent: tunnel.httpOverHttp({
                 //     proxy: {
                 //         host: 'localhost',
-                //         port: 1080
+                //         port: 2020,
                 //     }
                 // }),
                 headers: {
-                    // 'Authorization': 'yfzijutWLlFfL4SVYbKmkYw3Kfz54DIK'
+                    // 'Authorization': ''
                 }
             })
             const { success, message, data } = JSON.parse(uploadRes.body)

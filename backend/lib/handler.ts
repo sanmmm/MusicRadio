@@ -21,6 +21,7 @@ import {
 import { ScoketStatus, NowPlayingStatus, RoomMusicPlayMode, ClientListenSocketEvents, ServerListenSocketEvents } from "global/common/enums"
 import { catchError, isSuperAdmin, hideIp, safePushArrItem, safeRemoveArrItem, throttle as throttleAction, ResponseError } from 'root/lib/utils'
 import { getArrRandomItem } from 'root/lib/utils';
+import path from 'path';
 
 async function beforeStart() {
     let hallRoom = await Room.findOne(hallRoomId), isInitial = false
@@ -81,7 +82,6 @@ namespace ListenSocket {
         map.forEach((funcSet, event) => {
             funcSet.forEach(handler => {
                 socket.on(event, function (data, ...args) {
-                    // console.log(`inner socket event: ${event}, data: ${JSON.stringify(data)}`)
                     console.log(`inner socket event: ${event}`)
                     handler.call(this, data, ...args)
                 })
@@ -403,7 +403,7 @@ namespace UtilFuncs {
                 ...user,
                 password: undefined
             },
-            httpServerUrl: settings.httpServer,
+            httpServerUrl: settings.httpServer || '',
             basePath: '/admin',
         }
     }
@@ -535,7 +535,6 @@ namespace RoomIpActionDataRecord {
             }
             try {
                 preCheck()
-                console.log('req ip location', ip)
                 const res = await got(`http://ip-api.com/json/${ip}`, {
                     query: {
                         lang: 'zh-CN',
@@ -595,7 +594,6 @@ namespace RoomIpActionDataRecord {
                     await setIpData(ip, {
                         info,
                     })
-                    console.log('set ip data', resolvedIps)
                 }
             }
         }
@@ -702,8 +700,6 @@ namespace RoomIpActionDataRecord {
         const arrayData = Array.from(map.keys()).map(key => map.get(key))
         vars.roomCoordData = arrayData
         await redisCli.set(roomCoordDataCacheKey, JSON.stringify(arrayData), 'EX', expire)
-        // console.log('calc data--------', inc, map)
-        // console.log(arrayData)
         if (!inc) {
             // 非增量更新，清除数据
             let pipe = redisCli.pipeline();
@@ -735,7 +731,6 @@ namespace RoomIpActionDataRecord {
         @catchError()
         static async handleIpDataCrontTaskArrived(data: IpDataCronTaskManage.IpDataCronTaskData) {
             const { subTaskType } = data
-            console.log(subTaskType, 'arrvied===')
             if (subTaskType === SubCronTaskTypes.calcData) {
                 const { extra } = data
                 await calcIpData(extra.expire, extra.inc)
@@ -749,7 +744,6 @@ namespace RoomIpActionDataRecord {
             if (!vars.isStarted) {
                 return
             }
-            console.log('user connected')
             const ip = user.ip
             const ipData = getIpData(ip)
             ipData.heat += 1
@@ -938,7 +932,6 @@ namespace RoomRoutineLoopTasks {
         @catchError()
         static async handleBroadcastRoomBaseInfo(data: CronData) {
             const { roomId, period } = data
-            console.log(roomId, 'roomid')
             const room = await Room.findOne(roomId)
             Actions.updateRoomBaseInfo(room.joiners, UtilFuncs.getRoomBaseInfo(room))
         }
@@ -950,7 +943,6 @@ namespace RoomRoutineLoopTasks {
             const room = await Room.findOne(roomId)
             const updatedMap = Room.getRoomUpdatedUserRecords(roomId)
             const updatedUserRecords = Array.from(updatedMap.values())
-            console.log('inner dispatach task', updatedUserRecords.length)
             if (updatedUserRecords.length) {
                 Actions.updateOnlineUsersInfo(room.admins, updatedUserRecords)
             }
@@ -1050,15 +1042,12 @@ namespace ManageRoomPlaying {
     }
 
     async function setSwitchMusicCronJob(room: RoomModel) {
-        console.log('start cron job')
         const jobIdRedisKey = getRoomToJobIdKey(room.id)
         const oldJobId = await redisCli.get(jobIdRedisKey)
         if (oldJobId) {
-            console.log('cancel cron job')
             await CronTask.cancelCaronTask(oldJobId)
             await redisCli.del(jobIdRedisKey)
         }
-        console.log('compare complete')
 
         const { progress, duration } = room.nowPlayingInfo
         const leftSecond = (1 - progress) * duration
@@ -1066,7 +1055,6 @@ namespace ManageRoomPlaying {
             roomId: room.id,
             musicId: room.nowPlayingInfo.id
         }
-        console.log(leftSecond, 'left second')
         // 播放进度为100% 或极度接近100%, 结束播放
         if (leftSecond < 0.3) {
             UtilFunc.handleSwitchPlaying(data)
@@ -1077,13 +1065,11 @@ namespace ManageRoomPlaying {
     }
 
     async function cancelSwitchMusicJob(room: RoomModel) {
-        console.log('inner pause')
         const jobIdRedisKey = getRoomToJobIdKey(room.id)
         const jobId = await redisCli.safeGet(jobIdRedisKey)
         if (!jobId) {
             return
         }
-        console.log('exec pause')
         await CronTask.cancelCaronTask(jobId)
         await redisCli.del(jobIdRedisKey)
     }
@@ -1192,8 +1178,6 @@ namespace ManageRoomPlaying {
         // 暂停时间过长导致播放链接失效，在此重新获取更新
         if (Date.now() / 1000 - pausedAt > 60 * 5) {
             const { src } = await getPlayItemDetailInfo(playItemId)
-            console.log('prev src:', nowPlayingInfo.src)
-            console.log('new src', src)
             nowPlayingInfo.src = src
         }
 
@@ -1352,7 +1336,6 @@ class Actions {
 
     @catchError()
     static updateOnlineUsersInfo(users: (UserModel | string)[], updatedUsers: (UserRoomRecord & { isOffline?: boolean })[]) {
-        console.log('diaptach updated')
         Actions.emit(users, ClientListenSocketEvents.updateOnlineUsers, {
             data: updatedUsers
         })
@@ -1377,7 +1360,6 @@ class Actions {
         }
         Actions.usersToSocketIds(users).map((socketId, index) => {
             const socket = UtilFuncs.SocketIdToSocketObjMap.get(socketId)
-            console.log(!!socket, 'socket')
             const userItem = users[index]
             const userId = typeof userItem === 'object' ? userItem.id : userItem
             const dataObj = baseData ? {
@@ -1464,7 +1446,6 @@ class Handler {
             if (!!user.managedRoom) {
                 isUserInfoChanged = true
                 const room = await Room.findOne(user.managedRoom)
-                console.log(!!room, room.isJoinAble(user))
                 if (!room || !room.isJoinAble(user)) {
                     user.managedRoom = null
                     await user.save
@@ -1596,7 +1577,6 @@ class Handler {
             throw new ResponseError('房间名已存在')
         }
         const reqUser = socket.session.user
-        console.log(reqUser.append, reqUser)
         if (!isSuperAdmin(reqUser) && !!reqUser.createdRoom) {
             throw new ResponseError('不能重复创建房间')
         }
@@ -1609,18 +1589,15 @@ class Handler {
             creator: isPersonalRoom ? reqUser.id : null,
         })
         await room.save()
-        console.log('save 0')
         if (reqUser.append.nowRoomId) {
             const oldRoom = await Room.findOne(reqUser.append.nowRoomId)
             await UtilFuncs.quitRoom(oldRoom, reqUser)
         }
         room.join(reqUser)
-        console.log('save 1')
         if (isPersonalRoom) {
             reqUser.createdRoom = room.id
             await reqUser.save()
         }
-        console.log('save 2')
         Actions.updateUserInfo([reqUser])
         ackFunc && ackFunc({
             success: true,
@@ -1828,7 +1805,6 @@ class Handler {
         musicId: string,
         agree: boolean,
     }, ackFunc: Function) {
-        console.log('inner ')
         const { roomId, agree } = msg
         if (!roomId) {
             throw new ResponseError('无效参数')
@@ -1849,7 +1825,6 @@ class Handler {
         let isCut = false, responseStr = '', boradcastStr = ''
         // 新建投票
         if (!room.vote) {
-            console.log(room.heat, isSuperAdmin(reqUser))
             if (room.heat === 1 && !isSuperAdmin(reqUser)) {
                 isCut = true
             } else {
@@ -1982,12 +1957,11 @@ class Handler {
         }
         room.messageHistory.push(message)
         if (room.messageHistory.length >= (settings.maxChatListLength + 10)) {
-            console.log(`clear stale message records/ ${room.messageHistory.length - settings.maxChatListLength}`)
             room.messageHistory = room.messageHistory.slice(-settings.maxChatListLength)
         }
         await room.save()
         Actions.addChatListMessages(room.joiners, [message])
-        if (!!message.content.text) {
+        if (room.isPublic && !!message.content.text) {
             RoomIpActionDataRecord.sendTextMessage(reqUser, message)
         }
         ackFunc && ackFunc({
@@ -2012,9 +1986,6 @@ class Handler {
         if (!UtilFuncs.isManageableUser(room, reqUser, blockedUser)) {
             throw new ResponseError('越权操作')
         }
-        // if (UtilFuncs.isRoomAdmin(room, blockedUser)) {
-        //     throw new ResponseError('不能屏蔽超级管理员和房间管理员', true)
-        // }
         if (room.blockUsers.includes(blockedUser.id)) {
             throw new ResponseError('该用户已被屏蔽!', true)
         }
@@ -2116,9 +2087,6 @@ class Handler {
         if (!UtilFuncs.isManageableUser(room, reqUser, aimUser)) {
             throw new Error('越权操作')
         }
-        // if (UtilFuncs.isRoomAdmin(room, aimUser)) {
-        //     throw new ResponseError('不能对超级管理员和房间管理员禁言', true)
-        // }
         if (room.banUsers.includes(aimUser.id)) {
             throw new ResponseError('该用户已被禁言!', true)
         }
@@ -2355,7 +2323,6 @@ class Handler {
                 continue
             }
             const [info] = await NetEaseApi.getMusicBaseInfo([musicId])
-            console.log(info)
             const { id, name, artist, album, duration } = info
             if (!info.free || BlockMusicList.includes(name) || duration > settings.musicDurationLimit) {
                 excluded.push(name)
@@ -2418,10 +2385,6 @@ class Handler {
         room.playList = room.playList.filter(item => !toDelIds.has(item.id))
         await room.save()
         if (toDelIds.has(nowPlayingId)) {
-            // await ManageRoomPlaying.pausePlaying(room)
-            // room.nowPlayingInfo = null
-            // await room.save()
-            // Actions.sendNowRoomPlayingInfo(room, room.joiners)
             await ManageRoomPlaying.removeNowPlaying(room)
         }
         Actions.notification([reqUser], '删除成功')
@@ -2437,17 +2400,6 @@ class Handler {
             success: true
         })
 
-        // Actions.addChatListMessages([reqUser], [
-        //     {
-        //         id: Date.now().toString(),
-        //         type: MessageTypes.notification,
-        //         from: '系统消息',
-        //         content: {
-        //             text: '删除成功'
-        //         },
-        //         time: Date.now(),
-        //     }
-        // ])
     }
 
     @ListenSocket.register(ServerListenSocketEvents.movePlayListItem)
@@ -2488,9 +2440,6 @@ class Handler {
             if (isRoomPlaying) {
                 await ManageRoomPlaying.pausePlaying(room)
             }
-            // room.nowPlayingInfo = null
-            // await room.save()
-            // Actions.sendNowRoomPlayingInfo(room, room.joiners)
             await ManageRoomPlaying.removeNowPlaying(room)
 
             await ManageRoomPlaying.initPlaying(room)
@@ -2582,7 +2531,6 @@ class Handler {
         const reqUser = socket.session.user
         const isSuper = isSuperAdmin(reqUser)
         const allRoomIds = isSuper ? await Room.findAll(true) : await Room.getPublicRooms(true)
-        console.log(allRoomIds.length)
         const findIndex = allRoomIds.indexOf(lastId)
         const offset = findIndex + 1
         let roomIds = []
@@ -2736,6 +2684,12 @@ class Handler {
     @HandleHttpRoute.get('/')
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
+        res.sendfile(path.resolve(__dirname, '../static/index.html'))
+    }
+
+    @HandleHttpRoute.get('/getcookie')
+    @UtilFuncs.routeHandlerCatchError()
+    static async getCookie(req: Request, res: Response) {
         res.send('success')
     }
     
@@ -2803,7 +2757,7 @@ class Handler {
         const { userName, password } = req.body
         const reqUser = req.session.user
         if (isSuperAdmin(reqUser)) {
-            throw new Error('您已经登录为超级管理员')
+            throw new ResponseError('您已经登录为超级管理员')
         }
         const findUser = await User.findByIndex('name', userName)
         if (!findUser) {
@@ -2865,7 +2819,6 @@ export default async function (io, app) {
         next()
     })
     io.on('connection', async (socket) => {
-        console.log(socket.session.id, 'session')
         // 判断是否登录
         if (!socket.session.isAuthenticated) {
             return Actions.updateSocketStatus([socket.id], ScoketStatus.invalid)

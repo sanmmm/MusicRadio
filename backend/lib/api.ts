@@ -10,7 +10,7 @@ namespace Utils {
     export const musicSrcCacheExpire = 60 * 4
     export const musicBaseInfoCacheExpire = 3600 * 24 * 3
     export const musicLyricCacheExpire = 3600 * 24 * 7
-    export const musicCommentsChacheExpire = 3600 * 24 * 7
+    export const musicCommentsChacheExpire = 3600 * 24 * 1
 
     export const getMusicItemBaseInfoKey = (id: string | string[]) => `musicbaseInfo:${id instanceof Array ? id.join(',') : id}`
 
