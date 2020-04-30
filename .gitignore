@@ -1,6 +1,12 @@
 .history
+.vscode
 api
-node_modules
-backend/settings.ts
-backend/static
+netease
 build
+node_modules
+common/settings.ts
+backend/settings.ts
+backend/prepare/*.json
+backend/test*
+backend/static/*
+backend/build

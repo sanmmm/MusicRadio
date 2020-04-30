@@ -3,7 +3,7 @@
   "scripts": {
     "start": "umi dev",
     "build": "umi build",
-    "publish": "umi build & cpy dist ../backend/static",
+    "publish": "umi build & cpy dist ../backend/build/backend/static",
     "analyze": "cross-env ANALYZE=1 umi build",
     "test": "umi test",
     "lint:es": "eslint --ext .js src mock tests",
