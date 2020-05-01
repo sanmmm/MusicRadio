@@ -19,3 +19,17 @@ export const redisSetCache = new Map<string, Set<string>>()
 export const isRedisSetCahceLoaded = new Map<string, boolean>()
 
 export const redisSetToArrayCache = new Map<string, string[]>()
+
+export const blockKeySet = new Set<string>()
+
+export type RejectType = (reason?: any) => void
+export type ResolveType = () => any;
+export const reqBlockCallBackQueue = new Map<string, {cb: Function, resolve: ResolveType, reject: RejectType}[]>()
+export function getBlockWaittingCbQueue (blockKey: string) {
+    let queue = reqBlockCallBackQueue.get(blockKey)
+    if (!queue) {
+        queue = []
+        reqBlockCallBackQueue.set(blockKey, queue)
+    }
+    return queue
+}

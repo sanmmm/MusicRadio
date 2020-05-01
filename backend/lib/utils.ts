@@ -1,5 +1,6 @@
 import settings from 'settings'
 import redisCli from 'root/lib/redis'
+import {blockKeySet, reqBlockCallBackQueue, ResolveType, RejectType, getBlockWaittingCbQueue} from 'root/lib/store'
 import { UserModel } from 'root/type'
 
 export function isSuperAdmin(user: UserModel) {
@@ -41,33 +42,72 @@ export function catchError(handler?: (error: Error, ...args: any) => any) {
         return descriptor as TypedPropertyDescriptor<any>
     }
 }
-
-export function throttle(
-    time: number,
-    options: {
-        handler?: (...args: any) => any;
-        key?: string;
-    } = {}
-) {
-    const { handler, key } = options
-    return function (target, propertyName, descriptor: PropertyDescriptor) {
-        const func = descriptor.value
-        const newFunc = async (...args) => {
-            if (time > 0) {
-                const redisKey = `musicradio:apithrottle:${key || propertyName}`
-                const rejected = await redisCli.exists(redisKey)
-                if (rejected && handler) {
-                    await handler(...args)
-                    return
-                }
-                await redisCli.safeSet(redisKey, true, time)
+/**
+ * 
+ * @param func 
+ * @param time  单位秒
+ */
+export function throttle (key: string, func: (...args: any) => any, time: number, onThrottle?: () => any) {
+    return async (...args) => {
+        if (time > 0) {
+            const redisKey = `musicradio:apithrottle:${key}`
+            const rejected = await redisCli.exists(redisKey)
+            if (rejected) {
+                onThrottle && await onThrottle
+                return
             }
-            await func(...args)
+            await redisCli.safeSet(redisKey, true, time)
         }
-        descriptor.value = newFunc
-        return descriptor
+        await func(...args)
     }
 }
+
+async function execUseBlock (key: string, execFunc, resolve: ResolveType, reject: RejectType) {
+    blockKeySet.add(key)
+    let execError = null
+    try {
+        await execFunc()
+    } catch (e) {
+        execError = e
+    }
+    execError ? reject(execError) : resolve()
+    const waitItemCb = getBlockWaittingCbQueue(key).shift()
+    if (waitItemCb) {
+        setImmediate(() => {
+            execUseBlock(key, waitItemCb.cb, waitItemCb.resolve, waitItemCb.reject)
+        })
+    } else {
+        blockKeySet.delete(key)
+    }
+}
+interface useBlockOptions {
+    wait: boolean; // 锁被占用时是否等待
+    success: () => any;
+    failed?: () => any;
+}
+export async function useBlock (key: string, option: useBlockOptions) {
+    const {success: handleSuccess, failed: handleFailed, wait} = option
+    const hasBlocked = blockKeySet.has(key)
+    if (hasBlocked) {
+        if (!wait && handleFailed) {
+            return await handleFailed()
+        } else if (wait) {
+            const cbQueue = getBlockWaittingCbQueue(key)
+            return new Promise((resolve, reject) => {
+                cbQueue.push({
+                    cb: handleSuccess,
+                    resolve,
+                    reject
+                })
+            })
+        }
+        return null
+    }
+    return new Promise((resolve, reject) => {
+        execUseBlock(key, handleSuccess, resolve, reject)
+    }) 
+}
+
 
 export function hideIp(ip: string) {
     return ip.replace(/(^[0-9a-f]+)|([0-9a-f]+$)/g, '**')
@@ -124,4 +164,10 @@ export function getRandomIp() {
 
 export function getArrRandomItem<T>(arr: T[]) {
     return arr[Math.floor(Math.random() * arr.length)] as T
+}
+
+export function wait (time: number) {
+    return new Promise((resolve) => {
+        setTimeout(resolve, time)   
+    })
 }

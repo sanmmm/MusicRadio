@@ -4,7 +4,9 @@ import Mint from 'mint-filter'
 import got from 'got';
 import express, { Express } from 'express'
 import isDeepEqual from 'deep-equal'
+import path from 'path';
 
+import globalSettings from 'global/common/settings'
 import settings from 'root/settings'
 import { User, Room } from 'root/lib/models'
 import * as NetEaseApi from 'root/lib/api'
@@ -19,9 +21,7 @@ import {
     UserStatus
 } from 'root/type'
 import { ScoketStatus, NowPlayingStatus, RoomMusicPlayMode, ClientListenSocketEvents, ServerListenSocketEvents } from "global/common/enums"
-import { catchError, isSuperAdmin, hideIp, safePushArrItem, safeRemoveArrItem, throttle as throttleAction, ResponseError } from 'root/lib/utils'
-import { getArrRandomItem } from 'root/lib/utils';
-import path from 'path';
+import { catchError, isSuperAdmin, hideIp, safePushArrItem, safeRemoveArrItem, ResponseError, getArrRandomItem, useBlock, wait } from 'root/lib/utils'
 
 async function beforeStart() {
     let hallRoom = await Room.findOne(hallRoomId), isInitial = false
@@ -54,11 +54,19 @@ const UserToSocketIdMap: {
 } = {}
 
 namespace ListenSocket {
-    type Handler = (socket: socketIo.Socket, data: any, ackFunc?: Function) => any
+    type Handler<T = any> = (socket: socketIo.Socket, data: T, ackFunc?: Function) => any
+    interface RegisterOptions {
+        useBlock?: {
+            wait?: boolean;
+            getKey: (eventName: string, socket: socketIo.Socket, data: any) => string;
+        }
+    }
+
     const map = new Map<string, Set<Handler>>()
-    export function register(event: ServerListenSocketEvents) {
+    export function register(event: ServerListenSocketEvents, options: RegisterOptions = {}) {
         return (target, propertyName: string, descriptor: PropertyDescriptor) => {
             const prevFunc: Handler = descriptor.value
+            const limitConfigs = globalSettings.apiFrequeryLimit
             let funcSet = map.get(event)
             if (!funcSet) {
                 funcSet = new Set()
@@ -69,6 +77,37 @@ namespace ListenSocket {
                 if (socket.session.isAuthenticated) {
                     const user = await User.findOne(socket.session.user.id)
                     socket.session.user = user
+                }
+                const reqUser = socket.session.user
+                const isSuper = isSuperAdmin(reqUser)
+                // api截流
+                const throttleTime = limitConfigs[event] || limitConfigs.default || 0
+                if (!isSuper && (throttleTime > 0)) {
+                    const throttleKey = `musicradio:api:${event}:throttle:${socket.session.id}`
+                    const rejected = await redisCli.exists(throttleKey)
+                    if (rejected) {
+                        console.log(`session id: ${socket.session.id} request rejected`)
+                        return
+                    }
+                    await redisCli.set(throttleKey, 'true', 'EX', throttleTime / 1000)
+                }
+                // api请求加锁
+                if (options.useBlock) {
+                    const { getKey, wait = false } = options.useBlock
+                    const blockKey = getKey(event, socket, data)
+                    if (blockKey) {
+                        useBlock(blockKey, {
+                            wait,
+                            success: prevFunc.bind(null, socket, data, ackFunc),
+                            failed: () => {
+                                ackFunc && ackFunc({
+                                    success: false,
+                                })
+                                Actions.notification([reqUser], '操作冲突', true)
+                            }
+                        })
+                        return
+                    }
                 }
                 prevFunc(socket, data, ackFunc)
             }
@@ -88,6 +127,7 @@ namespace ListenSocket {
             })
         })
     }
+
 }
 
 // 注册http请求路由
@@ -397,7 +437,7 @@ namespace UtilFuncs {
         return WordFilter.validator(str)
     }
 
-    export function getRenderAdminPageData (user: UserModel) {
+    export function getRenderAdminPageData(user: UserModel) {
         return {
             user: user && {
                 ...user,
@@ -407,14 +447,15 @@ namespace UtilFuncs {
             basePath: '/admin',
         }
     }
-    
+
     // 从头顺序播放房间播放列表
-    export  async function startPlayFromPlayListInOrder (room: RoomModel, autoPlay = true) {
-        if (!room.playList.length){
+    export async function startPlayFromPlayListInOrder(room: RoomModel, autoPlay = true) {
+        if (!room.playList.length) {
             throw new Error(`房间:${room.id}播放列表为空`)
         }
         await ManageRoomPlaying.initPlaying(room, room.playList[0], autoPlay)
     }
+
 }
 
 // 全站房间可视化数据记录和处理
@@ -1759,7 +1800,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.pausePlaying)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(3000)
     static async pausePlaying(socket: SocketIO.Socket, msg: { roomId: string, musicId: string }, ackFunc?: Function) {
         const { roomId, musicId } = msg
         if (!roomId || !musicId) {
@@ -1781,7 +1821,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.startPlaying)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(3000)
     static async startPlaying(socket: SocketIO.Socket, msg: { roomId: string, musicId: string }, ackFunc?: Function) {
         const { roomId, musicId } = msg
         if (!roomId || !musicId) {
@@ -1808,7 +1847,6 @@ class Handler {
      */
     @ListenSocket.register(ServerListenSocketEvents.voteToCutMusic)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(3000)
     static async voteToCutMusic(socket: SocketIO.Socket, msg: {
         roomId: string,
         musicId: string,
@@ -1876,7 +1914,7 @@ class Handler {
                 await ManageRoomPlaying.pausePlaying(room)
             }
             await ManageRoomPlaying.removeNowPlaying(room)
-            
+
             await UtilFuncs.startPlayFromPlayListInOrder(room)
             boradcastStr = '投票切歌成功'
         } else {
@@ -1889,9 +1927,18 @@ class Handler {
         })
     }
 
-    @ListenSocket.register(ServerListenSocketEvents.changeProgress)
+    @ListenSocket.register(ServerListenSocketEvents.changeProgress, {
+        useBlock: {
+            getKey: (event, socket, msg, ...args) => {
+                const { roomId } = msg
+                if (!roomId) {
+                    return ''
+                }
+                return `${event}:${roomId}`
+            },
+        }
+    })
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(3000)
     static async changeProgress(socket: SocketIO.Socket, msg: { roomId: string, progress: number, musicId: string }, ackFunc: Function) {
         const { roomId, musicId, progress = 0 } = msg
         const reqUser = socket.session.user
@@ -1911,9 +1958,19 @@ class Handler {
         })
     }
 
-    @ListenSocket.register(ServerListenSocketEvents.sendMessage)
+    @ListenSocket.register(ServerListenSocketEvents.sendMessage, {
+        useBlock: {
+            wait: true,
+            getKey: (event, socket, msg, ...args) => {
+                const { roomId } = msg
+                if (!roomId) {
+                    return ''
+                }
+                return `${event}:${roomId}`
+            },
+        }
+    })
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(4000)
     static async sendMessages(socket: SocketIO.Socket, msg: {
         roomId: string;
         text?: string;
@@ -1980,7 +2037,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.blockUser)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(2000)
     static async blockUser(socket: SocketIO.Socket, msg: {
         roomId: string;
         userId: string;
@@ -2030,7 +2086,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.blockUserIp)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(2000)
     static async blockIp(socket: SocketIO.Socket, msg: {
         roomId: string;
         userId: string; // 根据userid查到ip
@@ -2081,7 +2136,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.banUserComment)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(2000)
     static async banUserComment(socket: SocketIO.Socket, msg: {
         roomId: string;
         userId: string;
@@ -2132,7 +2186,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.withdrawlMessage)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(2000)
     static async withdrawMessage(socket: SocketIO.Socket, msg: {
         roomId: string;
         messageId: string;
@@ -2180,7 +2233,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.revokeAction)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(2000)
     static async revokeAdminAction(socket: SocketIO.Socket, msg: { roomId: string, revokeActionId: string }, ackFunc?: Function) {
         const { roomId, revokeActionId } = msg
         const reqUser = socket.session.user
@@ -2231,7 +2283,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.getOnlineUserList)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(2000)
     static async getRoomOnlineUsers(socket: SocketIO.Socket, msg: { roomId: string, lastId: string, searchStr: string }, ackFunc?: Function) {
         const { roomId, lastId, searchStr = '' } = msg
         if (!roomId) {
@@ -2308,9 +2359,19 @@ class Handler {
         })
     }
 
-    @ListenSocket.register(ServerListenSocketEvents.addPlayListItems)
+    @ListenSocket.register(ServerListenSocketEvents.addPlayListItems, {
+        useBlock: {
+            wait: true,
+            getKey: (event, socket, msg, ...args) => {
+                const { roomId } = msg
+                if (!roomId) {
+                    return ''
+                }
+                return `${event}:${roomId}`
+            },
+        }
+    })
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(3000)
     static async addPlayListItems(socket: SocketIO.Socket, msg: { ids: string[], roomId: string }, ackFunc?: Function) {
         const { ids = [], roomId } = msg
         if (!ids.length) {
@@ -2369,9 +2430,18 @@ class Handler {
         })
     }
 
-    @ListenSocket.register(ServerListenSocketEvents.deletePlayListItems)
+    @ListenSocket.register(ServerListenSocketEvents.deletePlayListItems, {
+        useBlock: {
+            getKey: (event, socket, msg, ...args) => {
+                const { roomId } = msg
+                if (!roomId) {
+                    return ''
+                }
+                return `${event}:${roomId}`
+            },
+        }
+    })
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(6000)
     static async deletePlayListItems(socket: SocketIO.Socket, msg: { ids: string[], roomId: string }, ackFunc?: Function) {
         const { ids = [], roomId } = msg
         if (!ids.length) {
@@ -2408,9 +2478,18 @@ class Handler {
 
     }
 
-    @ListenSocket.register(ServerListenSocketEvents.movePlayListItem)
+    @ListenSocket.register(ServerListenSocketEvents.movePlayListItem, {
+        useBlock: {
+            getKey: (event, socket, msg, ...args) => {
+                const { roomId } = msg
+                if (!roomId) {
+                    return ''
+                }
+                return `${event}:${roomId}`
+            },
+        }
+    })
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(3000)
     static async movePlayListItem(socket: SocketIO.Socket, msg: {
         fromIndex: number;
         toIndex: number;
@@ -2472,7 +2551,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.searchMedia)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(5000)
     static async searchMedia(socket: SocketIO.Socket, msg: { keywords: string }, ackFunc: Function) {
         const { keywords = '' } = msg
         if (!keywords.trim()) {
@@ -2498,7 +2576,6 @@ class Handler {
 
     @ListenSocket.register(ServerListenSocketEvents.getMediaDetail)
     @UtilFuncs.socketApiCatchError()
-    @throttleAction(5000)
     static async getAlbumInfo(socket: SocketIO.Socket, msg: { id: string }, ackFunc) {
         const { id } = msg
         if (!id) {
@@ -2695,7 +2772,7 @@ class Handler {
     static async getCookie(req: Request, res: Response) {
         res.send('success')
     }
-    
+
     @HandleHttpRoute.get('/admin/register')
     @UtilFuncs.routeHandlerCatchError()
     static async clientRegister(req: Request, res: Response) {
@@ -2712,7 +2789,7 @@ class Handler {
 
     @HandleHttpRoute.get('/admin/main')
     @UtilFuncs.routeHandlerCatchError()
-    static async renderAdminPage (req: Request, res: Response) {
+    static async renderAdminPage(req: Request, res: Response) {
         const reqUser = req.session.user
         res.render('admin', UtilFuncs.getRenderAdminPageData(reqUser))
     }
