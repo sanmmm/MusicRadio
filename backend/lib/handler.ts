@@ -74,49 +74,54 @@ namespace ListenSocket {
             }
             const newFunc = async function (data: any, ackFunc?: Function) {
                 const socket: socketIo.Socket = this
-                if (socket.session.isAuthenticated) {
-                    const user = await User.findOne(socket.session.user.id)
-                    socket.session.user = user
-                }
-                if (ackFunc && typeof ackFunc === 'function') {
-                    const oldAckFunc = ackFunc
-                    ackFunc = (resData) => {
-                        oldAckFunc({
-                            eventName: event,
-                            data: resData
-                        })
+                try {
+                    if (socket.session.isAuthenticated) {
+                        const user = await User.findOne(socket.session.user.id)
+                        socket.session.user = user
                     }
-                }
-                const reqUser = socket.session.user
-                const isSuper = isSuperAdmin(reqUser)
-                // api截流
-                const throttleTime = limitConfigs[event] || limitConfigs.default || 0
-                if (!isSuper && (throttleTime > 0)) {
-                    const throttleKey = `musicradio:api:${event}:throttle:${socket.session.id}`
-                    const rejected = await redisCli.exists(throttleKey)
-                    if (rejected) {
-                        console.log(`session id: ${socket.session.id} request rejected`)
-                        return
+                    if (ackFunc && typeof ackFunc === 'function') {
+                        const oldAckFunc = ackFunc
+                        ackFunc = (resData) => {
+                            oldAckFunc({
+                                eventName: event,
+                                data: resData
+                            })
+                        }
                     }
-                    await redisCli.set(throttleKey, 'true', 'EX', throttleTime / 1000)
-                }
-                // api请求加锁
-                if (options.useBlock) {
-                    const { getKey, wait = false } = options.useBlock
-                    const blockKey = getKey(event, socket, data)
-                    if (blockKey) {
-                        useBlock(blockKey, {
-                            wait,
-                            success: prevFunc.bind(null, socket, data, ackFunc),
-                            failed: () => {
-                                ackFunc && ackFunc({
-                                    success: false,
-                                })
-                                Actions.notification([reqUser], '操作冲突', true)
-                            }
-                        })
-                        return
+                    const reqUser = socket.session.user
+                    const isSuper = isSuperAdmin(reqUser)
+                    // api截流
+                    const throttleTime = limitConfigs[event] || limitConfigs.default || 0
+                    if (!isSuper && (throttleTime > 0)) {
+                        const throttleKey = `musicradio:api:${event}:throttle:${socket.session.id}`
+                        const rejected = await redisCli.exists(throttleKey)
+                        if (rejected) {
+                            console.log(`session id: ${socket.session.id} request rejected`)
+                            return
+                        }
+                        await redisCli.set(throttleKey, 'true', 'PX', throttleTime)
                     }
+                    // api请求加锁
+                    if (options.useBlock) {
+                        const { getKey, wait = false } = options.useBlock
+                        const blockKey = getKey(event, socket, data)
+                        if (blockKey) {
+                            useBlock(blockKey, {
+                                wait,
+                                success: prevFunc.bind(null, socket, data, ackFunc),
+                                failed: () => {
+                                    ackFunc && ackFunc({
+                                        success: false,
+                                    })
+                                    Actions.notification([reqUser], '操作冲突', true)
+                                }
+                            })
+                            return
+                        }
+                    }
+
+                } catch (e) {
+                    console.error(e)
                 }
                 prevFunc(socket, data, ackFunc)
             }
@@ -880,7 +885,7 @@ namespace RoomIpActionDataRecord {
     }
 }
 
-namespace DestroyRoom {
+export namespace DestroyRoom {
     const getRoomRecordKey = (roomId: string) => {
         return `musicraio:roomdestroy:${roomId}`
     }
@@ -914,7 +919,7 @@ namespace DestroyRoom {
         const cronData: cronData = {
             roomId: room.id
         }
-        const expire = 60 * 5
+        const expire = 20
         const redisKey = getRoomRecordKey(room.id)
 
         const oldJobRecord: DestroyRecord = JSON.parse(await redisCli.safeGet(redisKey))
@@ -923,10 +928,10 @@ namespace DestroyRoom {
             await redisCli.del(redisKey)
         }
         const jobId = await CronTask.pushCronTask(CronTaskTypes.destroyRoom, cronData, expire)
-        await redisCli.safeSet(redisKey, JSON.stringify({
+        await redisCli.safeSet(redisKey, {
             cronJobId: jobId,
             prevRoomStatus: room.status
-        } as DestroyRecord), expire)
+        }, expire)
         room.status = RoomStatus.willDestroy
         await room.save()
         return room
@@ -937,7 +942,7 @@ namespace DestroyRoom {
             return
         }
         const redisKey = getRoomRecordKey(room.id)
-        const record: DestroyRecord = JSON.parse(await redisCli.get(redisKey))
+        const record: DestroyRecord = await redisCli.safeGet(redisKey)
         if (!record) {
             return
         }
@@ -2906,7 +2911,7 @@ class Handler {
 
 }
 
-export default async function (io, app) {
+export default async function (io: SocketIO.Server, app: Express, afterInit: () => any) {
     await beforeStart()
     HandleHttpRoute.listen(app)
     app.use((err, req, res, next) => {
@@ -2933,4 +2938,5 @@ export default async function (io, app) {
         // 其他业务相关事件注册
         ListenSocket.listen(socket)
     })
+    afterInit()
 }

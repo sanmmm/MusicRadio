@@ -273,9 +273,11 @@
         }
     }
     .drawerStartAnimation {
+        animation-fill-mode: backwards;
         animation: drawerStartAnimation 0.4s ease-out;
     }
     .drawerEndAnimation {
+        animation-fill-mode: forwards;
         transform: translateY(100%);
         animation: drawerEndAnimation 0.4s ease-out;
     }

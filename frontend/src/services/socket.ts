@@ -107,8 +107,10 @@ export default {
             throw new Error('请不要频繁请求') 
         }
         const actionStampId = Io.getScoketActionId()
-        Io.client.emit(evenType, data, (...data) => {
-            WaittingQuene.pub(Io.getWaittingGetResponseKey(actionStampId), ...data)
+        Io.client.emit(evenType, data, (res) => {
+            console.log(res, 'res')
+            const {data} = res
+            WaittingQuene.pub(Io.getWaittingGetResponseKey(actionStampId), data)
         })
         return actionStampId
     },

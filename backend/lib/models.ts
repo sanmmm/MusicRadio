@@ -470,6 +470,10 @@ export class BaseModelDef implements ModelBase {
         })
     }
 
+    private _getBlockKey(modelName: string): string {
+        return `modelopertate:${modelName}:${this.id}`;
+    }
+
     getNumberId () {
         return this.numberId
     }
@@ -482,7 +486,7 @@ export class BaseModelDef implements ModelBase {
         let time = Date.now()
         const isInitial = this.isInit
         this._updateModifiedProperties()
-        await useBlock(`modelsave:${modelName}:${this.id}`, {
+        await useBlock(this._getBlockKey(modelName), {
             wait: true,
             success: async () => {
                 let latestObj: this = null
@@ -522,11 +526,24 @@ export class BaseModelDef implements ModelBase {
         if (!this.id) {
             throw new Error(`invalid id: ${this.id}`)
         }
-        await redisCli.del(BaseModelDef.generateKey(this.id))
         const modelName = ModelDescriptors.getModelName(this)
+        await useBlock(this._getBlockKey(modelName), {
+            wait: true,
+            success: async () => {
+                const modelDef: typeof BaseModelDef = Object.getPrototypeOf(this).constructor
+                const latestObj = await modelDef.findOne(this.id, true)
+                if (!latestObj) {
+                    return
+                }
+                await redisCli.del(BaseModelDef.generateKey(this.id))
+                const uniqueProperties: Set<any> = ModelDescriptors.getUniqueKeys(this)
+                await redisCli.del(...Array.from(uniqueProperties).map(p => ModelDescriptors.getIndexRedisKey(latestObj, p, latestObj[p])))
+            }
+        })
         await UtilFuncs.removeItemFromRedisSet(UtilFuncs.getModelMemberIdsRedisKey(modelName), this.id)
         return this
     }
+
 }
 
 export function defineModel <U, T extends StaticModelClass> (m: T) {

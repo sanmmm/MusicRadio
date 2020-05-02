@@ -61,7 +61,8 @@ const io = socketIo(server, {
 })
 io.use(session(sessionType))
 
-Handler(io, app)
-server.listen(settings.port, () => {
-    console.log(`the server is listening ${settings.port}`)
+Handler(io, app, () => {
+    server.listen(settings.port, () => {
+        console.log(`the server is listening ${settings.port}`)
+    })
 })

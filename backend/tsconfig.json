@@ -26,5 +26,5 @@
     },
     "files": ["app.ts"],
     "include": ["**/*.ts", "**/*.tsx", "./path.js"],
-    "exclude": ["./test/*"]
+    "exclude": []
 }

@@ -54,7 +54,6 @@ interface PlayerState {
         endRatio: number;
     }[];
     showSelectPlayModeDialog: boolean;
-    isSeeking: boolean;
 }
 
 
@@ -90,7 +89,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             commentTextAlign: 'left',
             musicBuffered: [],
             showSelectPlayModeDialog: false,
-            isSeeking: false,
         }
         this.needTodoActionArr = []
         this.commentLineHeight = 1.8
@@ -324,9 +322,9 @@ class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     _getIsProgressPending(isPaused: boolean) {
-        const { timeRatio, musicBuffered, isSeeking: isWaitLoading } = this.state
+        const { timeRatio, musicBuffered } = this.state
         return !isPaused && (
-            isWaitLoading || !musicBuffered.some(({ startRatio, endRatio }) => {
+            !musicBuffered.some(({ startRatio, endRatio }) => {
                 return timeRatio >= startRatio && timeRatio <= endRatio
             })
         )
@@ -561,16 +559,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     timeRatio: 1,
                 })
             }}
-            onSeeking={() => {
-                this.setState({
-                    isSeeking: true,
-                })
-            }}
-            onSeeked={() => {
-                this.setState({
-                    isSeeking: false,
-                })
-            }}
+           
         ></audio>
 
         const returnNode = <div className={bindClass(styles.playerBox, simpleMode && styles.simpleMode, isMobile ? styles.mobileMode : styles.normal)}>
@@ -680,7 +669,7 @@ const SwitchPlayModeDialog = React.memo<{
                          <InputLabel>类型</InputLabel>
                          <Select value={autoPlayType} onChange={handleAutoPlayTypeSelect}>
                                 {
-                                    globalConfig.roomAutoPlayTypes.map(type => <MenuItem value={type}>
+                                    globalConfig.roomAutoPlayTypes.map(type => <MenuItem key={type} value={type}>
                                         {type}
                                     </MenuItem>)}
                             </Select>

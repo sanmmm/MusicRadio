@@ -329,7 +329,7 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                     direction={direction as any}
                     afterHide={handleAfterHide}
                 >
-                    <span className={style.content}>
+                    <div className={style.content}>
                         {
                             !!focusInfo && (
                                 () => {
@@ -346,7 +346,7 @@ const CoordDataVisualization = React.memo<Props>((props) => {
                                 }
                             )()
                         }
-                    </span>
+                    </div>
                 </ScrollShow>
             }
         </div>

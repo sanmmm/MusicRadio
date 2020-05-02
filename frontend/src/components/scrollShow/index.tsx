@@ -15,7 +15,7 @@ interface Props {
 
 export default React.memo<Props>((props) => {
     const {className, direction, children, show, transitionDuration = 0.5, afterShow, afterHide} = props
-    const contentRef = useRef<HTMLSpanElement>(null)
+    const contentRef = useRef<HTMLDivElement>(null)
     const [containerWidth, setContainerWidth] = useState(null)
     const [isInitial, setIsInitial] = useState(true)
 
@@ -56,7 +56,7 @@ export default React.memo<Props>((props) => {
     })}  style={{
         width: containerWidth
     }}>
-        <span className={bindClass(!isMeasure && style.content, isShow && style.show)}
+        <div className={bindClass(!isMeasure && style.content, isShow && style.show)}
             ref={contentRef}
             style={{
                 transitionDuration: `${transitionDuration}s`,
@@ -64,6 +64,6 @@ export default React.memo<Props>((props) => {
             }}
         >
             {children}
-        </span>
+        </div>
     </span>
 })

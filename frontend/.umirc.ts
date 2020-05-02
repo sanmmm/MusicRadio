@@ -9,12 +9,13 @@ const config: IConfig = {
   treeShaking: true,
   context: {
     httpServerUrl: settings.httpServer,
+    isProduction: isProductionMode,
   },
   publicPath: settings.publicPath || '/',
-  externals: {
+  externals: isProductionMode ? {
     'react': 'React',
     'react-dom': 'ReactDOM',
-  },
+  } : {},
   routes: [
     {
       path: '/',
