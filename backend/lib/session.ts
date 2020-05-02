@@ -143,6 +143,7 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
             }
             next()
         } catch (e) {
+            console.error(e)
             next(e)
         }
     }

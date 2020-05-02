@@ -78,6 +78,15 @@ namespace ListenSocket {
                     const user = await User.findOne(socket.session.user.id)
                     socket.session.user = user
                 }
+                if (ackFunc && typeof ackFunc === 'function') {
+                    const oldAckFunc = ackFunc
+                    ackFunc = (resData) => {
+                        oldAckFunc({
+                            eventName: event,
+                            data: resData
+                        })
+                    }
+                }
                 const reqUser = socket.session.user
                 const isSuper = isSuperAdmin(reqUser)
                 // api截流
@@ -1236,6 +1245,7 @@ namespace ManageRoomPlaying {
             status: NowPlayingStatus.playing,
             pausedAt: null,
         })
+        room.updateProperty('nowPlayingInfo')
         await room.save()
         await setSwitchMusicCronJob(room)
         Actions.sendNowRoomPlayingInfo(room, room.joiners)
@@ -1257,6 +1267,7 @@ namespace ManageRoomPlaying {
             endAt: null,
             pausedAt: Date.now() / 1000,
         })
+        room.updateProperty('nowPlayingInfo')
         await room.save()
         Actions.sendNowRoomPlayingInfo(room, room.joiners)
     }
@@ -1270,10 +1281,12 @@ namespace ManageRoomPlaying {
         }
         await cancelSwitchMusicJob(room)
         room.nowPlayingInfo.progress = progressRate
+        room.updateProperty('nowPlayingInfo')
         await room.save()
         if (isRoomPlaying(room)) {
             const { progress, duration } = room.nowPlayingInfo
             room.nowPlayingInfo.endAt = Date.now() / 1000 + (1 - progress) * duration
+            room.updateProperty('nowPlayingInfo')
             await room.save()
             await setSwitchMusicCronJob(room)
         }
@@ -1452,6 +1465,7 @@ class Actions {
 class Handler {
     @catchError()
     static async connected(socket: socketIo.Socket) {
+        console.log('inner connected')
         if (!socket.session.isAuthenticated) {
             throw new Error('未通过认证')
         }
@@ -1883,6 +1897,7 @@ class Handler {
                 }
                 if (!isSuperAdmin(reqUser)) {
                     room.vote.agreeUids.push(reqUser.id)
+                    room.updateProperty('vote')
                 }
                 await room.save()
                 responseStr = '创建切歌投票成功'
@@ -2761,7 +2776,7 @@ class Handler {
     }
 
     // express route handler
-    @HandleHttpRoute.get('/')
+    @HandleHttpRoute.get('/*')
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
         res.sendfile(path.resolve(__dirname, '../static/index.html'))

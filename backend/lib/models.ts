@@ -1,7 +1,7 @@
 import uuid from 'uuid/v4'
 import crypto from 'crypto'
 
-import {isSuperAdmin, safePushArrItem, safeRemoveArrItem} from 'root/lib/utils'
+import { isSuperAdmin, safePushArrItem, safeRemoveArrItem, useBlock } from 'root/lib/utils';
 import redisCli from 'root/lib/redis'
 import {ModelBase, UserModel, RoomModel, StaticModelClass, MessageItem, PlayListItem, AdminAction, RoomStatus, RoomTypes, 
     NowPlayingInfo, UserStatus, UserRoomRecordTypes, UserRoomRecord} from 'root/type'
@@ -88,9 +88,89 @@ export namespace ModelDescriptors {
         return redisKey
     }
 
+    const markPropertyName = '__model_updated'
+    function isNeedSetProxy (target, p) {
+        const originValue = target[p]
+        const descriptor = Object.getOwnPropertyDescriptor(target, p)
+        const needSetProxy = target.hasOwnProperty(p) && descriptor && (originValue instanceof Array) && (descriptor.writable || !!descriptor.set)
+        return needSetProxy
+    }
+
+    export function clearModelPropertyValueUpdatedMark (value: any) {
+        if (hasModelPropertyValueUpdatedMark(value)) {
+            value[markPropertyName] = false
+        }
+        return value
+    }
+
+    export function hasModelPropertyValueUpdatedMark (value) {
+        return value instanceof Object && value[markPropertyName]
+    }
+
+    const proxyHandler: ProxyHandler<BaseModelDef> = {
+        get (target, p) {
+            const originValue = target[p]
+            const needSetProxy = isNeedSetProxy(target, p)
+      
+            let value = originValue
+            if (!needSetProxy) {
+                return value
+            }
+            if (originValue instanceof Array) {
+                const actions = ['copyWithin', 'splice', 'sort', 'pop', 'shift', 'push', 'unshift', 'reverse', 'fill']
+                value = new Proxy(originValue, {
+                    get (arrObj, p) {
+                        let value = arrObj[p]
+                        if (value instanceof Function && actions.includes(p as string)) {
+                            return (...args) => {
+                                (arrObj as any)[markPropertyName] = true
+                                value.call(arrObj, ...args)
+                            }
+                        }
+                        return value
+                    }
+                })
+            }
+            return value
+        },
+        set (target, p: string, value, ...args) {
+            if (hasModelPropertyValueUpdatedMark(value)) {
+                if (Array.isArray(value)) {
+                    value = [...value];
+                }
+                value[markPropertyName] = false
+            }
+            const dynamicKeys = ModelDescriptors.getDynamicKeys(target)
+            if (!dynamicKeys.has(p)) {
+                target._modifiedProperties.add(p)
+            }
+            Reflect.set(target, p, value)
+            return true
+        }
+    }
+    export function useInstanceProxy (obj: BaseModelDef) {
+        return new Proxy(obj, proxyHandler)
+    }
+
+    export function useModelProxy (model: StaticModelClass<BaseModelDef>) {
+        return new Proxy(model, {
+            construct (model, args) {
+                const instance = new model(...args)
+                return useInstanceProxy(instance)
+            },
+            get (target, p) {
+                let v = Reflect.get(target, p)
+                if (v instanceof Function) {
+                    v = v.bind(target)
+                }
+                return v
+            },
+        })
+    }
 }
 
 namespace UtilFuncs {
+
     export async function addToRedisSet (key: string, value: string) {
         await redisCli.sadd(key, value)
         const isLoaded = isRedisSetCahceLoaded.get(key)
@@ -182,6 +262,16 @@ namespace UtilFuncs {
     export function generateRoomPassword (length = 4) {
         return Math.random().toString(32).slice(2, 2 + length)
     }
+
+    export function setObjectValueCrossProxy (obj, propertyName: string, value: any, descriptor?: Partial<PropertyDescriptor>) {
+        Object.defineProperty(obj, propertyName, {
+            value,
+            configurable: true,
+            enumerable: true,
+            writable: true,
+            ...(descriptor || {})
+        })
+    }
 }
 
 @ModelDescriptors.modelDecorator('base')
@@ -191,13 +281,13 @@ export class BaseModelDef implements ModelBase {
     static _dynamicKeys: Set<string> = new Set();
     id: string;
     createAt: string; // 创建时间
+    @ModelDescriptors.dynamicDecorator
+    _modifiedProperties = new Set<string>();
+    propertiesStamp: {[key: string]: number} = {};
 
     @ModelDescriptors.uniqueDecorator
     protected numberId: number
     protected isInit: boolean = true;
-
-    @ModelDescriptors.dynamicDecorator
-    private snapshotObj: this = null;
 
     constructor (obj = {}) {
         Object.assign(this, obj)
@@ -213,10 +303,10 @@ export class BaseModelDef implements ModelBase {
         const dataArr = (await redisCli.mget(...ids)) || []
         return dataArr.map(str => str && this._fromJson(str) as any)
     }
-    static async findOne (id: string) {
-        id = BaseModelDef.generateKey(id)
-        const dataStr = await redisCli.get(id)
-        return dataStr && this._fromJson(dataStr) as any
+    static async findOne (id: string, isPurely = false) {
+        const key = BaseModelDef.generateKey(id)
+        const dataStr = await redisCli.get(key)
+        return dataStr && this._fromJson(dataStr, isPurely) as any
     }
     static async delete (ids: string[]) {
         ids = ids.map(BaseModelDef.generateKey)
@@ -263,59 +353,111 @@ export class BaseModelDef implements ModelBase {
         await UtilFuncs.loadRedisSetCache(redisKey)
     }
 
-    private static _fromJson (str: string) {
-        const obj = new this(JSON.parse(str))
-        obj.snapshotObj = Object.defineProperties({}, Object.getOwnPropertyDescriptors(obj))
-        obj.isInit = false
-        return obj
+    updateProperty (propertyName: keyof this) {
+        const dynamicKeys: Set<any> = ModelDescriptors.getDynamicKeys(this)
+        const v = Reflect.get(this, propertyName)
+        if (v instanceof Function) {
+            throw new Error('not supoort method properties')
+        }
+        if (!dynamicKeys.has(propertyName)) {
+            this._modifiedProperties.add(propertyName as string)
+        }
+        return this
     }
 
-    private _patchResolveModifieldFeilds () {
-        const uniqueKeys: Set<string> = ModelDescriptors.getUniqueKeys(this)
-        const modifiedFeildNames: string[] = []
-        const modifiedOldValueKeys: string[] = []
-        const modifiedNewValueKeys: string[] = []
-        Array.from(uniqueKeys).forEach(feildName => {
-            const newValue = this[feildName]
-            if (!this.snapshotObj) { // init
-                modifiedNewValueKeys.push(ModelDescriptors.getIndexRedisKey(this, feildName, newValue))
-                modifiedFeildNames.push(feildName)
+    private static _fromJson (str: string, isPurely = false) {
+        const obj = new this(JSON.parse(str))
+        obj.isInit = false
+        return isPurely ? obj : ModelDescriptors.useInstanceProxy(obj)
+    }
+
+    private _updateModifiedProperties () {
+        const dynamicKeys: Set<string> = ModelDescriptors.getDynamicKeys(this)
+        Object.getOwnPropertyNames(this).forEach(property => {
+            if (dynamicKeys.has(property)) {
                 return
             }
-            const oldValue = this.snapshotObj[feildName]
-            if (oldValue !== newValue) {
-                modifiedOldValueKeys.push(ModelDescriptors.getIndexRedisKey(this, feildName, oldValue))
-                modifiedNewValueKeys.push(ModelDescriptors.getIndexRedisKey(this, feildName, newValue))
-                modifiedFeildNames.push(feildName)
+            const value = this[property]
+            if (ModelDescriptors.hasModelPropertyValueUpdatedMark(value)) {
+                ModelDescriptors.clearModelPropertyValueUpdatedMark(value)
+                this._modifiedProperties.add(property)
+            } 
+        })
+    }
+
+    private _patchResolveModifieldFeilds (prevObj: this) {
+        const isInitial = !prevObj
+        const uniqueKeys: string[] = Array.from(ModelDescriptors.getUniqueKeys(this))
+        const toResolvedFeildNames: string[] = isInitial ? uniqueKeys : uniqueKeys.filter(key => this._modifiedProperties.has(key))
+        const modifiedOldValueKeys: Map<string, string> = new Map()
+        const modifiedNewValueKeys: Map<string, string> = new Map()
+        toResolvedFeildNames.forEach(feildName => {
+            const newValue = this[feildName]
+            if (!isInitial) {
+                const oldValue = prevObj[feildName]
+                if (oldValue !== undefined) {
+                    modifiedOldValueKeys.set(ModelDescriptors.getIndexRedisKey(this, feildName, oldValue), feildName)
+                }
+            }
+            if (newValue !== undefined) {
+                modifiedNewValueKeys.set(ModelDescriptors.getIndexRedisKey(this, feildName, newValue), feildName)
             }
         })
-        const changed = !!modifiedNewValueKeys.length
+ 
         return {
             validateBeforeSave: async () => {
-                if (!changed) {
+                if (!modifiedNewValueKeys.size) {
                     return
                 }
-                const resArr = await redisCli.mget(...modifiedNewValueKeys)
+                const resArr = await redisCli.mget(...modifiedNewValueKeys.keys())
+                const feildNames = [...modifiedNewValueKeys.values()]
                 resArr.forEach((res, index) => {
                     const hasExisted = !!res
                     if (hasExisted) {
-                        const feildName = modifiedFeildNames[index]
+                        const feildName = feildNames[index]
                         throw new Error(`字段${feildName}的值不能重复：${this[feildName]}`)
                     }
                 })
             },
             updateIndexAfterSave: async () => {
-                if (!changed) {
+                if (!modifiedOldValueKeys.size && !modifiedNewValueKeys.size) {
                     return
                 }
                 const map = new Map()
-                modifiedNewValueKeys.forEach(key => map.set(key, this.id))
+                modifiedNewValueKeys.forEach((_, key) => map.set(key, this.id))
                 await redisCli.mset(map)
-                if (modifiedOldValueKeys.length) {
-                    await redisCli.del(...modifiedOldValueKeys)
+                if (modifiedOldValueKeys.size) {
+                    await redisCli.del(...modifiedOldValueKeys.keys())
                 }
             }
         }
+    }
+
+    private _mergeFromLatestObj (latestObj: this) {
+        if (!latestObj) { // init
+            return
+        }
+        this._updateModifiedProperties()
+        Array.from(this._modifiedProperties).forEach(propertyName => {
+            latestObj[propertyName] = this[propertyName]
+        })
+        Object.assign(this, latestObj)
+        return this
+    }
+
+    private _updatePropertiesStamp (prevObj: this, modifiedProperties: this['_modifiedProperties']) {
+        const isInitial = !prevObj
+        const prevStampObj = prevObj && prevObj.propertiesStamp
+        const obj = Object.getOwnPropertyNames(this).reduce((stampObj, property) => {
+            if (isInitial) {
+                stampObj[property] = 0
+            } else if (modifiedProperties.has(property)) {
+                stampObj[property] ++
+            }
+            return stampObj
+        }, prevStampObj || {})
+        UtilFuncs.setObjectValueCrossProxy(this, 'propertiesStamp', obj)
+        return obj
     }
 
     private _toJson () {
@@ -339,20 +481,34 @@ export class BaseModelDef implements ModelBase {
         const modelName = ModelDescriptors.getModelName(this)
         let time = Date.now()
         const isInitial = this.isInit
-        if (isInitial) {
-            const hasExisted = await redisCli.exists(BaseModelDef.generateKey(this.id))
-            if (hasExisted) {
-                throw new Error(`duplicated id: ${this.id}`)
-            }
-            this.isInit = false
-            this.createAt = new Date().toString()
-            // 生成数字id
-            this.numberId = await redisCli.incr(`musicradio-model-${modelName}-numberIdcursor`)
-        }
-        const indexTool = this._patchResolveModifieldFeilds()
-        await indexTool.validateBeforeSave()
-        await redisCli.set(BaseModelDef.generateKey(this.id), this._toJson())
-        await indexTool.updateIndexAfterSave()
+        this._updateModifiedProperties()
+        await useBlock(`modelsave:${modelName}:${this.id}`, {
+            wait: true,
+            success: async () => {
+                let latestObj: this = null
+                if (isInitial) {
+                    const hasExisted = await redisCli.exists(BaseModelDef.generateKey(this.id))
+                    if (hasExisted) {
+                        throw new Error(`duplicated id: ${this.id}`)
+                    }
+                    this.isInit = false
+                    this.createAt = new Date().toString()
+                    // 生成数字id
+                    this.numberId = await redisCli.incr(`musicradio-model-${modelName}-numberIdcursor`)
+                } else {
+                    const modelDef: typeof BaseModelDef = Object.getPrototypeOf(this).constructor
+                    latestObj = await modelDef.findOne(this.id, true)
+                }
+                const indexTool = this._patchResolveModifieldFeilds(latestObj)
+                await indexTool.validateBeforeSave()
+                const _modifiedProperties = this._modifiedProperties
+                this._mergeFromLatestObj({...latestObj})
+                this._updatePropertiesStamp(latestObj, _modifiedProperties)
+                this._modifiedProperties.clear()
+                await redisCli.set(BaseModelDef.generateKey(this.id), this._toJson())
+                await indexTool.updateIndexAfterSave()
+            },
+        })
         console.log((Date.now() - time) / 1000, modelName, 'save used time-----------------')
         if (isInitial) {
               // 记录id值
@@ -373,8 +529,8 @@ export class BaseModelDef implements ModelBase {
     }
 }
 
-function defineModel <U, T extends StaticModelClass> (m: T) {
-    return m as (StaticModelClass<U> & T)
+export function defineModel <U, T extends StaticModelClass> (m: T) {
+    return ModelDescriptors.useModelProxy(m) as (StaticModelClass<U> & T)
 }
 
 @ModelDescriptors.modelDecorator('user')

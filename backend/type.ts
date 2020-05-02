@@ -56,6 +56,7 @@ export interface StaticModelClass<T = any> {
 export interface ModelBase {
     id: string;
     createAt: string;
+    updateProperty: (p: keyof this) => this; 
     save: () => Promise<this>;
     remove: () => Promise<this>;
 }
