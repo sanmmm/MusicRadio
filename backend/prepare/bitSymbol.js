@@ -29,7 +29,7 @@ function main () {
         i ++
     }
     shuffleArr(arr)
-    fs.writeFileSync(path.resolve(__dirname, 'bitSybmols.json'), JSON.stringify(arr))
+    fs.writeFileSync(path.resolve(__dirname, 'bitSymbols.json'), JSON.stringify(arr))
     console.log(arr)
 }
 

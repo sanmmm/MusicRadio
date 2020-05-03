@@ -7,12 +7,12 @@ import {ModelBase, UserModel, RoomModel, StaticModelClass, MessageItem, PlayList
     NowPlayingInfo, UserStatus, UserRoomRecordTypes, UserRoomRecord} from 'root/type'
 import {userRoomInfoMap, roomHeatMap, roomJoinersMap, roomAdminsMap, roomNormalJoinersMap, roomUpdatedUserRecordsMap, modelMemberIdsMap, 
     redisSetCache, isRedisSetCahceLoaded, redisSetToArrayCache} from 'root/lib/store'
-import bitSymbols from 'root/config/bitSybmols.json'
+import bitSymbols from 'root/config/bitSymbols.json'
 import globalConfigs from 'global/common/config';
 import settings from 'root/settings';
 import { RoomMusicPlayMode } from 'global/common/enums';
 
-export namespace ModelDescriptors {
+namespace ModelDescriptors {
     const modelNameSet = new Set<string>()
     const collectedModelUniqueKeys = new Set<string>()
     const collectedModelDynamicKeys = new Set<string>()
@@ -124,7 +124,7 @@ export namespace ModelDescriptors {
                         if (value instanceof Function && actions.includes(p as string)) {
                             return (...args) => {
                                 (arrObj as any)[markPropertyName] = true
-                                value.call(arrObj, ...args)
+                                return value.call(arrObj, ...args)
                             }
                         }
                         return value
@@ -275,7 +275,7 @@ namespace UtilFuncs {
 }
 
 @ModelDescriptors.modelDecorator('base')
-export class BaseModelDef implements ModelBase {
+class BaseModelDef implements ModelBase {
     static _modelName: string = 'base';
     static _uniqueKeys: Set<string> = new Set();
     static _dynamicKeys: Set<string> = new Set();
@@ -483,7 +483,6 @@ export class BaseModelDef implements ModelBase {
             this.id = uuid().replace(/-/g, '')
         }
         const modelName = ModelDescriptors.getModelName(this)
-        let time = Date.now()
         const isInitial = this.isInit
         this._updateModifiedProperties()
         await useBlock(this._getBlockKey(modelName), {
@@ -513,7 +512,6 @@ export class BaseModelDef implements ModelBase {
                 await indexTool.updateIndexAfterSave()
             },
         })
-        console.log((Date.now() - time) / 1000, modelName, 'save used time-----------------')
         if (isInitial) {
               // 记录id值
               const allIdKey = UtilFuncs.getModelMemberIdsRedisKey(modelName)
@@ -849,3 +847,8 @@ class RoomModelDef extends BaseModelDef implements RoomModel{
 }
 
 export const Room = defineModel<RoomModelDef, typeof RoomModelDef>( RoomModelDef)
+
+export {
+    BaseModelDef,
+    ModelDescriptors,
+}

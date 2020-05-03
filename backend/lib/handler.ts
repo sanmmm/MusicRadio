@@ -46,7 +46,7 @@ async function beforeStart() {
     if (isInitial) {
         await UtilFuncs.startRoomRoutineTasks(hallRoom)
     }
-    await RoomIpActionDataRecord.start(settings.coordDataCalcDuration, true)
+    await RoomIpActionDataRecord.start(settings.coordDataCalcDuration, settings.coordDataCalcIncMode)
 }
 
 const UserToSocketIdMap: {
@@ -392,10 +392,23 @@ namespace UtilFuncs {
     }
 
     export async function startRoomRoutineTasks(room: RoomModel) {
-        await RoomRoutineLoopTasks.startRoomTask(room, RoomRoutineLoopTasks.TaskTypes.broadcastRoomBaseInfo, 60)
-        await RoomRoutineLoopTasks.startRoomTask(room, RoomRoutineLoopTasks.TaskTypes.dispatchUpatedOnlineUsersToAdmin, 25)
+        const {broadcastRoomBaseInfo, checkCreatorOnlineStatus, dispatchUpatedOnlineUsersToAdmin} = RoomRoutineLoopTasks.TaskTypes
+        await RoomRoutineLoopTasks.startRoomTask({
+            room,
+            taskType: broadcastRoomBaseInfo,
+            period: 60
+        })
+        await RoomRoutineLoopTasks.startRoomTask({
+            room,
+            taskType: dispatchUpatedOnlineUsersToAdmin,
+            period: 20,
+        })
         if (room.type === RoomTypes.personal) {
-            await RoomRoutineLoopTasks.startRoomTask(room, RoomRoutineLoopTasks.TaskTypes.checkCreatorOnlineStatus, 60)
+            await RoomRoutineLoopTasks.startRoomTask({
+                room,
+                taskType: checkCreatorOnlineStatus,
+                period: 60
+            })
         }
     }
 
@@ -470,6 +483,15 @@ namespace UtilFuncs {
         await ManageRoomPlaying.initPlaying(room, room.playList[0], autoPlay)
     }
 
+    export async function recordFuctionArguments(key: string | number, ...newArgs: any[]) {
+        const redisKey = `musicradio:function:${key}:args`
+        const lastRecord = await redisCli.safeGet(redisKey)
+        const isChanged = !isDeepEqual(lastRecord, newArgs)
+        if (isChanged) {
+            await redisCli.safeSet(redisKey, newArgs, 3600 * 24 * 356)
+        }
+        return isChanged
+    }
 }
 
 // 全站房间可视化数据记录和处理
@@ -854,8 +876,13 @@ namespace RoomIpActionDataRecord {
          */
         @catchError()
         static async start(refreshDuration: number, inc = false) {
-            if (vars.isStarted) {
-                return
+            const args = [refreshDuration, inc]
+            if (await UtilFuncs.recordFuctionArguments('startcalcipdata', args)) {
+                await stop()
+            } else {
+                if (vars.isStarted) {
+                    return
+                }
             }
             await loadDataFromRedis()
             await IpDataCronTaskManage.startTask(SubCronTaskTypes.calcData, refreshDuration, {
@@ -867,9 +894,6 @@ namespace RoomIpActionDataRecord {
         }
         @catchError()
         static async stop() {
-            if (!vars.isStarted) {
-                return
-            }
             await IpDataCronTaskManage.stopTask(SubCronTaskTypes.calcData)
             await IpDataCronTaskManage.stopTask(SubCronTaskTypes.refreshIpReqCounter)
             vars.isStarted = false
@@ -885,7 +909,7 @@ namespace RoomIpActionDataRecord {
     }
 }
 
-export namespace DestroyRoom {
+namespace DestroyRoom {
     const getRoomRecordKey = (roomId: string) => {
         return `musicraio:roomdestroy:${roomId}`
     }
@@ -898,6 +922,7 @@ export namespace DestroyRoom {
     interface cronData {
         roomId: string
     }
+
     class UtilFunc {
         @catchError()
         static async handleDestroy(data: cronData) {
@@ -915,11 +940,11 @@ export namespace DestroyRoom {
 
     CronTask.listen(CronTaskTypes.destroyRoom, UtilFunc.handleDestroy)
 
-    export async function destroy(room: RoomModel) {
+    export async function destroy(room: RoomModel, expire: number = 60 * 5) {
         const cronData: cronData = {
             roomId: room.id
         }
-        const expire = 20
+        const destoryExpire = expire
         const redisKey = getRoomRecordKey(room.id)
 
         const oldJobRecord: DestroyRecord = JSON.parse(await redisCli.safeGet(redisKey))
@@ -927,11 +952,11 @@ export namespace DestroyRoom {
             await CronTask.cancelCaronTask(oldJobRecord.cronJobId)
             await redisCli.del(redisKey)
         }
-        const jobId = await CronTask.pushCronTask(CronTaskTypes.destroyRoom, cronData, expire)
+        const jobId = await CronTask.pushCronTask(CronTaskTypes.destroyRoom, cronData, destoryExpire)
         await redisCli.safeSet(redisKey, {
             cronJobId: jobId,
             prevRoomStatus: room.status
-        }, expire)
+        }, destoryExpire)
         room.status = RoomStatus.willDestroy
         await room.save()
         return room
@@ -971,6 +996,7 @@ namespace RoomRoutineLoopTasks {
         checkCreatorOnlineStatus,
     }
 
+
     function registerTaskCb(taskType: TaskTypes) {
         return function (target, propertyName, descriptor: PropertyDescriptor) {
             const func = descriptor.value
@@ -988,7 +1014,8 @@ namespace RoomRoutineLoopTasks {
             if (cb) {
                 await cb(data)
             }
-            await CronTask.pushCronTask(CronTaskTypes.roomRoutineTask, data, data.period)
+            const taskId = await CronTask.pushCronTask(CronTaskTypes.roomRoutineTask, data, data.period)
+            await redisCli.set(getTaskToCronJobIdKey(data.roomId, data.routineTaskType), taskId)
         }
 
         @registerTaskCb(TaskTypes.broadcastRoomBaseInfo)
@@ -1037,11 +1064,24 @@ namespace RoomRoutineLoopTasks {
      * @param taskType 循环任务类型
      * @param period 循环任务周期 单位: s
      */
-    export async function startRoomTask(room: RoomModel, taskType: TaskTypes, period = 10, extraData = null) {
+    interface StartRoomtTaskOptions {
+        room: RoomModel;
+        taskType: TaskTypes;
+        period: number;
+        extraData?: any;
+    }
+    export async function startRoomTask(options: StartRoomtTaskOptions) {
+        const { room, taskType, period, extraData = null } = options
         const redisKey = getTaskToCronJobIdKey(room.id, taskType)
-        const isStarted = await redisCli.exists(redisKey)
-        if (isStarted) {
-            return
+
+        const args = [room.id, taskType, period, extraData]
+        if (await UtilFuncs.recordFuctionArguments(`roomroutineTask:${taskType}`, args)) {
+            await stopRoomTask(room, taskType)
+        } else {
+            const isStarted = await redisCli.exists(redisKey)
+            if (isStarted) {
+                return
+            }
         }
         const cronData: CronData = {
             roomId: room.id,
@@ -1061,6 +1101,7 @@ namespace RoomRoutineLoopTasks {
         if (!jobId) {
             return
         }
+        console.log('stop')
         await CronTask.cancelCaronTask(jobId)
         await redisCli.del(redisKey)
     }
@@ -1083,24 +1124,25 @@ namespace ManageRoomPlaying {
             if (!(room.nowPlayingInfo && room.nowPlayingInfo.id === musicId)) {
                 return
             }
-            if (!Object.values(RoomMusicPlayMode).includes(room.playMode)) {
-                throw new Error('invlid play mode' + room.playMode)
-            }
-            if (room.playMode === RoomMusicPlayMode.demand) {
-                await removeNowPlaying(room)
-                const leftPlayList = room.playList
-                if (!leftPlayList.length) {
-                    console.log(`房间: ${room.id}列表播放结束`)
-                    return
-                }
-                await UtilFuncs.startPlayFromPlayListInOrder(room)
-            } else if (room.playMode === RoomMusicPlayMode.auto) {
-                await removeNowPlaying(room, false)
-                const selected = getArrRandomItem(room.playList)
-                await ManageRoomPlaying.initPlaying(room, selected)
-            } else {
-                return
-            }
+            await switchRoomPlaying(room)
+            // if (!Object.values(RoomMusicPlayMode).includes(room.playMode)) {
+            //     throw new Error('invlid play mode' + room.playMode)
+            // }
+            // if (room.playMode === RoomMusicPlayMode.demand) {
+            //     await removeNowPlaying(room)
+            //     const leftPlayList = room.playList
+            //     if (!leftPlayList.length) {
+            //         console.log(`房间: ${room.id}列表播放结束`)
+            //         return
+            //     }
+            //     await UtilFuncs.startPlayFromPlayListInOrder(room)
+            // } else if (room.playMode === RoomMusicPlayMode.auto) {
+            //     await removeNowPlaying(room, false)
+            //     const selected = getArrRandomItem(room.playList)
+            //     await ManageRoomPlaying.initPlaying(room, selected)
+            // } else {
+            //     return
+            // }
         }
 
     }
@@ -1139,6 +1181,27 @@ namespace ManageRoomPlaying {
     }
 
     CronTask.listen<CronJobData>(CronTaskTypes.cutMusic, UtilFunc.handleSwitchPlaying)
+
+    export async function switchRoomPlaying (room: RoomModel) {
+        if (!Object.values(RoomMusicPlayMode).includes(room.playMode)) {
+            throw new Error('invlid play mode' + room.playMode)
+        }
+        if (room.playMode === RoomMusicPlayMode.demand) {
+            await removeNowPlaying(room)
+            const leftPlayList = room.playList
+            if (!leftPlayList.length) {
+                console.log(`房间: ${room.id}列表播放结束`)
+                return
+            }
+            await UtilFuncs.startPlayFromPlayListInOrder(room)
+        } else if (room.playMode === RoomMusicPlayMode.auto) {
+            await removeNowPlaying(room, false)
+            const selected = getArrRandomItem(room.playList)
+            await ManageRoomPlaying.initPlaying(room, selected)
+        } else {
+            return
+        }
+    }
 
     export async function getPlayItemDetailInfo(playItemId: string) {
         const [musicInfo] = await NetEaseApi.getMusicInfo([playItemId])
@@ -1636,6 +1699,9 @@ class Handler {
         isPrivate: boolean;
         maxMemberCount: number;
     }, ackFunc?: Function) {
+        if (globalSettings.notAllowCreateRoom) {
+            throw new ResponseError('不支持多房间')
+        }
         const { name, isPrivate, maxMemberCount } = msg
         if (isPrivate && maxMemberCount < 2) {
             throw new ResponseError('房间人数不能小于2')
@@ -1854,6 +1920,29 @@ class Handler {
             throw new ResponseError('音乐id错误', true)
         }
         await ManageRoomPlaying.startPlaying(room)
+        ackFunc && ackFunc({
+            success: true
+        })
+    }
+
+    @ListenSocket.register(ServerListenSocketEvents.cutMusic)
+    @UtilFuncs.socketApiCatchError()
+    static async cutMusic(socket: SocketIO.Socket, msg: { roomId: string }, ackFunc?: Function) {
+        const { roomId } = msg
+        if (!roomId) {
+            throw new ResponseError('无效参数', true)
+        }
+        const reqUser = socket.session.user
+        const room = await Room.findOne(roomId)
+        if (!UtilFuncs.isRoomAdmin(room, reqUser)) {
+            throw new ResponseError('越权操作', true)
+        }
+        const isAutoPlayMode = room.playMode === RoomMusicPlayMode.auto;
+        const lengthRequired = isAutoPlayMode ? 1 : 2  
+        if (room.playList.length < lengthRequired) {
+            throw new ResponseError('没有下一首', true)
+        }
+        await ManageRoomPlaying.switchRoomPlaying(room)
         ackFunc && ackFunc({
             success: true
         })
@@ -2784,7 +2873,7 @@ class Handler {
     @HandleHttpRoute.get('/*')
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
-        res.sendfile(path.resolve(__dirname, '../static/index.html'))
+        res.sendFile(path.resolve(__dirname, '../static/index.html'))
     }
 
     @HandleHttpRoute.get('/getcookie')
@@ -2939,4 +3028,10 @@ export default async function (io: SocketIO.Server, app: Express, afterInit: () 
         ListenSocket.listen(socket)
     })
     afterInit()
+}
+
+export {
+    UtilFuncs,
+    DestroyRoom,
+    RoomRoutineLoopTasks,
 }
