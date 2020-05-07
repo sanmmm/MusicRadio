@@ -1,20 +1,18 @@
 import socketIo from 'socket.io'
-import { Router, Request, Response } from 'express';
+import { Router, Request, Response } from 'express'
 import Mint from 'mint-filter'
-import got from 'got';
+import got from 'got'
 import express, { Express } from 'express'
 import isDeepEqual from 'deep-equal'
-import path from 'path';
+import path from 'path'
 
-import globalSettings from 'global/common/settings'
-import settings from 'root/settings'
+import globalConfigs from 'global/common/config'
+import settings from 'root/getSettings'
 import { User, Room } from 'root/lib/models'
 import * as NetEaseApi from 'root/lib/api'
 import * as CronTask from 'root/lib/taskCron'
 import redisCli from 'root/lib/redis'
-import BlockMusicList from 'root/config/blockMusic.json'
-import BlockWordList from 'root/config/blockWords.json'
-import emojiData from 'root/config/emojiData.json'
+import {emojiData, blockMusic as BlockMusicList, blockWords as BlockWordList} from 'root/getSettings'
 import {
     UserModel, RoomModel, MessageItem, PlayListItem, MessageTypes, AdminAction,
     AdminActionTypes, RoomStatus, MediaTypes, CronTaskTypes, RoomTypes, UserRoomRecordTypes, UserRoomRecord,
@@ -66,7 +64,7 @@ namespace ListenSocket {
     export function register(event: ServerListenSocketEvents, options: RegisterOptions = {}) {
         return (target, propertyName: string, descriptor: PropertyDescriptor) => {
             const prevFunc: Handler = descriptor.value
-            const limitConfigs = globalSettings.apiFrequeryLimit
+            const limitConfigs = globalConfigs.apiFrequeryLimit
             let funcSet = map.get(event)
             if (!funcSet) {
                 funcSet = new Set()
@@ -146,13 +144,14 @@ namespace ListenSocket {
 
 // 注册http请求路由
 namespace HandleHttpRoute {
+    type PathMatcher = string | RegExp
     type Methods = 'get' | 'post'
     const pathRouteHandlers: {
         method: Methods,
-        route: string,
+        route: PathMatcher,
         handler: (req, res, next) => any;
     }[] = []
-    function register(method: Methods, route: string) {
+    function register(method: Methods, route: PathMatcher) {
         return function (targer, propertyName, descriptor: PropertyDescriptor) {
             const handler = descriptor.value
             pathRouteHandlers.push({
@@ -164,11 +163,11 @@ namespace HandleHttpRoute {
         }
     }
 
-    export function get(route: string) {
+    export function get(route: PathMatcher) {
         return register('get', route)
     }
 
-    export function post(route: string) {
+    export function post(route: PathMatcher) {
         return register('post', route)
     }
 
@@ -1699,7 +1698,7 @@ class Handler {
         isPrivate: boolean;
         maxMemberCount: number;
     }, ackFunc?: Function) {
-        if (globalSettings.notAllowCreateRoom) {
+        if (settings.notAllowCreateRoom) {
             throw new ResponseError('不支持多房间')
         }
         const { name, isPrivate, maxMemberCount } = msg
@@ -1870,10 +1869,6 @@ class Handler {
         room.playModeInfo = playModeInfo
         room.vote = null
         await room.save()
-        if (needStartPlaying && room.playList.length !== 0) {
-            const playItem = room.playList[0]
-            await ManageRoomPlaying.initPlaying(room, playItem)
-        }
         Actions.updateRoomBaseInfo(room.joiners, UtilFuncs.getRoomBaseInfo(room))
         Actions.deletePlayListItems(room.joiners, oldPlayList.map(i => i.id))
         Actions.sendNowRoomPlayingInfo(room, room.joiners)
@@ -1881,6 +1876,10 @@ class Handler {
         ackFunc && ackFunc({
             success: true
         })
+        if (needStartPlaying && room.playList.length !== 0) {
+            const playItem = room.playList[0]
+            await ManageRoomPlaying.initPlaying(room, playItem)
+        }
     }
 
     @ListenSocket.register(ServerListenSocketEvents.pausePlaying)
@@ -2870,15 +2869,17 @@ class Handler {
     }
 
     // express route handler
-    @HandleHttpRoute.get('/*')
+    @HandleHttpRoute.get(/^\/[^\/]?$/)
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
         res.sendFile(path.resolve(__dirname, '../static/index.html'))
     }
 
-    @HandleHttpRoute.get('/getcookie')
+    // 前端初始化信息
+    @HandleHttpRoute.get('/frontend/init')
     @UtilFuncs.routeHandlerCatchError()
     static async getCookie(req: Request, res: Response) {
+        
         res.send('success')
     }
 
@@ -2901,6 +2902,22 @@ class Handler {
     static async renderAdminPage(req: Request, res: Response) {
         const reqUser = req.session.user
         res.render('admin', UtilFuncs.getRenderAdminPageData(reqUser))
+    }
+
+    @HandleHttpRoute.get('/api/admin/userinfo')
+    @UtilFuncs.routeHandlerCatchError()
+    static async getUserInfo(req: Request, res: Response) {
+        const reqUser = req.session.user
+        if (!reqUser) {
+            throw new ResponseError('尚未登录')
+        }
+        res.json({
+            code: 0,
+            user: {
+                ...reqUser,
+                password: undefined
+            },
+        })
     }
 
     @HandleHttpRoute.post('/api/admin/register')

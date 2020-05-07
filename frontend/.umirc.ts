@@ -1,21 +1,34 @@
 import { IConfig } from 'umi-types';
 import path from 'path'
 
-import settings from './config/settings'
+const configInject = {
+  publicPath: process.env.PUBLICH_PATH || '/',
+  isProductionMode: process.env.NODE_ENV === 'production',
+  loadSettingsFromServer: process.env.ASYNC_SETTINGS === '1',
+}
 
-const isProductionMode = process.env.NODE_ENV === 'production'
+function getExternals () {
+  const obj: IConfig['externals'] = {}
+  if (configInject.isProductionMode) {
+    Object.assign(obj, {
+      'react': 'React',
+      'react-dom': 'ReactDOM',
+    })
+  }
+  if (configInject.loadSettingsFromServer) {
+    Reflect.set(obj, 'config/settings', 'clientSettings')
+  }
+  return obj
+}
+
 // ref: https://umijs.org/config/
 const config: IConfig = {
   treeShaking: true,
   context: {
-    httpServerUrl: settings.httpServer,
-    isProduction: isProductionMode,
+    isProduction: configInject.isProductionMode,
   },
-  publicPath: settings.publicPath || '/',
-  externals: isProductionMode ? {
-    'react': 'React',
-    'react-dom': 'ReactDOM',
-  } : {},
+  publicPath: configInject.publicPath,
+  externals: getExternals(),
   routes: [
     {
       path: '/',
@@ -80,7 +93,7 @@ const config: IConfig = {
   ]
 }
 
-if (isProductionMode) {
+if (configInject.isProductionMode) {
   config.extraBabelPlugins.push([
     'transform-remove-console',
     { "exclude": ["error", "warn"] }

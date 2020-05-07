@@ -1,7 +1,6 @@
 import socketIoClient from 'socket.io-client'
 
 import {ClientListenSocketEvents, ServerListenSocketEvents} from '@global/common/enums'
-import globalSettings from '@global/common/settings'
 import settings from 'config/settings'
 import globalConfigs from '@global/common/config'
 import {getAuthToken, CustomAlert} from '@/utils'
@@ -32,7 +31,7 @@ namespace Io {
             return true
         }
         const lastRequestTime = apiRequestTimeRecord.get(type)
-        const limit = globalSettings.apiFrequeryLimit[type] || globalSettings.apiFrequeryLimit.default
+        const limit = globalConfigs.apiFrequeryLimit[type] || globalConfigs.apiFrequeryLimit.default
         if (lastRequestTime && (lastRequestTime + limit) > Date.now()) {
             return false    
         } 

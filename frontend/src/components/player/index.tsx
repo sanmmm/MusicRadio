@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import bindClass from 'classnames'
 import { connect } from 'dva'
 import { Dialog, Select, MenuItem, DialogContent, DialogTitle, FormControl, FormControlLabel, Button, InputLabel } from '@material-ui/core'
+import { SkipNext as NextIcon } from '@material-ui/icons'
 
 import { ConnectProps, ConnectState, PlayListModelState } from '@/models/connect'
 import { NowPlayingStatus, RoomMusicPlayMode, RoomPlayModeInfo } from '@global/common/enums';
@@ -41,6 +42,7 @@ interface PlayerProps extends ConnectProps, ReduxPlayingInfo {
     isMobile: boolean;
     nowRoomPlayMode: RoomMusicPlayMode;
     roomPlayModeInfo: RoomPlayModeInfo;
+    playList: PlayListModelState['playList'];
 }
 
 interface PlayerState {
@@ -288,8 +290,8 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }))
     }
 
-    _isReallyPaused () {
-        return this.props.isPaused || this.state.isDragCursor 
+    _isReallyPaused() {
+        return this.props.isPaused || this.state.isDragCursor
     }
 
     _refreshMusicBuffered() {
@@ -340,7 +342,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }
     }
 
-    _changePlayingStatus() {
+    _changePlayingStatus = () => {
         if (!this._contralAble()) {
             return
         }
@@ -353,6 +355,17 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 musicId: musicId,
             }
         })
+    }
+
+    _cutPlayingMusic = () => {
+        const { nowRoomId } = this.props
+        this.props.dispatch({
+            type: 'playList/cutMusic',
+            payload: {
+                roomId: nowRoomId,
+            }
+        })
+
     }
 
     _setOpenDanmu() {
@@ -445,7 +458,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     <div className={styles.content}>
                         {
                             !!musicId ? [
-                                [name, artist].filter(i => !!i).join('-'),
+                                [name, artist].filter(i => !!i).join(' - '),
                                 playingStatus === NowPlayingStatus.paused && ' (暂停中)',
                                 playingStatus === NowPlayingStatus.preloading && ' (播放数据加载中...)',
                             ] :
@@ -517,24 +530,27 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                                     const config = RoomPlayModeConfigs[nowRoomPlayMode]
                                     return !!config && (
                                         isRoomAdmin ? <CustomIcon title={config.title} className={styles.clickAble} onClick={this._showSwitchModeDialog.bind(this)}>{config.icon}</CustomIcon> :
-                                    <span>{config.title}中</span>
+                                            <span>{config.title}中</span>
                                     )
                                 })()
                             }
                         </div>
                     </div>}
             </div>
-
             {
-                controlAble &&
+                isRoomAdmin &&
                 <div
-                    className={styles.right}
-                    onClick={this._changePlayingStatus}>
-                    <CustomIcon className={styles.iconfont}>
+                    className={styles.right} >
+                    <CustomIcon className={bindClass(styles.iconfont, !controlAble && styles.disabled)}
+                        onClick={this._changePlayingStatus}
+                    >
                         {
                             (isDragCursor || isPaused) ? 'play' : 'pause'
                         }
                     </CustomIcon>
+                    <CustomIcon onClick={this._cutPlayingMusic} className={bindClass(nowRoomPlayMode === RoomMusicPlayMode.demand && this.props.playList.length < 2 && styles.disabled)}>
+                        skip-next
+                </CustomIcon>
                 </div>
             }
         </div>
@@ -559,7 +575,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     timeRatio: 1,
                 })
             }}
-           
+
         ></audio>
 
         const returnNode = <div className={bindClass(styles.playerBox, simpleMode && styles.simpleMode, isMobile ? styles.mobileMode : styles.normal)}>
@@ -602,7 +618,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
 }
 
 export default connect<PlayerProps, any, Pick<PlayerProps, 'simpleMode' | 'isMobile'>>(
-    ({ playList: { nowPlaying }, center: { nowRoomInfo, userInfo, blockPlayItems, isRoomAdmin, openDanmu } }: ConnectState
+    ({ playList: { nowPlaying, playList }, center: { nowRoomInfo, userInfo, blockPlayItems, isRoomAdmin, openDanmu } }: ConnectState
     ) => {
         const musicId = nowPlaying && nowPlaying.id
         const isBlocked = (blockPlayItems || []).some(blockedId => blockedId === musicId)
@@ -612,6 +628,7 @@ export default connect<PlayerProps, any, Pick<PlayerProps, 'simpleMode' | 'isMob
             nowRoomId: nowRoomInfo && nowRoomInfo.id,
             nowRoomPlayMode: nowRoomInfo && nowRoomInfo.playMode,
             roomPlayModeInfo: nowRoomInfo && nowRoomInfo.playModeInfo,
+            playList,
             musicId,
             isBlocked,
             isPaused: !(nowPlaying && nowPlaying.status === NowPlayingStatus.playing),
@@ -624,14 +641,14 @@ export default connect<PlayerProps, any, Pick<PlayerProps, 'simpleMode' | 'isMob
 const SwitchPlayModeDialog = React.memo<{
     open: boolean;
     playModeInfo: RoomPlayModeInfo;
-    isMobile: boolean;  
+    isMobile: boolean;
     onClose: () => any;
     onSubmit: (obj: {
         mode: RoomMusicPlayMode;
         autoPlayType?: string;
     }) => any;
 }>(props => {
-    const {playModeInfo, open} = props
+    const { playModeInfo, open } = props
     const [rooMode, setRoomMode] = useState(null)
     const [autoPlayType, setAutoPlayType] = useState(null)
     const handleModeSelect = (e) => {
@@ -657,22 +674,22 @@ const SwitchPlayModeDialog = React.memo<{
                 <FormControl fullWidth={true} margin="normal">
                     <InputLabel>模式</InputLabel>
                     <Select value={rooMode} onChange={handleModeSelect}>
-                            {
-                                Object.entries(RoomPlayModeConfigs).map(([type, config]) => {
-                                    return <MenuItem key={type} value={type}>{config.title}</MenuItem>
-                                })
-                            }
-                        </Select>
+                        {
+                            Object.entries(RoomPlayModeConfigs).map(([type, config]) => {
+                                return <MenuItem key={type} value={type}>{config.title}</MenuItem>
+                            })
+                        }
+                    </Select>
                 </FormControl>
                 {
                     Number(rooMode) === RoomMusicPlayMode.auto && <FormControl fullWidth={true} margin="normal">
-                         <InputLabel>类型</InputLabel>
-                         <Select value={autoPlayType} onChange={handleAutoPlayTypeSelect}>
-                                {
-                                    globalConfig.roomAutoPlayTypes.map(type => <MenuItem key={type} value={type}>
-                                        {type}
-                                    </MenuItem>)}
-                            </Select>
+                        <InputLabel>类型</InputLabel>
+                        <Select value={autoPlayType} onChange={handleAutoPlayTypeSelect}>
+                            {
+                                globalConfig.roomAutoPlayTypes.map(type => <MenuItem key={type} value={type}>
+                                    {type}
+                                </MenuItem>)}
+                        </Select>
                     </FormControl>}
                 <FormControl fullWidth={true} margin="normal">
                     <Button color="primary" variant="contained" onClick={props.onSubmit.bind(null, {

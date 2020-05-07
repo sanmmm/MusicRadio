@@ -94,7 +94,7 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
                     icon: <PlaceIcon />
                 })
             }
-            if (userInfo.status === UserStatus.superAdmin || !userInfo.isRoomCreator) {
+            if (!settings.notAllowCreateRoom && (userInfo.status === UserStatus.superAdmin || !userInfo.isRoomCreator)) {
                 actionItems.push({
                     type: ActionTypes.createRoom,
                     icon: <CreateIcon />,

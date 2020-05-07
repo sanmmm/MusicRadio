@@ -1,5 +1,6 @@
 .history
 .vscode
+.github
 api
 netease
 build
@@ -10,3 +11,4 @@ backend/prepare/*.json
 backend/test*
 backend/static/*
 backend/build
+backend/config/*

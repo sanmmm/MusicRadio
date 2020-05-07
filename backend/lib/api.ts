@@ -1,7 +1,7 @@
 import got from 'got'
 
 import redisCli from 'root/lib/redis'
-import settings from 'root/settings'
+import settings from 'root/getSettings'
 import { MediaTypes } from 'root/type'
 
 const serverUrl = settings.neteaseApiServer.replace('\/$/g', '')

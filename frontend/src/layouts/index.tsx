@@ -11,11 +11,9 @@ import {HashRouter} from '@/components/hashRouter'
 import { WindowHeightProvider } from '@/components/windowHeightListen/index'
 import configs from 'config/base.conf'
 import settings from 'config/settings'
-import globalConfigs from '@global/common/config'
 import { ConnectProps, ConnectState, PlayListModelState, CenterModelState } from '@/models/connect'
 import { ScoketStatus } from '@global/common/enums'
 import Header from './header'
-
 
 interface LayoutProps extends ConnectProps {
   nowPlaying: PlayListModelState['nowPlaying'];

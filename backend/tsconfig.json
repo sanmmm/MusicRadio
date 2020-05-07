@@ -25,6 +25,6 @@
         "resolveJsonModule": true
     },
     "files": ["app.ts"],
-    "include": ["**/*.ts", "**/*.tsx", "./path.js"],
+    "include": ["**/*.ts", "**/*.tsx", "./path.js", "./default/*"],
     "exclude": []
 }

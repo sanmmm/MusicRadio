@@ -1,6 +1,6 @@
 import IoRedis from 'ioredis'
 
-import settings from 'root/settings'
+import settings from 'root/getSettings'
 
 export class Redis extends IoRedis {
     async safeSet (key: string, value: any, expire = 3600) {

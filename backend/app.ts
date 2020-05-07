@@ -5,11 +5,11 @@ if (isBuildMode) {
     registerPath()
 }
 
+import colors from 'colors/safe'
 import express from 'express'
 import compression from 'compression'
 import cookieParser from 'cookie-parser'
 import http from 'http'
-import uuidV4 from 'uuid/v4'
 import socketIo from 'socket.io';
 import reactViews from 'express-react-views'
 import path from 'path'
@@ -17,9 +17,10 @@ import cors from 'cors'
 
 import session from 'root/lib/session'
 import Handler from 'root/lib/handler'
-import settings from 'root/settings'
+import settings from 'root/getSettings'
 import globalConfigs from 'global/common/config'
 import { SessionTypes } from 'root/type'
+import {cookieMiddleware, dispatchClientSettings} from 'root/lib/middlewares'
 
 global.hallRoomId = globalConfigs.hallRoomId
 const sessionType = SessionTypes.token
@@ -27,14 +28,7 @@ const sessionType = SessionTypes.token
 const app = express()
 app.use(compression())
 app.use(cookieParser(settings.sessionSecret))
-app.use((req, res, next) => {
-    let cookie = req.cookies[settings.sessionKey]
-    if (!cookie) {
-        const uuid = uuidV4()
-        res.cookie(settings.sessionKey, uuid, { signed: true, maxAge: settings.sessionExpire, })
-    }
-    next()
-})
+app.use(cookieMiddleware)
 
 const staticPath = isBuildMode ? path.resolve(__dirname, '../../static') : 'static'
 app.use('/static', express.static(staticPath))
@@ -42,6 +36,10 @@ app.use(express.urlencoded({
     extended: true
 }))
 app.use(express.json())
+app.use((req, res, next) => {
+    console.log(colors.green(`http req: [${req.method}]${req.path}`))
+    next()
+})
 const needSetCors = settings.corsOrigin && settings.corsOrigin.length
 if (needSetCors) {
     app.use(cors({
@@ -53,6 +51,8 @@ app.set('view engine', 'tsx');
 app.engine('tsx', reactViews.createEngine({
     transformViews: false,
 }));
+// 放在sesion中间件前面
+app.get('/client/settings', dispatchClientSettings)
 app.use(session(sessionType))
 
 const server = new http.Server(app)

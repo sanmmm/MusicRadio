@@ -7,9 +7,9 @@ import {ModelBase, UserModel, RoomModel, StaticModelClass, MessageItem, PlayList
     NowPlayingInfo, UserStatus, UserRoomRecordTypes, UserRoomRecord} from 'root/type'
 import {userRoomInfoMap, roomHeatMap, roomJoinersMap, roomAdminsMap, roomNormalJoinersMap, roomUpdatedUserRecordsMap, modelMemberIdsMap, 
     redisSetCache, isRedisSetCahceLoaded, redisSetToArrayCache} from 'root/lib/store'
-import bitSymbols from 'root/config/bitSymbols.json'
+import {bitSymbols} from 'root/getSettings'
 import globalConfigs from 'global/common/config';
-import settings from 'root/settings';
+import settings from 'root/getSettings';
 import { RoomMusicPlayMode } from 'global/common/enums';
 
 namespace ModelDescriptors {
@@ -315,14 +315,14 @@ class BaseModelDef implements ModelBase {
     static async update (ids: string[], cb) {
         ids = ids.map(BaseModelDef.generateKey)
         const dataArr = await BaseModelDef.find(ids)
-        const map = new Map<string, string>()
+        const obj = {}
         const updatedItems = []
         dataArr.forEach((item) => {
             const updatedItem = cb(item)
-            map.set(BaseModelDef.generateKey(item.id), updatedItem._toJson())
+            Reflect.set(obj, BaseModelDef.generateKey(item.id), updatedItem._toJson())
             updatedItems.push(updatedItem)
         })
-        await redisCli.mset(map)
+        await redisCli.mset(obj)
         return updatedItems
     }
     // 索引查找
@@ -423,9 +423,9 @@ class BaseModelDef implements ModelBase {
                 if (!modifiedOldValueKeys.size && !modifiedNewValueKeys.size) {
                     return
                 }
-                const map = new Map()
-                modifiedNewValueKeys.forEach((_, key) => map.set(key, this.id))
-                await redisCli.mset(map)
+                const obj = {}
+                modifiedNewValueKeys.forEach((_, key) => Reflect.set(obj, key, this.id))
+                await redisCli.mset(obj)
                 if (modifiedOldValueKeys.size) {
                     await redisCli.del(...modifiedOldValueKeys.keys())
                 }

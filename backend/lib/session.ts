@@ -5,7 +5,7 @@ import cookie from 'cookie'
 import {URLSearchParams} from 'url'
 import http from 'http'
  
-import settings from 'root/settings'
+import settings from 'root/getSettings'
 import {User} from 'root/lib/models'
 import redisCli from 'root/lib/redis'
 import {SessionTypes, UserModel, Session as SessionDef, SessionStoreData, UserStatus} from 'root/type'
@@ -14,7 +14,7 @@ import {getRandomIp} from 'root/lib/utils'
 const {authTokenFeildName: authTokenKey} = globalConfigs
 
 const getIp = (str) => {
-    if (global.isProductionMode && settings.openRandomIpMode) {
+    if (!global.isProductionMode && settings.openRandomIpMode) {
         return getRandomIp()
     }
     if (str.startsWith('::ffff:')) {

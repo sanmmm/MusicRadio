@@ -77,9 +77,14 @@
                 font-size: 1.3rem;
             }
             > * {
+                cursor: pointer;
                 + * {
-                    margin-right: .4rem;
+                    margin-left: .8rem;
                 }
+            }
+            .disabled {
+                pointer-events: none;
+                color: rgba(255, 255, 255, 0.4);
             }
         }
     }

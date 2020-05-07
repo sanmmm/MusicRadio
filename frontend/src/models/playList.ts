@@ -4,6 +4,7 @@ import { Effect, Subscription } from 'dva'
 import socket from '@/services/socket'
 import { ServerListenSocketEvents, ClientListenSocketEvents, NowPlayingStatus } from '@global/common/enums'
 import { PlayListItem } from 'config/type.conf'
+import { checkReqRes } from '@/utils';
 
 export interface NowPlayingInfo {
     id: string;
@@ -48,6 +49,7 @@ export interface PlayListModelType {
         deletePlayListItem: Effect;
         pausePlay: Effect;
         startPlay: Effect;
+        cutMusic: Effect;
         changePlayingProgress: Effect;
     };
     reducers: {
@@ -100,6 +102,11 @@ const PlayListModel: PlayListModelType = {
         * startPlay({ payload }, _) {
             const actionId = socket.emit(ServerListenSocketEvents.startPlaying, payload)
             yield socket.awaitActionResponse(actionId)
+        },
+        * cutMusic({ payload }, _) {
+            const actionId = socket.emit(ServerListenSocketEvents.cutMusic, payload)
+            const res = yield socket.awaitActionResponse(actionId)
+            checkReqRes(res, '切歌')
         },
         * changePlayingProgress({ payload }, {put, select}) {
             const actionId = socket.emit(ServerListenSocketEvents.changeProgress, payload)

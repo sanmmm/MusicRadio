@@ -25,6 +25,7 @@ export enum ServerListenSocketEvents {
     pausePlaying = 'pausePlaying', // 暂停播放(admin)
     startPlaying = 'startPlaying', // 开始播放(admin)
     changeProgress = 'changeProgress', // 调整播放进度(admin)
+    cutMusic = 'cutMusic', // 切歌 (admin)
     switchPlayMode = 'switchPlayMode', // 切换播放模式 (admin)
     voteToCutMusic = 'voteToCutMusic', // 发起切歌投票 
     addPlayListItems = 'addPlayListItems', // 添加音乐到播放列表

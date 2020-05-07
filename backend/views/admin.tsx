@@ -52,6 +52,16 @@ export default function IndexLayout(props) {
         marginLeft: '1rem',
       }
     },
+    loading : {
+      position: "fixed",
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: 'white',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: '2rem',
+    },
     '@media (max-width: 500px)': {
       panel: {
         width: '90vw',
@@ -59,15 +69,13 @@ export default function IndexLayout(props) {
     }
   })
 
-  const isSuperAdmin = props.user.status > UserStatus.normal
   const scriptNode = useScript<{
     $: JQueryStatic;
     httpServerUrl: string;
     classes: typeof classes;
-    user: UserModel;
-    isSuperAdmin: boolean;
     basePath: string;
-  }>(({ $, classes, user, isSuperAdmin, basePath = '', httpServerUrl = '' }) => {
+    UserStatus: typeof UserStatus;
+  }>(({ $, classes, UserStatus, basePath = '', httpServerUrl = '' }) => {
 
     enum PagePaths {
       success = '/main',
@@ -84,17 +92,46 @@ export default function IndexLayout(props) {
     const vars = {
       registerToken: '',
       pagePath: null as PagePaths,
+      user: null as UserModel,
+      isSuperAdmin: null as boolean,
     }
     
     $(window).on('load', function () {
-      if (isSuperAdmin) {
+      $('#loading').hide()
+      if (!vars.user) {
+        getUserInfo()
+      } else {
+        handlePageOnLoad()
+      }
+    })
+
+    function handlePageOnLoad () {
+      if (vars.isSuperAdmin) {
         redirectTo(PagePaths.success)
       } else if (getPurePath() === PagePaths.success) {
         redirectTo(PagePaths.login)
       } else{
         handlePathChange()
       }
-    })
+    }
+
+    function getUserInfo () {
+      $('#loading').show()
+      $.ajax(getApiUrl('/userinfo'), {
+        method: 'GET',
+        xhrFields: {
+          withCredentials: true,
+        },
+        success: function (res) {
+          if (res.code === 0) {
+            vars.user = res.user
+            vars.isSuperAdmin = vars.user.status > UserStatus.normal
+            $('#loading').fadeOut(300)
+            handlePageOnLoad()
+          }
+        }
+      })
+    }
 
     function getPurePath (pathname: string = location.pathname) {
       return pathname.replace(basePath, '')
@@ -288,11 +325,10 @@ export default function IndexLayout(props) {
     })
     $('#backToIndex').click(goToIndexPage)
   }, {
-    user: props.user,
     basePath: props.basePath,
     httpServerUrl: props.httpServerUrl,
-    isSuperAdmin,
     classes,
+    UserStatus: UserStatus,
   })
   const layoutProps = {
     header: <React.Fragment>
@@ -301,6 +337,9 @@ export default function IndexLayout(props) {
     </React.Fragment>
   }
   return <DefaultLayout {...layoutProps}>
+    <div className={classes.loading} id="loading">
+      加载中...
+    </div>
     <div className={classes.container}>
       <div className={classes.panel} id="registerOrLoginPanel">
         <h3 className={classes.panelTitle}></h3>

@@ -1,7 +1,8 @@
-import settings from 'settings'
+import settings from 'root/getSettings'
 import redisCli from 'root/lib/redis'
 import {blockKeySet, reqBlockCallBackQueue, ResolveType, RejectType, getBlockWaittingCbQueue} from 'root/lib/store'
 import { UserModel } from 'root/type'
+
 
 export function isSuperAdmin(user: UserModel) {
     return user.isSuperAdmin
@@ -171,3 +172,5 @@ export function wait (time: number) {
         setTimeout(resolve, time)   
     })
 }
+
+
