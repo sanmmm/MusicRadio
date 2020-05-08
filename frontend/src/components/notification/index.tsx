@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import bindClass from 'classnames'
 import { useMediaQuery } from 'react-responsive'
 import { connect } from 'dva'
@@ -15,18 +15,18 @@ interface NotificationProps extends ConnectProps {
 
 const duration = 3000
 
-const Notification: React.FC<NotificationProps> = function (props) {
+const Notification: React.FC<NotificationProps> = React.memo(function (props) {
     const { list = [], dispatch } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
 
-    const handleClose = (timestamp) => {
+    const handleClose = useCallback((timestamp) => {
         dispatch({
             type: 'center/removeNotification',
             payload: {
                 timestamp
             }
         })
-    }
+    }, [dispatch])
     
     if (isMobile) {
         const lastItem = list.length ? list[0] : null
@@ -48,7 +48,7 @@ const Notification: React.FC<NotificationProps> = function (props) {
     </div>
     }
 
-}
+})
 
 export default connect(({ center }: ConnectState) => {
     return {

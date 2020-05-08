@@ -18,7 +18,7 @@ interface RefAttributes {
     toNextPage: Function,
 }
 
-const ScrollWrapper: React.FC<Props> = function (props) {
+const ScrollWrapper: React.FC<Props> = function ScrollWrapper (props) {
     const {refObj} = props
     const [focusPageIndex, setFocusPageIndex] = useState(0)
     const [pageHeight, setPageHeight] = useState(0)

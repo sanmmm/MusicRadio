@@ -31,7 +31,7 @@ const SearchResultTypesToLabel = {
     [MediaTypes.song]: '单曲'
 }
 
-const MusicSearchList: React.FC<Props> = (props) => {
+const MusicSearchList: React.FC<Props> = React.memo((props) => {
     const { list = [], dispatch, playList, mediaDetail, baseHashPath = '', nowRoomId, searchMediaDetailPending, searchMediaListPending, isRoomAdmin } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
     const [searchValue, setSearchValue] = useState('')
@@ -225,7 +225,7 @@ const MusicSearchList: React.FC<Props> = (props) => {
             }
         </HashRoute>
     </div>
-}
+})
 
 export default connect<Exclude<Props, 'baseHashPath'>, any, Pick<Props, 'baseHashPath'>>(({ chatList, playList, center, loading }: ConnectState) => {
     return {

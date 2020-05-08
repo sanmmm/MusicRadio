@@ -22,7 +22,7 @@ const actionTypeMap = {
     [ActionTypes.ban]: 'center/banUserComment',
 }
 
-const HandleSelectMessage: React.FC<Props> = (props) => {
+const HandleSelectMessage: React.FC<Props> = React.memo((props) => {
     const { selectedMessage, roomId, isRoomAdmin, userId } = props
     const blockUser = (type: ActionTypes) => {
         clearSelectedMessageItem()
@@ -95,7 +95,7 @@ const HandleSelectMessage: React.FC<Props> = (props) => {
         </ListItem>
     </List>
 </Dialog>
-}
+})
 
 export default connect(({ chatList, center: {nowRoomInfo, userInfo, isRoomAdmin} }: ConnectState) => {
     return {

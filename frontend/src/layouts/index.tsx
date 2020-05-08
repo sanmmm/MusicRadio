@@ -23,7 +23,7 @@ interface LayoutProps extends ConnectProps {
 }
 
 
-const BasicLayout: React.FC<LayoutProps> = props => {
+const BasicLayout: React.FC<LayoutProps> = React.memo(props => {
   const { nowPlaying, dispatch } = props
   const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
   useEffect(() => {
@@ -57,7 +57,7 @@ const BasicLayout: React.FC<LayoutProps> = props => {
       </div>
     </WindowHeightProvider>
   );
-};
+});
 
 export default connect(({ playList: { nowPlaying }, center: { nowSocketStatus, userInfo, nowRoomInfo } }: ConnectState) => {
   return {

@@ -14,7 +14,7 @@ const signalIconAnimationDuration = 2
 
 const getInitDelayData = () => [1, 2, 3, 4].map(i => Math.random() )
 
-const SignalIcon: React.FC<Props> = (props) => {
+const SignalIcon: React.FC<Props> = React.memo((props) => {
     const [delayData, _] = useState(getInitDelayData())
     const { paused = false, color = styleConf.themeColor, size } = props
     const boxStyle = {}
@@ -43,6 +43,6 @@ const SignalIcon: React.FC<Props> = (props) => {
             ></div>
             })}
     </div>
-}
+})
 
 export default SignalIcon

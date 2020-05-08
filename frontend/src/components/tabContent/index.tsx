@@ -14,7 +14,7 @@ type TabContent = React.FC<Props> & {
     Item: typeof TabContentItem 
 }
 
-const TabContent: TabContent = function (props) {
+const TabContent: TabContent = React.memo<Props>(function (props) {
     const {activeKey, children} = props
     let childLength = 0, offsetIndex = 0
     const renderChildArr: React.ReactElement[] = []
@@ -42,7 +42,7 @@ const TabContent: TabContent = function (props) {
             }
         </div>
     </div>
-}
+}) as any
 
 const TabContentItem: React.FC<{
     key: string;

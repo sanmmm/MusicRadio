@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useMediaQuery } from 'react-responsive'
 import bindClass from 'classnames'
 import { connect } from 'dva'
@@ -34,7 +34,7 @@ interface Props extends ConnectProps {
     toPrevPage: () => any;
 }
 
-const RoomList: React.FC<Props> = (props) => {
+const RoomList: React.FC<Props> = React.memo((props) => {
     const { roomList, hasMore, dispatch, nowRoomId, isLoadingList, isInShow } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
     const classes = useStyle({
@@ -68,19 +68,19 @@ const RoomList: React.FC<Props> = (props) => {
         loadListItem(hasMore ? lastId : null)
     }
 
-    const handleItemClick = (roomToken) => {
+    const handleItemClick = useCallback((roomToken) => {
         dispatch({
             type: 'center/joinRoom',
             payload: {
                 token: roomToken,
             }
         })
-    }
+    }, [dispatch])
 
     return <ScrollBar className={bindClass(styles.roomList, !isMobile && styles.normal)} onYReachEnd={isMobile ? loadMore : null}>
         <div className={bindClass(styles.list, !roomList.length && styles.noData)}>
             {
-                roomList.length ? roomList.map(r => <RoomItemRender key={r.id} {...r} className={classes.roomItem} onClick={handleItemClick.bind(null, r.token)} />)
+                roomList.length ? roomList.map(r => <RoomItemRender key={r.id} {...r} className={classes.roomItem} onClick={handleItemClick} />)
                     : <div>暂无数据</div>}
         </div>
         <div className={styles.bottom}>
@@ -109,7 +109,7 @@ const RoomList: React.FC<Props> = (props) => {
                 </Zoom>
             </div>}
     </ScrollBar>
-}
+})
 
 export default connect(({ center: { hasMoreRoomItem, roomList, userInfo }, loading }: ConnectState) => {
     return {

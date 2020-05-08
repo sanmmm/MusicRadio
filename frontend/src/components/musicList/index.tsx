@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react'
+import React, { useEffect, useState, useMemo, useCallback } from 'react'
 import { connect } from 'dva'
 import { useMediaQuery } from 'react-responsive'
 import { Popover } from '@material-ui/core'
@@ -32,7 +32,7 @@ enum BlockActionBtnType {
     showUnblock = 2,
 }
 
-const MusicList: React.FC<MusicListProps> = function (props) {
+const MusicList: React.FC<MusicListProps> = React.memo(function (props) {
     const { isRoomAdmin, musicList, nowRoomId, dispatch, actionPending, blockPlayItems } = props
 
     const [selectedItems, setSelectedItem] = useState([] as PlayListItem[])
@@ -60,7 +60,7 @@ const MusicList: React.FC<MusicListProps> = function (props) {
         return type
     }, [selectedItems, blockPlayItems])
 
-    const handleMoveItem = (fromIndex, toIndex) => {
+    const handleMoveItem = useCallback((fromIndex, toIndex) => {
         dispatch({
             type: 'playList/movePlayListItem',
             payload: {
@@ -69,7 +69,7 @@ const MusicList: React.FC<MusicListProps> = function (props) {
                 toIndex
             }
         })
-    }
+    }, [nowRoomId, dispatch])
 
     const handleDeleteItems = (ids: string[]) => {
         dispatch({
@@ -204,7 +204,7 @@ const MusicList: React.FC<MusicListProps> = function (props) {
             rowClassName={(_, index) => index === 0 && styles.focusMusicRow}
         />
     </div>
-}
+})
 
 export default connect(({ playList, center: { nowRoomInfo, userInfo, blockPlayItems, isRoomAdmin }, loading }: ConnectState) => {
     const actionPending = ['movePlayListItem', 'deletePlayListItem', 'blockPlayListItems', 'unblockPlayListItems'].some(s => loading.effects[`playList/${s}`])

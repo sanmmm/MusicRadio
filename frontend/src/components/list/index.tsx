@@ -26,7 +26,7 @@ const CustomCheckbox = withStyles({
     }
 })(Checkbox)
 
-interface Props<T = any> {
+export interface Props<T = any> {
     loading?: boolean;
     className?: string;
     dataSource: T[];
@@ -156,7 +156,6 @@ const ListRender = React.memo<Props>(function (props) {
 })
 
 export default ListRender
-
 
 interface RowProps extends Pick<Props, 'columns' | 'rowClassName' | 'drag'> {
     item: any;

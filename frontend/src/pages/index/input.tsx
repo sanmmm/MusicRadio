@@ -37,7 +37,7 @@ enum ActionTypes {
     info = 'info', // 说明
 }
 
-const ChatInput: React.FC<ChatInputProps> = function (props) {
+const ChatInput: React.FC<ChatInputProps> = React.memo(function (props) {
     const { dispatch, nowRoomId, nowRoomPassword, isRoomAdmin, nowRoomInfo } = props
 
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
@@ -166,7 +166,7 @@ const ChatInput: React.FC<ChatInputProps> = function (props) {
             </HashRoute>)}
 
     </div>
-}
+})
 
 export default connect(({ center: { userInfo, isRoomAdmin, nowRoomInfo }, loading }: ConnectState) => {
     return {

@@ -11,15 +11,17 @@ interface Props {
     playing: string;
     title: string;
     heat: number;
-    onClick?: () => any;
+    token: string;
+    onClick?: (roomToken: string) => any;
     width?: string | number;
     id: string;
     className?: string;
 }
 
-const RoomItemShow: React.FC<Props> = (props) => {
-    const { pic, playing, title, heat = 0, id, className } = props
-    return <div className={bindClass(styles.roomItem, className || '')} onClick={props.onClick || null}>
+const RoomItemShow: React.FC<Props> = React.memo((props) => {
+    const { pic, playing, title, heat = 0, id, className, token } = props
+    const handleClick = props.onClick ? props.onClick.bind(null, token) : null
+    return <div className={bindClass(styles.roomItem, className || '')} onClick={handleClick}>
         <div className={styles.main}>
             <div className={styles.background}>
                 {
@@ -36,6 +38,6 @@ const RoomItemShow: React.FC<Props> = (props) => {
         </div>
         <div className={styles.title} title={title}>{title || (id === globalConfigs.hallRoomId ? '大厅' : '未命名')}</div>
     </div>
-}
+})
 
 export default RoomItemShow

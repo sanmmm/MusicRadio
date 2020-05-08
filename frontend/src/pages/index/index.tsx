@@ -38,17 +38,12 @@ enum TabTyps {
     onlineUsers = 'onlineUsers',
 }
 
-const Index: React.FC<IndexProps> = function (props) {
+const Index: React.FC<IndexProps> = function Index (props) {
     const { dispatch, nowUserInfo, isRoomAdmin, nowRoomInfo } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
-    const [activeTab, setActiveTab] = useState(TabTyps.chatList)
     const [isInitial, setIsInitial] = useState(true)
     const scrollRef = useRef(null)
     const actionAreaEleRef = usePreventScrollAndSwipe()
-
-    const toPrevPage = useCallback(() => {
-        scrollRef.current.toPreviousPage()
-    }, [])
 
     useEffect(() => {
         props.dispatch({
@@ -85,6 +80,11 @@ const Index: React.FC<IndexProps> = function (props) {
         })
     }, [])
 
+    const toPrevPage = useCallback(() => {
+        scrollRef.current.toPreviousPage()
+    }, [])
+
+
     return isInitial ? null : <div>
 
         <ScrollPage ref={scrollRef}
@@ -106,42 +106,7 @@ const Index: React.FC<IndexProps> = function (props) {
                                 </div>
                             </div>
                             <div className={isMobile ? styles.bottom : styles.right} ref={actionAreaEleRef}>
-                                {
-                                    isMobile ? <MessageInputBox /> :
-                                        <React.Fragment>
-                                            <CustomTabs value={activeTab} onChange={(_, type) => setActiveTab(type as TabTyps)} scrollButtons="auto" variant="scrollable">
-                                                <CustomTab label="消息列表" value={TabTyps.chatList} />
-                                                <CustomTab label="播放列表" value={TabTyps.playList} disabled={!!nowRoomInfo && nowRoomInfo.playMode === RoomMusicPlayMode.auto}/>
-                                                {
-                                                    isRoomAdmin && [
-                                                        <CustomTab label="操作记录" value={TabTyps.actionList} key={TabTyps.actionList} />,
-                                                        <CustomTab label="在线用户" value={TabTyps.onlineUsers} key={TabTyps.onlineUsers} />
-                                                    ]
-                                                }
-                                            </CustomTabs>
-                                            <TabContent activeKey={activeTab}>
-                                                <TabContent.Item key={TabTyps.chatList}>
-                                                    <div className={styles.chatListTabContent}>
-                                                        <ChatList className={styles.chatList}/>
-                                                        <MessageInputBox />
-                                                    </div>
-                                                </TabContent.Item>
-                                                <TabContent.Item key={TabTyps.playList}>
-                                                    <PlayList />
-                                                </TabContent.Item>
-                                                {
-                                                    isRoomAdmin && [
-                                                        <TabContent.Item key={TabTyps.actionList}>
-                                                            <AdminActionsManage />
-                                                        </TabContent.Item>,
-                                                        <TabContent.Item key={TabTyps.onlineUsers}>
-                                                            <OnlineUserManage />
-                                                        </TabContent.Item>
-                                                    ]
-                                                }
-                                            </TabContent>
-                                        </React.Fragment>
-                                }
+                                <ActionsArea nowRoomInfo={nowRoomInfo} isRoomAdmin={isRoomAdmin} isMobile={isMobile}/>
                             </div>
                         </div>
                     </div>}
@@ -166,3 +131,49 @@ export default connect(({ center: { userInfo, isRoomAdmin, openDanmu, nowRoomInf
         openDanmu,
     }
 })(Index)
+
+
+const ActionsArea = React.memo<{
+    isMobile: boolean;
+    isRoomAdmin: boolean;
+    nowRoomInfo: CenterModelState['nowRoomInfo'];
+}>(function (props) {
+    const {isMobile, nowRoomInfo, isRoomAdmin} = props
+    const [activeTab, setActiveTab] = useState(TabTyps.chatList)
+
+    const handleTabChange = useCallback((_, type) => setActiveTab(type as TabTyps), [])
+    return isMobile ? <MessageInputBox /> :
+    <React.Fragment>
+        <CustomTabs value={activeTab} onChange={handleTabChange} scrollButtons="auto" variant="scrollable">
+            <CustomTab label="消息列表" value={TabTyps.chatList} />
+            <CustomTab label="播放列表" value={TabTyps.playList} disabled={!!nowRoomInfo && nowRoomInfo.playMode === RoomMusicPlayMode.auto}/>
+            {
+                isRoomAdmin && [
+                    <CustomTab label="操作记录" value={TabTyps.actionList} key={TabTyps.actionList} />,
+                    <CustomTab label="在线用户" value={TabTyps.onlineUsers} key={TabTyps.onlineUsers} />
+                ]
+            }
+        </CustomTabs>
+        <TabContent activeKey={activeTab}>
+            <TabContent.Item key={TabTyps.chatList}>
+                <div className={styles.chatListTabContent}>
+                    <ChatList className={styles.chatList}/>
+                    <MessageInputBox />
+                </div>
+            </TabContent.Item>
+            <TabContent.Item key={TabTyps.playList}>
+                <PlayList />
+            </TabContent.Item>
+            {
+                isRoomAdmin && [
+                    <TabContent.Item key={TabTyps.actionList}>
+                        <AdminActionsManage />
+                    </TabContent.Item>,
+                    <TabContent.Item key={TabTyps.onlineUsers}>
+                        <OnlineUserManage />
+                    </TabContent.Item>
+                ]
+            }
+        </TabContent>
+    </React.Fragment>
+})

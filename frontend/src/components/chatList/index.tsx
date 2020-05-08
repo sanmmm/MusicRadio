@@ -10,7 +10,6 @@ import { ConnectState, ConnectProps, ChatListModelState } from '@/models/connect
 import useSyncState from '@/components/hooks/syncAccessState'
 import usePreventSwipe from '@/components/hooks/preventScrollAndSwipe'
 import { MessageTypes, MessageItem, ChatListNoticeTypes } from 'config/type.conf'
-import {throttle} from '@/utils'
 import configs from 'config/base.conf'
 import styles from './index.less'
 import bindclass from 'classnames';
@@ -40,7 +39,7 @@ enum Directions {
     down
 }
 
-const ChatList: React.FC<ChatListProps> = function (props) {
+const ChatList: React.FC<ChatListProps> = React.memo(function (props) {
     const { nowUserId, renderMessages, unreadMessageIds, dispatch, isReading, messageItemCount, unreadVoteMessage, unreadAtSignMessage, className } = props
     const [getSyncState, setSyncState] = useSyncState({
         unreadMessagePosition: new Map(),
@@ -392,7 +391,7 @@ const ChatList: React.FC<ChatListProps> = function (props) {
             </ScorllBar>
         }
     </div>
-}
+})
 
 export default connect(({ chatList: { messages, unreadMessageIds, isReading, messageItemCount, unreadAtSignMessage, unreadVoteMessage }, center: { userInfo } }: ConnectState) => {
     return {

@@ -9,7 +9,6 @@ import configs from 'config/base.conf'
 import styles from './index.less'
 interface DanmuBoxProps extends ConnectProps {
     danmuList: DanmuItem[];
-    handleDamuClick?: (message: MessageItem, index: number) => any;
     isPaused: boolean;
 }
 
@@ -24,7 +23,7 @@ const caclRefreshDuration = (dataLength: number) => {
     return duration
 }
 
-const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
+const DanmuBox: React.FC<DanmuBoxProps> = React.memo(function (props) {
     const { danmuList, dispatch, isPaused } = props
     const isMobile = useMediaQuery({ query: configs.mobileMediaQuery })
     const maxShowCount = isMobile ? 3 : 7
@@ -165,7 +164,7 @@ const DanmuBox: React.FC<DanmuBoxProps> = function (props) {
             </div>
         </div>)}
     </div>
-}
+})
 
 export default connect(({ chatList, }: ConnectState) => {
     const { danmuList, selectedMessageItem } = chatList

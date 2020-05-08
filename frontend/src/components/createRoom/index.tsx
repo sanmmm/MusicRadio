@@ -20,7 +20,7 @@ interface Props extends ConnectProps {
     isMobile: boolean;
 }
 
-const CreateRoom: React.FC<Props> = (props) => {
+const CreateRoom: React.FC<Props> = React.memo((props) => {
     const [formData, setFormData] = useState({
         isPrivate: false,
         maxMemberCount: 2
@@ -118,7 +118,7 @@ const CreateRoom: React.FC<Props> = (props) => {
             </DialogContent>
         </Dialog>
     </React.Fragment>
-}
+})
 
 export default connect(({center: {isMobile} }: ConnectState) => {
     return {
