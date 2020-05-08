@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useMediaQuery } from 'react-responsive'
 import bindClass from 'classnames'
 import { connect } from 'dva'
-import { withRouter, router } from 'umi'
+import { withRouter,history as router } from 'umi'
 import { RouteComponentProps } from 'react-router'
 import { Tab, Tabs, makeStyles, Dialog, DialogTitle, DialogContent } from '@material-ui/core'
 

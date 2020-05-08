@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useMediaQuery } from 'react-responsive'
 import bindClass from 'classnames'
 import { connect } from 'dva'
-import { router } from 'umi'
+import { history as router } from 'umi'
 import { FormControl, Switch, TextField, FormControlLabel, Button, Dialog, DialogTitle, DialogContent } from '@material-ui/core';
 
 import FocusInputWrapper from '@/components/focusMobileInput'

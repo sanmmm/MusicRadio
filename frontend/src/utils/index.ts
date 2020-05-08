@@ -1,3 +1,5 @@
+import {getDvaApp} from 'umi'
+
 import { MatchedSearchValue, SearchTreeType } from 'config/type.conf'
 import globalConfigs from '@global/common/config'
 
@@ -75,7 +77,8 @@ export function setLocalStorageData(key: string, data: any) {
 }
 
 export function CustomAlert(content: string) {
-    window.g_app._store.dispatch({
+    const app = getDvaApp()
+    app._store.dispatch({
         type: 'center/addNotification',
         payload: {
             content

@@ -12,7 +12,8 @@
     "strictNullChecks": false,
     "paths": {
       "@/*": ["src/*"],
-      "@global/*": ["../*"]
+      "@global/*": ["../*"],
+      "@@/*": ["src/.umi/*"]
     },
     "allowSyntheticDefaultImports": true
   }

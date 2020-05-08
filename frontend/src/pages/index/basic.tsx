@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { connect } from 'dva'
-import { withRouter, router } from 'umi'
+import { withRouter, history as router } from 'umi'
 import { RouteComponentProps } from 'react-router'
 import { Button, Dialog, DialogContent, DialogTitle, Input, Grow, InputLabel, FormControl } from '@material-ui/core'
 import { makeStyles } from '@material-ui/core/styles'

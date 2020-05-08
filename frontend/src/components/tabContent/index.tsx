@@ -18,7 +18,7 @@ const TabContent: TabContent = function (props) {
     const {activeKey, children} = props
     let childLength = 0, offsetIndex = 0
     const renderChildArr: React.ReactElement[] = []
-    React.Children.forEach(children, (child, index) => {
+    React.Children.forEach(children, (child: React.ReactElement, index) => {
         if (!child) {
             return
         }

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styles from './index.less';
 import 'react-perfect-scrollbar/dist/css/styles.css';
 import { connect } from 'dva'
-import router from 'umi/router'
+import {history as router} from 'umi'
 import { useMediaQuery } from 'react-responsive'
 import bindClass from 'classnames'
 
