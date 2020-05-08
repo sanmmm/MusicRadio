@@ -6,7 +6,7 @@
     "dev": "cross-env NODE_ENV=development nodemon -e js,mjs,json,ts",
     "start": "ts-node -r tsconfig-paths/register app.ts",
     "build": "tsc --build tsconfig.json",
-    "server": "cross-env IS_BUILD_MODE=1 NODE_ENV=production node ./build/backend/app.js",
+    "server": "cross-env STATIC_PATH=./static NODE_ENV=production node ./build/backend/app.js",
     "runts": "ts-node -r tsconfig-paths/register"
   },
   "repository": {

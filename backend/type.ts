@@ -16,10 +16,14 @@ export interface Session {
     load: () => Promise<any>;
 }
 
+interface InjectConfigs {
+    isProductionMode: boolean;
+    staticPath: string;
+    appendConfigFileDir?: string; // 配置文件所在文件路径
+}
 declare global {
     var hallRoomId: string;
-    var isBuildMode: boolean;
-    var isProductionMode: boolean;
+    var injectedConfigs: InjectConfigs
     namespace Express {
         interface Request {
             session?: Session
@@ -32,9 +36,8 @@ declare global {
     }
     namespace NodeJS {
         interface Global {
-            isBuildMode: boolean;
             hallRoomId: string;
-            isProductionMode: boolean;
+            injectedConfigs: InjectConfigs;
         }
     }
 }

@@ -1,7 +1,7 @@
-import bitSymbolsConfig from 'root/config/bitSymbols.json'
-import BlockWordListConfig from 'root/config/blockWords.json'
-import BlockMusicListConfig from 'root/config/blockMusic.json'
-import EmojiDataConfig from 'root/config/emojiData.json'
+import bitSymbolsConfig from 'root/default/bitSymbols.default.json'
+import BlockWordListConfig from 'root/default/blockWords.default.json'
+import BlockMusicListConfig from 'root/default/blockMusic.default.json'
+import EmojiDataConfig from 'root/default/emojiData.default.json'
 
 export interface Settings {
     neteaseApiServer: string;
@@ -17,7 +17,7 @@ export interface Settings {
     superAdminToken: string[]; // token 认证模式下的超级管理员token
     maxChatListLength: number; // 服务端记录的房间聊天记录条数上限
     hashSalt: string;
-    superAdminTokens: string[];
+    superAdminRegisterTokens: string[];
     openWordValidate: boolean; // 是否开启敏感词过滤
     coordDataCalcDuration: number ;// 房间热点数据整理计算刷新周期 单位s
     coordDataCalcIncMode: boolean; // 【每个热点数据计算周期】不清空之前周期的数据而是合并数据

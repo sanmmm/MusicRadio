@@ -443,7 +443,7 @@ namespace UtilFuncs {
     // 超级管理员注册码（一次性）
     const superAdminTokenRedisKey = 'musicradio:superadmintokens'
     export async function validateSuperAdminToken(token: string) {
-        if (!settings.superAdminTokens.includes(token)) {
+        if (!settings.superAdminRegisterTokens.includes(token)) {
             return false
         }
         const used = await redisCli.sismember(superAdminTokenRedisKey, token)
@@ -455,7 +455,7 @@ namespace UtilFuncs {
     }
 
     // 敏感词验证
-    const WordFilter = settings.openWordValidate ? new Mint(BlockWordList) : null
+    const WordFilter = settings.openWordValidate ? new Mint(Array.isArray(BlockWordList) ? BlockWordList : []) : null
     export async function validateText(str: string) {
         if (!settings.openWordValidate) {
             return true
@@ -2872,7 +2872,7 @@ class Handler {
     @HandleHttpRoute.get(/^\/[^\/]?$/)
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
-        res.sendFile(path.resolve(__dirname, '../static/index.html'))
+        res.sendFile(path.join(injectedConfigs.staticPath, './index.html'))
     }
 
     // 前端初始化信息

@@ -12,7 +12,7 @@ export function getConfig<T = any> (options: GetConfigOptions) {
     const fileInfo = path.parse(filename)
     const fileExt = fileInfo.ext
     const fileNameToMatched = [filename, `${fileInfo.name}.default${fileExt}`] // [a.js, a.default.js]
-    let defaultConfig: Partial<T> = {}, config: Partial<T> = {}
+    let defaultConfig: Partial<T> = null, config: Partial<T> = null
 
     if (!['.js', '.json'].includes(fileExt)) {
         throw new Error(`invalid ext:${fileExt}`)
@@ -21,7 +21,7 @@ export function getConfig<T = any> (options: GetConfigOptions) {
         try {
             let exported: T = null, isDefault = filename.endsWith(`default${fileExt}`)
             if (fileExt === '.js') {
-                const fromDir = basePath
+                const fromDir = __dirname
                 const toDir = path.isAbsolute(dirPath) ? dirPath : path.resolve(basePath, dirPath)
                 const readFilePath = path.join(path.relative(fromDir, toDir), filename)
                 exported = require(readFilePath)
@@ -35,9 +35,9 @@ export function getConfig<T = any> (options: GetConfigOptions) {
                 throw new Error(`invalid ext:${fileExt}`)
             }
             if (isDefault) {
-                Array.isArray(exported) ? (defaultConfig = exported) : Object.assign(defaultConfig, exported)
+                (!defaultConfig || Array.isArray(exported)) ? (defaultConfig = exported) : Object.assign(defaultConfig, exported)
             } else {
-                Array.isArray(exported) ? (config = exported) : Object.assign(config, exported)
+                (!config || Array.isArray(exported)) ? (config = exported) : Object.assign(config, exported)
             }
         } catch (e) {
             if (!silent) {

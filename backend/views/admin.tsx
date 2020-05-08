@@ -75,8 +75,8 @@ export default function IndexLayout(props) {
     classes: typeof classes;
     basePath: string;
     UserStatus: typeof UserStatus;
-  }>(({ $, classes, UserStatus, basePath = '', httpServerUrl = '' }) => {
-
+  }>(({ $, classes, UserStatus, basePath = '', httpServerUrl }) => {
+    httpServerUrl = httpServerUrl || location.origin
     enum PagePaths {
       success = '/main',
       login = '/login',

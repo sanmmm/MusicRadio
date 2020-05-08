@@ -14,7 +14,7 @@ import {getRandomIp} from 'root/lib/utils'
 const {authTokenFeildName: authTokenKey} = globalConfigs
 
 const getIp = (str) => {
-    if (!global.isProductionMode && settings.openRandomIpMode) {
+    if (!injectedConfigs.isProductionMode && settings.openRandomIpMode) {
         return getRandomIp()
     }
     if (str.startsWith('::ffff:')) {

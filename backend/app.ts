@@ -1,7 +1,14 @@
+import path from 'path'
 import registerPath from './registerPath'
-global.isBuildMode = process.env.IS_BUILD_MODE === '1'
-global.isProductionMode = process.env.NODE_ENV === 'production'
-if (isBuildMode) {
+
+const staticPathConfig = process.env.STATIC_PATH || './static'
+global.injectedConfigs = {
+    isProductionMode: process.env.NODE_ENV === 'production',
+    staticPath: path.isAbsolute(staticPathConfig) ? staticPathConfig : path.resolve(process.cwd(), staticPathConfig),
+    appendConfigFileDir: process.env.CONFIG_DIR || null,
+}
+
+if (injectedConfigs.isProductionMode) {
     registerPath()
 }
 
@@ -12,7 +19,6 @@ import cookieParser from 'cookie-parser'
 import http from 'http'
 import socketIo from 'socket.io';
 import reactViews from 'express-react-views'
-import path from 'path'
 import cors from 'cors'
 
 import session from 'root/lib/session'
@@ -30,8 +36,7 @@ app.use(compression())
 app.use(cookieParser(settings.sessionSecret))
 app.use(cookieMiddleware)
 
-const staticPath = isBuildMode ? path.resolve(__dirname, '../../static') : 'static'
-app.use('/static', express.static(staticPath))
+app.use('/static', express.static(injectedConfigs.staticPath))
 app.use(express.urlencoded({
     extended: true
 }))
@@ -47,10 +52,17 @@ if (needSetCors) {
     }))
 }
 app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'tsx');
-app.engine('tsx', reactViews.createEngine({
-    transformViews: false,
-}));
+if (!injectedConfigs.isProductionMode) {
+    app.set('view engine', 'tsx')
+    app.engine('tsx', reactViews.createEngine({
+        transformViews: false,
+    }));
+} else {
+    app.set('view engine', 'js')
+    app.engine('js', reactViews.createEngine({
+        transformViews: false,
+    }));
+}
 // 放在sesion中间件前面
 app.get('/client/settings', dispatchClientSettings)
 app.use(session(sessionType))

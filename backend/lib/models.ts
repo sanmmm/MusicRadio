@@ -244,7 +244,7 @@ namespace UtilFuncs {
     export function decimalToCustomSystemValue (num: number) {
         const bitArr = []
         let i = num + base
-        while (i !== 0) {
+        while (!isNaN(i) && i !== 0) {
             bitArr.unshift(bitSymbols[i % digit])
             i = Math.floor(i / digit)
         }
