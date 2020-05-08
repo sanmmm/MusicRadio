@@ -1,0 +1,23 @@
+version: '3.4'
+
+services:
+  syncmusic:
+    image: syncmusic
+    ports:
+      - 3001:3001
+    restart: always
+    depends_on: 
+      - redis
+      - neteaseapi
+  redis:
+    image: redis
+    volumes:
+          - redis-data:/data
+    restart: always   
+  neteaseapi:
+    image: binaryify/netease_cloud_music_api
+    environment: 
+      - no_proxy=*
+    restart: always 
+volumes: 
+  redis-data:
