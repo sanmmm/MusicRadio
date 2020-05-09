@@ -33,6 +33,7 @@ const BasicLayout: React.FC<LayoutProps> = React.memo(props => {
         isMobile
       }
     })
+    document.title = settings.websiteName
     if (isMobile) {
       document.documentElement.style.fontSize = "14px"
     }

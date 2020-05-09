@@ -17,6 +17,8 @@
     }
 }
 
+
+
 .playerBox {
     color: @normalTextColor;
     &.normal {
@@ -67,6 +69,9 @@
         align-items: center;
         padding: 1rem;
         box-sizing: border-box;
+        &.hidden {
+            visibility: hidden;
+        }
         > .left {
             flex-grow: 1;
         }

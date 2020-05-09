@@ -36,7 +36,7 @@ const calcOffset = (cursorIndex: number, items: LyricItem[]) => {
     return offset
 }
 
-const LyricBox: React.FC<LyricBoxProps> = function (props) {
+const LyricBox: React.FC<LyricBoxProps> = React.memo(function (props) {
     const boxRef = useRef<HTMLDivElement>(null)
     const [focusItemIndex, setFocusItemIndex] = useState(-2 as number)
     const [freshLyricItems, setLyricItems] = useState([] as LyricItem[])
@@ -114,6 +114,6 @@ const LyricBox: React.FC<LyricBoxProps> = function (props) {
         }
 
     </div>
-}
+})
 
 export default LyricBox

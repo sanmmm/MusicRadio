@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import bindClass from 'classnames'
 import { connect } from 'dva'
@@ -407,49 +407,16 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         return contralAble
     }
 
-    render() {
-        const { src, lyric, duration, pic, name, artist, comment, simpleMode, isMobile, musicId,
+    renderControllNode(simpleMode: boolean, isHidden = false) {
+        const { name, artist, isMobile, musicId,
             isPaused, status: playingStatus, isRoomAdmin, nowRoomPlayMode } = this.props
-        const { timeRatio, volumeRatio, commentFontSize, commentTextAlign, isDragCursor } = this.state
+        const { timeRatio, volumeRatio, isDragCursor } = this.state
         const curcorSize = 8
         const progressLineHeight = 2
-
-        const renderCommentObj = comment || {
-            content: '',
-            nickName: '',
-            avatarUrl: '',
-            userId: '',
-        }
         const isReallyPaused = this._isReallyPaused()
         const isProgressPending = this._getIsProgressPending(isReallyPaused)
         const controlAble = this._contralAble()
-
-        const lyRicNode = <div className={styles.lyricOuter}>
-            <Lyric lyric={lyric} nowTime={timeRatio * duration} showItemCount={isMobile ? 2 : 4} id={musicId} />
-        </div>
-        const commentNode = <div className={styles.commentBox}>
-            <div className={bindClass(styles.showData, !comment && styles.hide)} ref={ele => this.commentBoxEle = ele}
-            >
-                <div className={styles.top} ref={ele => this.commentTopEle = ele}><CustomIcon>quoteleft</CustomIcon></div>
-                {
-                    !!commentFontSize && <p
-                        style={{ fontSize: commentFontSize, lineHeight: `${this.commentLineHeight}em`, textAlign: commentTextAlign }}
-                        className={styles.content}>{renderCommentObj.content}</p>
-                }
-                <div className={styles.bottom} ref={ele => this.commentBotttomEle = ele}>
-                    <img src={renderCommentObj.avatarUrl || null} />
-                    <span className={styles.nickName} title={`点击查看${renderCommentObj.nickName}的主页`}
-                        onClick={_ => window.open(`https://music.163.com/#/user/home?id=${renderCommentObj.userId}`)}
-                    >{renderCommentObj.nickName}</span>
-                </div>
-            </div>
-            {
-                !comment &&
-                <div className={styles.noData}>
-                    暂无热评
-                    </div>}
-        </div>
-        const controlNode = <div className={styles.controlBox}>
+        return <div className={bindClass(styles.controlBox, isHidden && styles.hidden)}>
             <div className={styles.left}>
                 <div className={styles.musicBaseInfo}>
                     {
@@ -550,10 +517,98 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     </CustomIcon>
                     <CustomIcon onClick={this._cutPlayingMusic} className={bindClass(nowRoomPlayMode === RoomMusicPlayMode.demand && this.props.playList.length < 2 && styles.disabled)}>
                         skip-next
-                </CustomIcon>
+            </CustomIcon>
                 </div>
             }
         </div>
+    }
+
+    renderPicNode(simpleMode: boolean) {
+        const { isPaused, pic } = this.props
+        return <div className={bindClass(!isPaused && styles.rotate, styles.picBox, simpleMode && styles.simpleMode)}>
+            {pic ? <img src={pic} /> : <div className={styles.noPic}>暂无封面</div>}
+        </div>
+    }
+
+    renderLyricNode() {
+        const { lyric, duration, isMobile, musicId } = this.props
+        const { timeRatio } = this.state
+
+        return <div className={styles.lyricOuter}>
+            <Lyric lyric={lyric} nowTime={timeRatio * duration} showItemCount={isMobile ? 2 : 4} id={musicId} />
+        </div>
+    }
+
+    renderCommentNode() {
+        const {comment,} = this.props
+        const { commentFontSize, commentTextAlign } = this.state
+        const renderCommentObj = comment || {
+            content: '',
+            nickName: '',
+            avatarUrl: '',
+            userId: '',
+        }
+        return <div className={styles.commentBox}>
+            <div className={bindClass(styles.showData, !comment && styles.hide)} ref={ele => this.commentBoxEle = ele}
+            >
+                <div className={styles.top} ref={ele => this.commentTopEle = ele}><CustomIcon>quoteleft</CustomIcon></div>
+                {
+                    !!commentFontSize && <p
+                        style={{ fontSize: commentFontSize, lineHeight: `${this.commentLineHeight}em`, textAlign: commentTextAlign }}
+                        className={styles.content}>{renderCommentObj.content}</p>
+                }
+                <div className={styles.bottom} ref={ele => this.commentBotttomEle = ele}>
+                    <img src={renderCommentObj.avatarUrl || null} />
+                    <span className={styles.nickName} title={`点击查看${renderCommentObj.nickName}的主页`}
+                        onClick={_ => window.open(`https://music.163.com/#/user/home?id=${renderCommentObj.userId}`)}
+                    >{renderCommentObj.nickName}</span>
+                </div>
+            </div>
+            {
+                !comment &&
+                <div className={styles.noData}>
+                    暂无热评
+                </div>}
+        </div>
+    }
+
+    renderReturnNode(simpleMode: boolean, notShow = false, ) {
+        const { isMobile } = this.props
+        const picNode = this.renderPicNode(simpleMode)
+        const controllNode = this.renderControllNode(simpleMode)
+        const commentNode = this.renderCommentNode()
+        const lyRicNode = this.renderLyricNode()
+        const styleObj: CSSProperties = {}
+        if (notShow) {
+            styleObj.display = 'none'
+        }
+        return <div style={styleObj} className={bindClass(styles.playerBox, simpleMode && !notShow && styles.simpleMode, isMobile ? styles.mobileMode : styles.normal)}>
+            {
+                !isMobile && <div className={styles.left}>
+                    {picNode}
+                    {
+                        !simpleMode && lyRicNode
+                    }
+                </div>}
+            {
+                isMobile ? <div className={styles.mobileMain}>
+                    {commentNode}
+                    {lyRicNode}
+                    {controllNode}
+                </div> :
+                    <div className={bindClass(styles.main, simpleMode && styles.simpleMode)}>
+                        {
+                            !simpleMode && commentNode
+                        }
+                        {
+                            controllNode
+                        }
+                    </div>}
+        </div>
+    }
+
+    render() {
+        const { src, isMobile, simpleMode,} = this.props
 
         const audio = <audio src={src}
             style={{ display: 'none' }}
@@ -577,32 +632,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             }}
 
         ></audio>
-
-        const returnNode = <div className={bindClass(styles.playerBox, simpleMode && styles.simpleMode, isMobile ? styles.mobileMode : styles.normal)}>
-            {
-                !isMobile && <div className={styles.left}>
-                    <div className={bindClass(!isPaused && styles.rotate, styles.picBox, simpleMode && styles.simpleMode)}>
-                        {pic ? <img src={pic} /> : <div className={styles.noPic}>暂无封面</div>}
-                    </div>
-                    {
-                        !simpleMode && lyRicNode
-                    }
-                </div>}
-            {
-                isMobile ? <div className={styles.mobileMain}>
-                    {commentNode}
-                    {lyRicNode}
-                    {controlNode}
-                </div> :
-                    <div className={bindClass(styles.main, simpleMode && styles.simpleMode)}>
-                        {
-                            !simpleMode && commentNode
-                        }
-                        {
-                            controlNode
-                        }
-                    </div>}
-        </div>
+     
         return <React.Fragment>
             <SwitchPlayModeDialog open={this.state.showSelectPlayModeDialog}
                 isMobile={this.props.isMobile}
@@ -610,9 +640,12 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 onClose={this._closeSwitchModeDialog}
                 onSubmit={this._switchRoomPlayMode}
             />
-            {!simpleMode && createPortal(<RoomName />, this.roomNameEle)}
             {createPortal(audio, this.playerEle)}
-            {(!isMobile && simpleMode) ? createPortal(returnNode, this.playerEle) : returnNode}
+            {createPortal(<div style={simpleMode ? {display: 'none'} : {}}>
+                <RoomName />
+            </div>, this.roomNameEle)}
+            {!isMobile && createPortal(this.renderReturnNode(true, !simpleMode), this.playerEle)}
+            {this.renderReturnNode(false)}
         </React.Fragment>
     }
 }

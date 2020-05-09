@@ -95,7 +95,7 @@ const Index: React.FC<IndexProps> = function Index (props) {
                         <HandleSelectedMessage />
                         <div className={bindClass(styles.radioPage, isMobile ? styles.mobile : styles.normal)} >
                             <div className={bindClass(isMobile ? styles.top : styles.left)}>
-                                <div className={bindClass(!isShow && styles.fixPlayerBox, isMobile && styles.playerOuter)}>
+                                <div className={bindClass(isMobile && styles.playerOuter)}>
                                     <MyPlayer isMobile={isMobile} simpleMode={!isShow} />
                                 </div>
                                 <div className={styles.danmuOuter}>

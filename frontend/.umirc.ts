@@ -53,7 +53,6 @@ const config: IConfig = {
     immer: false,
     hmr: true,
   },
-  title: 'Music Radio',
   dynamicImport: {
     loading: '@/components/pageLoading'
    },
