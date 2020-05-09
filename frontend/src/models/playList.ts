@@ -109,8 +109,12 @@ const PlayListModel: PlayListModelType = {
             checkReqRes(res, '切歌')
         },
         * changePlayingProgress({ payload }, {put, select}) {
-            const actionId = socket.emit(ServerListenSocketEvents.changeProgress, payload)
-            yield socket.awaitActionResponse(actionId)
+            try {
+                const actionId = socket.emit(ServerListenSocketEvents.changeProgress, payload)
+                const res = yield socket.awaitActionResponse(actionId)
+            } catch (e) {
+                console.error(e)
+            }
         },
     },
     reducers: {

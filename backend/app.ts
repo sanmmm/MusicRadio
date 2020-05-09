@@ -37,7 +37,7 @@ app.use(compression())
 app.use(cookieParser(settings.sessionSecret))
 app.use(cookieMiddleware)
 app.use((req, res, next) => {
-    console.log(colors.green(`http req: [${req.method}]${req.path}`))
+    console.log(colors.green(`http req: [${req.method}]${req.originalUrl}`))
     next()
 })
 

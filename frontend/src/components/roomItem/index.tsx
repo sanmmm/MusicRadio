@@ -33,7 +33,7 @@ const RoomItemShow: React.FC<Props> = React.memo((props) => {
                 <div className={styles.text} title={playing}>正在播放: {playing || '暂无'}</div>
             </div>}
             <div className={styles.playIcon}>
-                <CustomIcon>play-circle</CustomIcon>
+                <CustomIcon style={{fontSize: '2rem'}}>play-circle</CustomIcon>
             </div>
         </div>
         <div className={styles.title} title={title}>{title || (id === globalConfigs.hallRoomId ? '大厅' : '未命名')}</div>

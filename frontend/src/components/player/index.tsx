@@ -247,8 +247,6 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                     progress: ratio
                 }
             })
-                .catch(e => {
-                })
                 .then(res => {
                     if (this.props.isPaused) {
                         this._calcTimeRatioByEndAtOrProgress()

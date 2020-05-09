@@ -945,8 +945,7 @@ namespace DestroyRoom {
         }
         const destoryExpire = expire
         const redisKey = getRoomRecordKey(room.id)
-
-        const oldJobRecord: DestroyRecord = JSON.parse(await redisCli.safeGet(redisKey))
+        const oldJobRecord: DestroyRecord = await redisCli.safeGet(redisKey)
         if (oldJobRecord) {
             await CronTask.cancelCaronTask(oldJobRecord.cronJobId)
             await redisCli.del(redisKey)
@@ -1100,7 +1099,6 @@ namespace RoomRoutineLoopTasks {
         if (!jobId) {
             return
         }
-        console.log('stop')
         await CronTask.cancelCaronTask(jobId)
         await redisCli.del(redisKey)
     }
@@ -1124,24 +1122,7 @@ namespace ManageRoomPlaying {
                 return
             }
             await switchRoomPlaying(room)
-            // if (!Object.values(RoomMusicPlayMode).includes(room.playMode)) {
-            //     throw new Error('invlid play mode' + room.playMode)
-            // }
-            // if (room.playMode === RoomMusicPlayMode.demand) {
-            //     await removeNowPlaying(room)
-            //     const leftPlayList = room.playList
-            //     if (!leftPlayList.length) {
-            //         console.log(`房间: ${room.id}列表播放结束`)
-            //         return
-            //     }
-            //     await UtilFuncs.startPlayFromPlayListInOrder(room)
-            // } else if (room.playMode === RoomMusicPlayMode.auto) {
-            //     await removeNowPlaying(room, false)
-            //     const selected = getArrRandomItem(room.playList)
-            //     await ManageRoomPlaying.initPlaying(room, selected)
-            // } else {
-            //     return
-            // }
+            
         }
 
     }
@@ -1561,7 +1542,7 @@ class Handler {
         }
         let isUserInfoChanged = false
         // 断线恢复重连
-        if (!user.append.nowRoomId && !isSuperAdmin(user)) {
+        if (!isSuperAdmin(user)) {
             if (!!user.createdRoom) {
                 const room = await Room.findOne(user.createdRoom)
                 if (room) {
@@ -1573,7 +1554,7 @@ class Handler {
                     await user.save()
                 }
             }
-            if (!!user.managedRoom) {
+            if (!user.append.nowRoomId && !!user.managedRoom) {
                 isUserInfoChanged = true
                 const room = await Room.findOne(user.managedRoom)
                 if (!room || !room.isJoinAble(user)) {
@@ -2867,9 +2848,8 @@ class Handler {
         reqUser.status = status
         await reqUser.save()
     }
-
     // express route handler
-    @HandleHttpRoute.get(/^\/[^\/]?$/)
+    @HandleHttpRoute.get(/^\/[^\/]*$/)
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
         res.sendFile(path.join(injectedConfigs.staticPath, './index.html'))
