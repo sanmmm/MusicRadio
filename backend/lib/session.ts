@@ -76,7 +76,7 @@ class Session implements SessionDef {
         
         await this.getSessionStoreData()
         const {userId} = this.storeData
-        let user = null, isInitial = false
+        let user: UserModel = null, isInitial = false
         if (userId) {
             user = await User.findOne(userId)
         }
@@ -89,9 +89,15 @@ class Session implements SessionDef {
             })
         }
         user.ip = this.ip
-        if (this.type === SessionTypes.token && settings.superAdminToken.includes(this.id) && user.status < UserStatus.superOfNormal) {
-            console.log('dev mode: is super admin')
-            user.status = UserStatus.superAdmin
+        if (this.type === SessionTypes.token) {
+            if (settings.superAdminToken.includes(this.id)) {
+                console.log('dev mode: is super admin')
+                if (user.status < UserStatus.superOfNormal) {
+                    user.status = UserStatus.superAdmin
+                }
+            } else {
+                user.status = UserStatus.normal
+            }
         }
         await user.save()
         this.isAuthenticated = true
@@ -133,7 +139,7 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
                 type,
                 isAuthenticated: false,
             })
-            await session.load();
+            await session.load()
 
             if (isSocketMode) {
                 const socket: Socket = args[0]

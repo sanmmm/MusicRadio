@@ -4,7 +4,7 @@ module.exports = {
     port: 3001,
     sessionKey: 'musicradio',
     sessionSecret: 'justdoit',
-    sessionExpire: 3600 * 24 * 30,
+    sessionExpire: 3600 * 24 * 30 , // 单位s
     redisPort: 6379,
     redisHost: 'redis', // docker redis server
     corsOrigin: [], // http/socket server 允许的跨域请求源, 为空时表示没有跨域限制

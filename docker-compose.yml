@@ -5,6 +5,8 @@ services:
     image: syncmusic
     ports:
       - 3001:3001
+    volumes: 
+      - server-log:/data
     restart: always
     depends_on: 
       - redis
@@ -21,3 +23,4 @@ services:
     restart: always 
 volumes: 
   redis-data:
+  server-log:

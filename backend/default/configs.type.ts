@@ -9,7 +9,7 @@ export interface Settings {
     port: number;
     sessionKey: string;
     sessionSecret: string;
-    sessionExpire: number;
+    sessionExpire: number; // 单位s
     redisPort: number;
     redisHost: string;
     corsOrigin: string[]; // http/socket server 允许的跨域请求源

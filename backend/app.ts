@@ -6,6 +6,7 @@ global.injectedConfigs = {
     isProductionMode: process.env.NODE_ENV === 'production',
     staticPath: path.isAbsolute(staticPathConfig) ? staticPathConfig : path.resolve(process.cwd(), staticPathConfig),
     appendConfigFileDir: process.env.CONFIG_DIR || null,
+    sessionType: process.env.SESSION_TYPE || 'cookie',
 }
 
 if (injectedConfigs.isProductionMode) {
@@ -29,22 +30,23 @@ import { SessionTypes } from 'root/type'
 import {cookieMiddleware, dispatchClientSettings} from 'root/lib/middlewares'
 
 global.hallRoomId = globalConfigs.hallRoomId
-const sessionType = SessionTypes.token
+const sessionType = SessionTypes[injectedConfigs.sessionType] as SessionTypes
 
 const app = express()
 app.use(compression())
 app.use(cookieParser(settings.sessionSecret))
 app.use(cookieMiddleware)
+app.use((req, res, next) => {
+    console.log(colors.green(`http req: [${req.method}]${req.path}`))
+    next()
+})
 
 app.use('/static', express.static(injectedConfigs.staticPath))
 app.use(express.urlencoded({
     extended: true
 }))
 app.use(express.json())
-app.use((req, res, next) => {
-    console.log(colors.green(`http req: [${req.method}]${req.path}`))
-    next()
-})
+
 const needSetCors = settings.corsOrigin && settings.corsOrigin.length
 if (needSetCors) {
     app.use(cors({

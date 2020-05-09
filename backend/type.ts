@@ -20,6 +20,7 @@ interface InjectConfigs {
     isProductionMode: boolean;
     staticPath: string;
     appendConfigFileDir?: string; // 配置文件所在文件路径
+    sessionType: keyof typeof SessionTypes | string;
 }
 declare global {
     var hallRoomId: string;
