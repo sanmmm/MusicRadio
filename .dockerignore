@@ -25,6 +25,7 @@ backend/config
 backend/build
 backend/dist
 backend/static
+backend/coverage
 frontend/dist
 frontend/static
 README.md

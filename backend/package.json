@@ -7,6 +7,7 @@
     "debug": "node --inspect -r tsconfig-paths/register -r ts-node/register app.ts",
     "start": "ts-node -r tsconfig-paths/register app.ts",
     "build": "tsc --build tsconfig.json",
+    "test": "jest -i --coverage",
     "server": "cross-env STATIC_PATH=./static NODE_ENV=production node ./build/backend/app.js",
     "runts": "ts-node -r tsconfig-paths/register"
   },
@@ -23,6 +24,7 @@
   "author": "sanmmm",
   "license": "MIT",
   "dependencies": {
+    "@jest/types": "^25.5.0",
     "classnames": "^2.2.6",
     "colors": "^1.4.0",
     "compression": "^1.7.4",
@@ -50,15 +52,42 @@
     "@types/express": "^4.17.2",
     "@types/got": "^9.6.9",
     "@types/ioredis": "^4.16.0",
+    "@types/jest": "^25.2.1",
     "@types/jquery": "^3.3.35",
     "@types/react": "^16.9.34",
     "@types/socket.io": "^2.1.4",
     "@types/typescript": "^2.0.0",
     "cheerio": "^1.0.0-rc.3",
     "form-data": "^3.0.0",
+    "jest": "^25.5.4",
     "nodemon": "^1.19.4",
+    "ts-jest": "^25.5.1",
     "ts-node": "^8.5.2",
     "tsconfig-paths": "^3.9.0",
     "typescript": "^3.7.2"
+  },
+  "jest": {
+    "preset": "ts-jest",
+    "testMatch": [
+      "**/test/*.ts",
+      "!**/_testTool.ts"
+    ],
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "/lib/",
+      "/static/",
+      "/views/"
+    ],
+    "collectCoverageFrom": [
+      "lib/**/*.ts"
+    ],
+    "coverageReporters": [
+      "text-summary",
+      "lcov"
+    ],
+    "moduleNameMapper": {
+      "^root/(.*)$": "<rootDir>/$1",
+      "^global/(.*)$": "<rootDir>/../$1"
+    }
   }
 }

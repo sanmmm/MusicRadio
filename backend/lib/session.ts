@@ -5,7 +5,7 @@ import cookie from 'cookie'
 import {URLSearchParams} from 'url'
 import http from 'http'
  
-import settings from 'root/getSettings'
+import settings, { injectedConfigs } from 'root/getSettings'
 import {User} from 'root/lib/models'
 import redisCli from 'root/lib/redis'
 import {SessionTypes, UserModel, Session as SessionDef, SessionStoreData, UserStatus} from 'root/type'

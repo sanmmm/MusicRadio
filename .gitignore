@@ -8,7 +8,7 @@ node_modules
 common/settings.ts
 backend/settings.ts
 backend/prepare/*.json
-backend/test*
 backend/static/*
 backend/build
 backend/config/*
+backend/coverage

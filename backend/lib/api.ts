@@ -216,12 +216,4 @@ export function getHighQualityMusicList (cat: string) {
     }, 3600 * 24)
 }
 
-async function test() {
-    // console.log((await getMusicInfo(['347230']))[0])
-    // console.log(await getAlbumInfo('2301158'))
-    // console.log(await searchMusic('许嵩', MediaTypes.album))
-    // console.log(await getPlayListInfo('24381616'))
-    // console.log(await getHighQualityMusicList('流行'))
-}
 
-test()

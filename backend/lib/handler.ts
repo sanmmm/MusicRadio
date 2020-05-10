@@ -7,7 +7,7 @@ import isDeepEqual from 'deep-equal'
 import path from 'path'
 
 import globalConfigs from 'global/common/config'
-import settings from 'root/getSettings'
+import settings, { injectedConfigs } from 'root/getSettings'
 import { User, Room } from 'root/lib/models'
 import * as NetEaseApi from 'root/lib/api'
 import * as CronTask from 'root/lib/taskCron'
@@ -3031,4 +3031,6 @@ export {
     UtilFuncs,
     DestroyRoom,
     RoomRoutineLoopTasks,
+    ManageRoomPlaying,
+    Actions,
 }

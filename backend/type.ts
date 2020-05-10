@@ -24,7 +24,7 @@ interface InjectConfigs {
 }
 declare global {
     var hallRoomId: string;
-    var injectedConfigs: InjectConfigs
+    // var injectedConfigs: InjectConfigs
     namespace Express {
         interface Request {
             session?: Session
@@ -38,7 +38,7 @@ declare global {
     namespace NodeJS {
         interface Global {
             hallRoomId: string;
-            injectedConfigs: InjectConfigs;
+            // injectedConfigs: InjectConfigs;
         }
     }
 }

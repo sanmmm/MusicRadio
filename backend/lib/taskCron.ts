@@ -65,9 +65,7 @@ async function stopCronJob (taskId: string) {
 }
 
 function addCronJob(expireAt: number, taskInfo: TaskInfo) {
-    const start = Date.now()
     const job = new Cron.CronJob(new Date(expireAt * 1000), async () => {
-        const stop = Date.now()
         const newlyInfo = JSON.parse(await redisCli.hget(getTaskSetRedisKey(), taskInfo.taskId))
         if (newlyInfo) {
             console.log(`cron task: ${taskInfo.taskType}/${taskInfo.taskId} arrived`)

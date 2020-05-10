@@ -1,5 +1,14 @@
+import path from 'path'
 import {getConfig} from 'root/lib/tools'
 import {Settings, EmojiData, BlockMusicList, BlockWordList, BitSymbols, ClientSettings} from 'root/default/configs.type'
+
+const staticPathConfig = process.env.STATIC_PATH || './static'
+export const injectedConfigs = {
+    isProductionMode: process.env.NODE_ENV === 'production',
+    staticPath: path.isAbsolute(staticPathConfig) ? staticPathConfig : path.resolve(process.cwd(), staticPathConfig),
+    appendConfigFileDir: process.env.CONFIG_DIR || null,
+    sessionType: process.env.SESSION_TYPE || 'cookie',
+}
 
 const basePath = __dirname
 
@@ -52,3 +61,5 @@ export const clientSettings = getConfig<ClientSettings>({
     basePath,
     dir: configDirs,
 })
+
+

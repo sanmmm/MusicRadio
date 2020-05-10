@@ -1,13 +1,6 @@
 import path from 'path'
 import registerPath from './registerPath'
-
-const staticPathConfig = process.env.STATIC_PATH || './static'
-global.injectedConfigs = {
-    isProductionMode: process.env.NODE_ENV === 'production',
-    staticPath: path.isAbsolute(staticPathConfig) ? staticPathConfig : path.resolve(process.cwd(), staticPathConfig),
-    appendConfigFileDir: process.env.CONFIG_DIR || null,
-    sessionType: process.env.SESSION_TYPE || 'cookie',
-}
+import {injectedConfigs} from './getSettings'
 
 if (injectedConfigs.isProductionMode) {
     registerPath()
