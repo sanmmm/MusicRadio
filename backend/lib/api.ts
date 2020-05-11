@@ -1,10 +1,10 @@
 import got from 'got'
 
 import redisCli from 'root/lib/redis'
-import settings from 'root/getSettings'
+import settings, {injectedConfigs} from 'root/getSettings'
 import { MediaTypes } from 'root/type'
 
-const serverUrl = settings.neteaseApiServer.replace('\/$/g', '')
+const serverUrl = injectedConfigs.neteaseApiUrl || settings.neteaseApiServer.replace('\/$/g', '')
 
 namespace Utils {
     export const musicSrcCacheExpire = 60 * 4

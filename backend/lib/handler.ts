@@ -2849,7 +2849,7 @@ class Handler {
         await reqUser.save()
     }
     // express route handler
-    @HandleHttpRoute.get(/^\/[^\/]*$/)
+    @HandleHttpRoute.get(new RegExp(`^(/|/${globalConfigs.roomUrlPrefix}.*)$`))
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
         res.sendFile(path.join(injectedConfigs.staticPath, './index.html'))

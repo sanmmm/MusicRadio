@@ -1,6 +1,6 @@
 import path from 'path'
-import {getConfig} from 'root/lib/tools'
-import {Settings, EmojiData, BlockMusicList, BlockWordList, BitSymbols, ClientSettings} from 'root/default/configs.type'
+import {getConfig} from './lib/tools'
+import {Settings, EmojiData, BlockMusicList, BlockWordList, BitSymbols, ClientSettings} from './default/configs.type'
 
 const staticPathConfig = process.env.STATIC_PATH || './static'
 export const injectedConfigs = {
@@ -8,6 +8,8 @@ export const injectedConfigs = {
     staticPath: path.isAbsolute(staticPathConfig) ? staticPathConfig : path.resolve(process.cwd(), staticPathConfig),
     appendConfigFileDir: process.env.CONFIG_DIR || null,
     sessionType: process.env.SESSION_TYPE || 'cookie',
+    redisUrl: process.env.REDIS_URL,
+    neteaseApiUrl: process.env.NETEASE_API_URL,    
 }
 
 const basePath = __dirname

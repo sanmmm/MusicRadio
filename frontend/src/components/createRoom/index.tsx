@@ -7,7 +7,7 @@ import { FormControl, Switch, TextField, FormControlLabel, Button, Dialog, Dialo
 
 import FocusInputWrapper from '@/components/focusMobileInput'
 import { ConnectProps, ConnectState } from '@/models/connect'
-import { copyToClipBoard } from '@/utils';
+import { copyToClipBoard, gotoRoomPage } from '@/utils';
 
 enum DialogTypes {
     createRoom,
@@ -53,10 +53,8 @@ const CreateRoom: React.FC<Props> = React.memo((props) => {
             }
         }).then(res => {
             if (res && res.success) {
-                router.push({
-                    pathname: '/' + res.roomToken,
-                    search: location.search,
-                })
+                gotoRoomPage(res.roomToken)
+                
                 if (res.password) {
                     setDialogType(DialogTypes.createSuccess)
                     setRoomPassword(res.password)

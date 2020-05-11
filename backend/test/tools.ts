@@ -19,16 +19,21 @@ describe('get config tool functon', () => {
     const genJsFileValue = value => `
         module.exports=${JSON.stringify(value)}
     `
-    require
-
     beforeEach(() => {
+        if (fs.existsSync(testDirPath)) {
+            fs.rmdirSync(testDirPath, {
+                recursive: true
+            })
+        }
         fs.mkdirSync(testDirPath)
     })
 
     afterEach(() => {
-        fs.rmdirSync(testDirPath, {
-            recursive: true
-        })
+        if (fs.existsSync(testDirPath)) {
+            fs.rmdirSync(testDirPath, {
+                recursive: true
+            })
+        }
     })
 
     it('match default config file', () => {

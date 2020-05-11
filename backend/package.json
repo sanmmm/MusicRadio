@@ -7,7 +7,7 @@
     "debug": "node --inspect -r tsconfig-paths/register -r ts-node/register app.ts",
     "start": "ts-node -r tsconfig-paths/register app.ts",
     "build": "tsc --build tsconfig.json",
-    "test": "jest -i --coverage",
+    "test": "jest -i --coverage --forceExit",
     "server": "cross-env STATIC_PATH=./static NODE_ENV=production node ./build/backend/app.js",
     "runts": "ts-node -r tsconfig-paths/register"
   },
@@ -70,7 +70,7 @@
     "preset": "ts-jest",
     "testMatch": [
       "**/test/*.ts",
-      "!**/_testTool.ts"
+      "!**/_*.ts"
     ],
     "testPathIgnorePatterns": [
       "/node_modules/",

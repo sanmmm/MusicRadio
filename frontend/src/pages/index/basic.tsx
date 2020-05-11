@@ -15,6 +15,7 @@ import configs from 'config/base.conf'
 import RoomRender from './index'
 import stlyes from './style.less'
 import CustomIcon from '@/components/CustomIcon';
+import {gotoRoomPage} from '@/utils'
 
 interface IndexProps extends ConnectProps, RouteComponentProps<{ roomToken: string }> {
     userInfo: CenterModelState['userInfo'];
@@ -43,7 +44,8 @@ const useInputPasswordStyle = makeStyles({
 })
 
 const RoomPageWrapper: React.FC<IndexProps> = (props) => {
-    const { userInfo, nowSocketStatus, dispatch, pathRoomToken = globalConfigs.hallRoomToken } = props
+    const { userInfo, nowSocketStatus, dispatch } = props
+    const pathRoomToken = (props.pathRoomToken || globalConfigs.hallRoomToken).replace(new RegExp(`^${globalConfigs.roomUrlPrefix}`), '')
     const [dialogType, setDialogType] = useState(null as DialogTypes)
     const [roomPassword, setRoomPassword] = useState('')
     const classes = useInputPasswordStyle()
@@ -66,10 +68,8 @@ const RoomPageWrapper: React.FC<IndexProps> = (props) => {
             if (pathRoomToken === roomToken) {
                 return
             }
-            router.push({
-                pathname: roomToken === globalConfigs.hallRoomToken ? '/' : `/${roomToken}`,
-                search: location.search,
-            })
+            gotoRoomPage(roomToken)
+          
         }
     }, [!!userInfo && userInfo.nowRoomId])
 

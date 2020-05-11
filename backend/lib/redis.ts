@@ -1,6 +1,6 @@
 import IoRedis from 'ioredis'
 
-import settings from 'root/getSettings'
+import settings, {injectedConfigs} from 'root/getSettings'
 
 export class Redis extends IoRedis {
     async safeSet (key: string, value: any, expire = 3600) {
@@ -58,4 +58,4 @@ export class Redis extends IoRedis {
     } 
 } 
 
-export default new Redis(settings.redisPort, settings.redisHost)
+export default injectedConfigs.redisUrl ? new Redis(injectedConfigs.redisUrl) : new Redis(settings.redisPort, settings.redisHost)

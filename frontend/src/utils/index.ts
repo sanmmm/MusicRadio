@@ -1,4 +1,4 @@
-import {getDvaApp} from 'umi'
+import {getDvaApp, history as router} from 'umi'
 
 import { MatchedSearchValue, SearchTreeType } from 'config/type.conf'
 import globalConfigs from '@global/common/config'
@@ -181,4 +181,12 @@ export function copyToClipBoard (text = '', container: React.MutableRefObject<HT
 
 export function getArrRandomItem (arr: any[]) {
     return arr[Math.floor(Math.random() * arr.length)]
+}
+
+export function gotoRoomPage (roomToken) {
+    const prefix = globalConfigs.roomUrlPrefix || ''
+    router.push({
+        pathname: roomToken === globalConfigs.hallRoomToken ? '/' : `/${prefix}${roomToken}`,
+        search: location.search,
+    })
 }

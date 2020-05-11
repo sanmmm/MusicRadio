@@ -15,7 +15,6 @@ describe('test netease api', () => {
     it('teat get music info',async () => {
         const [info] = await getMusicInfo(['65533'])
         expect(info).toMatchObject(expect.objectContaining({
-            src: expect.any(String),
             lyric: expect.any(String),
             comments: expect.any(Array),
             id: expect.any(String),
