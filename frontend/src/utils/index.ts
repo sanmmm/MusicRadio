@@ -1,4 +1,4 @@
-import {getDvaApp, history as router} from 'umi'
+import { getDvaApp, history as router } from 'umi'
 
 import { MatchedSearchValue, SearchTreeType } from 'config/type.conf'
 import globalConfigs from '@global/common/config'
@@ -67,9 +67,10 @@ export const joinPath = (path1, path2) => '/' + path1.split('/').concat(path2.sp
 export const getAuthToken = () => (new URL(location.href)).searchParams.get(globalConfigs.authTokenFeildName) || ''
 
 
-export function getLocalStorageData<T = any>(key: string) {
+export function getLocalStorageData<T = any>(key: string, defaultValue: T = null) {
     const dataStr = localStorage.getItem(key)
-    return JSON.parse(dataStr) as T
+    const value = JSON.parse(dataStr) as T
+    return  value !== null ? value : defaultValue
 }
 
 export function setLocalStorageData(key: string, data: any) {
@@ -86,7 +87,7 @@ export function CustomAlert(content: string) {
     })
 }
 
-export function checkReqRes (res, actionName = '请求') {
+export function checkReqRes(res, actionName = '请求') {
     if (res && res.success) {
         CustomAlert(`${actionName}成功`)
     } else {
@@ -130,7 +131,7 @@ export function searchValueFromObjByTree<T>(objs: T[], searchTree: SearchTreeTyp
                     keyArr.slice(0, -1).reduce((nodeObj, feildName) => {
                         return nodeObj[feildName]
                     }, obj)
-                const lastKey = keyArr[keyArr.length -1]
+                const lastKey = keyArr[keyArr.length - 1]
                 leafNodeParent[lastKey] = new MatchedSearchValue({
                     value: searchValue,
                     startMatched: findIndex,
@@ -141,11 +142,11 @@ export function searchValueFromObjByTree<T>(objs: T[], searchTree: SearchTreeTyp
     })
 }
 
-export function isMatchedFeildSearchValue (value) {
+export function isMatchedFeildSearchValue(value) {
     return value instanceof MatchedSearchValue
 }
 
-export function deduplicateObjArr (arr: Object[], getId: (item) => string) {
+export function deduplicateObjArr(arr: Object[], getId: (item) => string) {
     const set = new Set()
     const newArr = []
     arr.forEach(item => {
@@ -159,7 +160,7 @@ export function deduplicateObjArr (arr: Object[], getId: (item) => string) {
     return newArr
 }
 
-export function copyToClipBoard (text = '', container: React.MutableRefObject<HTMLElement> = null, alert = false) {
+export function copyToClipBoard(text = '', container: React.MutableRefObject<HTMLElement> = null, alert = false) {
     const input = document.createElement('input')
     input.setAttribute('readonly', 'readonly')
     input.setAttribute('value', text)
@@ -179,14 +180,21 @@ export function copyToClipBoard (text = '', container: React.MutableRefObject<HT
 }
 
 
-export function getArrRandomItem (arr: any[]) {
+export function getArrRandomItem(arr: any[]) {
     return arr[Math.floor(Math.random() * arr.length)]
 }
 
-export function gotoRoomPage (roomToken) {
+export function gotoRoomPage(roomToken) {
     const prefix = globalConfigs.roomUrlPrefix || ''
     router.push({
         pathname: roomToken === globalConfigs.hallRoomToken ? '/' : `/${prefix}${roomToken}`,
         search: location.search,
     })
+}
+
+export function urlCompatible(originUrl: string) {
+    if (originUrl) {
+        return originUrl.replace(/^(http|https):/, '')
+    }
+    return originUrl
 }

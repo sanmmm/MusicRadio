@@ -1,13 +1,16 @@
 <!doctype html>
 <html>
+
 <head>
-  <meta charset="utf-8" >
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
   <title></title>
   <link href="https://fonts.googleapis.com/css2?family=Long+Cang&display=swap" rel="stylesheet">
-  <link rel="stylesheet" type="text/css" href="//at.alicdn.com/t/font_1512906_rlaft70ippd.css">
+  <link rel="stylesheet" type="text/css" href="//at.alicdn.com/t/font_1512906_6uy5pe24xx9.css">
   <script type="text/javascript" src="//cdn.jsdelivr.net/npm/nprogress@0.1.6/nprogress.min.js"></script>
   <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.css">
+  <script>
+  </script>
   <script>
     window.handleClientSettings = function (res) {
       if (res.code === 0) {
@@ -19,7 +22,65 @@
 </head>
 
 <body>
+  <script>
+    window.publicPath = '/'
+    if (window.clientSettings && clientSettings.publicPath) {
+      window.publicPath = clientSettings.publicPath
+    }
+    const icon = document.createElement('link')
+    icon.setAttribute('rel', 'shortcut icon')
+    icon.setAttribute('type', 'image/x-icon')
+    icon.setAttribute('href', window.publicPath + 'icon.svg')
+    document.head.appendChild(icon)
+  </script>
   <div id="root"></div>
+  <script>
+    function isUrl(value) {
+      return /^(http:|https:)?\/\//.test(value)
+    }
+    function joinPath(path1, path2) {
+      const splitArr = path1.split('/').concat(path2.split('/'))
+      return `/${splitArr.filter(i => !!i).join('/')}`
+    }
+    function appendSuffixPathToUrl(url, suffixPath) {
+      const urlOjb = new URL(url)
+      urlOjb.pathname = joinPath(urlOjb.pathname, suffixPath)
+      return urlOjb.toString()
+    }
+    if (window.publicPath && publicPath !== '/') {
+      window.addEventListener('load', function () {
+        const scriptNode = document.body.querySelectorAll('script')
+        const styleNode = document.querySelectorAll('link')
+        let scriptSrc = '', styleHref = ''
+        scriptNode.forEach(node => {
+          const src = node.getAttribute('src')
+          if (src && src.includes('/umi')) {
+            scriptSrc = src
+          }
+        })
+        styleNode.forEach(node => {
+          const href = node.getAttribute('href')
+          if (href && href.includes('/umi')) {
+            styleHref = href
+          }
+        })
+        if (styleHref) {
+          const link = document.createElement('link')
+          link.setAttribute('rel', 'stylesheet')
+          const hrefValue = isUrl(clientSettings.publicPath) ? appendSuffixPathToUrl(clientSettings.publicPath, styleHref) : joinPath(clientSettings.publicPath, styleHref)
+          link.setAttribute('href', hrefValue)
+          document.head.appendChild(link)
+        }
+        if (scriptSrc) {
+          const script = document.createElement('script')
+          script.setAttribute('type', 'text/javascript')
+          const srcValue = isUrl(clientSettings.publicPath) ? appendSuffixPathToUrl(clientSettings.publicPath, scriptSrc) : joinPath(clientSettings.publicPath, scriptSrc)
+          script.setAttribute('src', srcValue)
+          document.head.appendChild(script)
+        }
+      })
+    }
+  </script>
 </body>
 
 </html>

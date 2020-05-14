@@ -2,7 +2,7 @@
   "scripts": {
     "start": "umi dev",
     "build": "umi build",
-    "publish": "cross-env PUBLIC_PATH=/static/ ASYNC_SETTINGS=1 umi build & cpy dist ../backend/static",
+    "publish": "cross-env ASYNC_SETTINGS=1 umi build & cpy dist ../backend/static",
     "analyze": "cross-env ANALYZE=1 umi build",
     "test": "umi test",
     "lint:es": "eslint --ext .js src mock tests",

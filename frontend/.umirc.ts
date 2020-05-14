@@ -2,7 +2,6 @@ import { IConfig } from '@umijs/types';
 import path from 'path'
 
 const configInject = {
-  publicPath: process.env.PUBLIC_PATH || '/',
   outPutPath: process.env.OUTPUT_PATH || './dist',
   isProductionMode: process.env.NODE_ENV === 'production',
   loadSettingsFromServer: process.env.ASYNC_SETTINGS === '1',
@@ -30,8 +29,6 @@ const config: IConfig = {
     type: 'none',
     exclude: [],
   },
-  favicon: configInject.publicPath + 'icon.svg',
-  publicPath: configInject.publicPath,
   externals: getExternals(),
   outputPath: configInject.outPutPath,
   headScripts: configInject.isProductionMode ? [
@@ -49,6 +46,8 @@ const config: IConfig = {
     }
   ],
   antd: false,
+  hash: true,
+  runtimePublicPath: true,
   dva: {
     immer: false,
     hmr: true,

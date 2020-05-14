@@ -4,7 +4,7 @@ import dayjs, { Dayjs } from 'dayjs'
 
 import { MessageTypes, MessageItem, DanmuItem, EmojiItem, MediaTypes, searchMediaItem, ChatListNoticeTypes } from 'config/type.conf'
 import { ServerListenSocketEvents, ClientListenSocketEvents } from '@global/common/enums'
-import { CustomAlert, checkReqRes } from '@/utils';
+import { CustomAlert, checkReqRes, urlCompatible } from '@/utils';
 import socket from '@/services/socket'
 
 const formatAtSignMessage = (atSignArr: MessageItem['content']['atSign'], text: string) => {
@@ -213,7 +213,10 @@ const ChatListModel: ChatListModelType = {
                 type: 'setEmojiList',
                 payload: {
                     hasMoreEmoji: res.hasMore,
-                    emojiList: res.list
+                    emojiList: res.list.map(item => {
+                        item.src = urlCompatible(item.src)
+                        return item
+                    })
                 }
             })
         },

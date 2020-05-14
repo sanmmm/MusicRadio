@@ -107,10 +107,15 @@ const insertIntoOnlineUserList = (onlineUserList, item) => {
     onlineUserList.splice(i + 1, 0, item)
 }
 
+const getOpenDamuValue = () => {
+    const v = getLocalStorageData(LocalStorageKeys.openDanmu)
+    return typeof v === 'boolean' ? v : true
+}
+
 const CenterModel: CenterModelType = {
     namespace: 'center',
     state: {
-        openDanmu: !!getLocalStorageData(LocalStorageKeys.openDanmu),
+        openDanmu: getOpenDamuValue(),
         isMobile: false,
         notifications: [],
         nowSocketStatus: ScoketStatus.closed,

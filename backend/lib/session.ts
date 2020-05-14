@@ -122,10 +122,14 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
                 sessionId = ipAddress
             }
             if (type === SessionTypes.cookie) {
-                const cookieStr = req.headers.cookie
-                const cookies = cookie.parse(cookieStr || '')
-                const signedCookies = cookieParser.signedCookies(cookies, settings.sessionSecret)
-                sessionId = signedCookies[settings.sessionKey]
+                let preSignedCookies = (req as express.Request).signedCookies
+                sessionId = !!preSignedCookies && preSignedCookies[settings.sessionKey]
+                if (!sessionId) {
+                    const cookieStr = req.headers.cookie
+                    const cookies = cookie.parse(cookieStr || '')
+                    const signedCookies = cookieParser.signedCookies(cookies, settings.sessionSecret)
+                    sessionId = signedCookies[settings.sessionKey]
+                }
             }
             if (type === SessionTypes.token) {
                 const searchStr = req.url.split('?').pop() || ''

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react'
+import React, { useCallback, useState } from 'react'
 import bindClass from 'classnames'
 import { connect } from 'dva'
 import { useMediaQuery } from 'react-responsive'
@@ -17,7 +17,10 @@ import { CustomTextFeild, CustomBtn } from '@/utils/styleInject'
 import { ConnectProps, ConnectState, CenterModelState } from '@/models/connect'
 import useSyncState from '@/components/hooks/syncAccessState';
 import CustomIcon from '@/components/CustomIcon';
+import TabContent from '@/components/tabContent'
+import { AdminActionsManage, OnlineUserManage } from '@/components/adminActionManage'
 import { RoomMusicPlayMode } from '@global/common/enums';
+import { CustomTabs, CustomTab } from '@/utils/styleInject'
 
 interface ChatInputProps extends ConnectProps {
     nowRoomId: string;
@@ -35,6 +38,7 @@ enum ActionTypes {
     chatList = 'chatList', // 评论弹幕
     searchMusic = 'searchMusic', // 搜索音乐
     info = 'info', // 说明
+    manage = 'manage', // 管理
 }
 
 const ChatInput: React.FC<ChatInputProps> = React.memo(function (props) {
@@ -90,15 +94,25 @@ const ChatInput: React.FC<ChatInputProps> = React.memo(function (props) {
                 }
                 <li>
                     关于点歌: 可以在输入框中输入发送  “点歌 音乐对应id” （id为网易云音乐对应id） 来点歌，
-                也可以点击【搜索音乐】来更方便地点歌
+                    也可以点击【搜索音乐】来更方便地点歌
                 </li>
                 <li>
-                    投票切歌: 可以在输入框输入发生“切歌”，也可以点击下方【投票切歌】来更方便切歌<br/>
+                    投票切歌: 可以在输入框输入发生“切歌”，也可以点击下方【投票切歌】来更方便切歌<br />
                     注：管理员只能创建投票，不能参与投票
                 </li>
             </ul>
         },
     ]
+
+    if (isRoomAdmin) {
+        actionsConfig.push({
+            icon: 'manage',
+            type: ActionTypes.manage,
+            label: '管理',
+            showInPc: false,
+            render: () => <MobileModeManageArea/>
+        })
+    }
 
 
     const handleAction = (actionType: ActionTypes) => {
@@ -277,5 +291,29 @@ namespace InputBox {
     })(InputBox)
 }
 
+enum ManageAreaTabTypes {
+    actionList = 'actionList',
+    onlineUsers = 'onlineUsers',
+}
 
+const MobileModeManageArea = React.memo<{}>(props => {
+    const [activeType, setActiveType] = useState(ManageAreaTabTypes.actionList)
+    const handleTabValueChenge = useCallback((_, type) => {
+        setActiveType(type)
+    }, [])
+    return <div className={styles.sendMessageBoxMobileManageArea}>
+        <CustomTabs value={activeType} onChange={handleTabValueChenge} centered variant="fullWidth">
+            <CustomTab label="操作记录" value={ManageAreaTabTypes.actionList} key={ManageAreaTabTypes.actionList} />,
+            <CustomTab label="在线用户" value={ManageAreaTabTypes.onlineUsers} key={ManageAreaTabTypes.onlineUsers} />
+        </CustomTabs>
+        <TabContent activeKey={activeType}>
+            <TabContent.Item key={ManageAreaTabTypes.actionList}>
+                <AdminActionsManage />
+            </TabContent.Item>
+                    <TabContent.Item key={ManageAreaTabTypes.onlineUsers}>
+                <OnlineUserManage />
+            </TabContent.Item>
+        </TabContent>
+    </div>
+})
 

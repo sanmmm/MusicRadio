@@ -1,0 +1,32 @@
+name: deployment
+
+on: 
+    repository_dispatch:
+        types: ['deployment']
+
+jobs:
+    trigger:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v2
+          - uses: actions/setup-node@v1
+            with:
+              node-version: '12'
+          -
+            name: npm install
+            working-directory: .github/actions/deploy
+            run: npm install
+          - 
+            name: deployment
+            uses: ./.github/actions/deploy
+            with:
+              server: ${{secrets.DEPLOY_SERVER}}
+              access_token: ${{secrets.DEPLOY_TOKEN}}
+              image_name: sanmmmm/music_radio
+          - 
+            name: deployment_2
+            uses: ./.github/actions/deploy
+            with:
+              server: ${{secrets.DEPLOY_SERVER2}}
+              access_token: ${{secrets.DEPLOY_TOKEN}}
+              image_name: sanmmmm/music_radio

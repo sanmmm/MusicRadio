@@ -8,7 +8,7 @@ import { SkipNext as NextIcon } from '@material-ui/icons'
 import { ConnectProps, ConnectState, PlayListModelState } from '@/models/connect'
 import { NowPlayingStatus, RoomMusicPlayMode, RoomPlayModeInfo } from '@global/common/enums';
 import { LocalStorageKeys } from 'config/type.conf'
-import { getLocalStorageData, setLocalStorageData, throttle } from '@/utils';
+import { getLocalStorageData, setLocalStorageData, throttle, CustomAlert } from '@/utils';
 import { VolumeSlider } from '@/utils/styleInject'
 import Lyric from './lyric'
 import SignalIcon from '@/components/signalIcon'
@@ -131,14 +131,20 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         }
         if (needTodoActionArr.includes(NeedToDoActions.blockMusic)) {
             if (this.props.isBlocked) {
-                this.setState({
-                    volumeRatio: 0
+                this.setState(prev => {
+                    return {
+                        ...prev,
+                        volumeRatio: 0
+                    }
                 })
                 this._setVolume(0, false)
             } else {
                 const volumeRatio = getLocalStorageData(LocalStorageKeys.volume) || 0.4
-                this.setState({
-                    volumeRatio
+                this.setState(prev => {
+                    return {
+                        ...prev,
+                        volumeRatio
+                    }
                 })
                 this._setVolume(volumeRatio)
             }
@@ -194,6 +200,9 @@ class Player extends React.Component<PlayerProps, PlayerState> {
         } else {
             const now = Date.now() / 1000
             timeRatio = now > endAt ? 1 : 1 - (endAt - now) / duration
+        }
+        if (timeRatio < 0) {
+            timeRatio = 0
         }
         this._setTimeRatio(timeRatio)
     }
@@ -367,13 +376,15 @@ class Player extends React.Component<PlayerProps, PlayerState> {
     }
 
     _setOpenDanmu() {
+        const isOpen = !this.props.openDanmu
         this.props.dispatch({
             type: 'center/saveData',
             payload: {
-                openDanmu: !this.props.openDanmu
+                openDanmu: isOpen
             }
         })
-        setLocalStorageData(LocalStorageKeys.openDanmu, !this.props.openDanmu)
+        CustomAlert(`弹幕已${isOpen ? '开启' : '关闭'}`)
+        setLocalStorageData(LocalStorageKeys.openDanmu, isOpen)
     }
 
     _showSwitchModeDialog() {
@@ -457,8 +468,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                         }
                     </div>
                 </div>
-                {
-                    !isMobile && <div className={styles.bottomBox}>
+                <div className={styles.bottomBox}>
                         <div className={styles.left}>
                             <CustomIcon onClick={this._setOpenDanmu.bind(this)} title={
                                 this.props.openDanmu ? '关闭弹幕' : '开启弹幕'
@@ -469,7 +479,8 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                                     this.props.openDanmu ? 'danmu-disabled' : 'danmu'
                                 }
                             </CustomIcon>
-                            <span className={bindClass(styles.volumeActionIcon, 'iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}
+                            {
+                                !isMobile && <span className={bindClass(styles.volumeActionIcon, 'iconfont', volumeRatio === 0 ? 'icon-mute' : 'icon-volume')}
                                 onClick={e => {
                                     const ratio = this.state.volumeRatio > 0 ? 0 : (this.lastVolumeRatioValue || 1)
                                     this.lastVolumeRatioValue = ratio
@@ -488,6 +499,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                                     onClick={e => e.stopPropagation()}
                                 />
                             </span>
+                            }
                         </div>
                         <div className={styles.right}>
                             {
@@ -500,7 +512,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                                 })()
                             }
                         </div>
-                    </div>}
+                    </div>
             </div>
             {
                 isRoomAdmin &&
@@ -639,7 +651,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                 onSubmit={this._switchRoomPlayMode}
             />
             {createPortal(audio, this.playerEle)}
-            {createPortal(<div style={simpleMode ? {display: 'none'} : {}}>
+            {createPortal(<div style={(!isMobile && simpleMode) ? {display: 'none'} : {}}>
                 <RoomName />
             </div>, this.roomNameEle)}
             {!isMobile && createPortal(this.renderReturnNode(true, !simpleMode), this.playerEle)}

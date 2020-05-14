@@ -50,5 +50,6 @@ export default {
     initNickNamePerfix: 'musicradiodefault',
     roomAutoPlayTypes: ['流行', '民谣', '电子', '古风', '乡村', '摇滚', '轻音乐', '古典'],
     apiFrequeryLimit,
+    roomUrlPrefix: 'room',
 }
 

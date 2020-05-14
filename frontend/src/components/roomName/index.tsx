@@ -58,33 +58,37 @@ const RoomInfoShow = React.memo<Props>((props) => {
         }
     }, [status])
 
+    const signalIconSize = isMobile ? 16 : 20
+    const signalIconMargin = '1rem'
     return <div className={styles.roomHeaderInfo}>
         <div className={styles.nameLine}>
-        <SignalIcon color={styleConf.highLightColor} size={isMobile ? 16 : 20}/>
-        <div ref={containerRef} className={bindClass(styles.nameBox, isMobile && styles.mobile)}>
-            {
-                status === Status.initial && roomName
-            }
-            {
-                status === Status.notOverlofw && <div className={styles.unitBase}>{roomName}</div>}
-            {
-                status === Status.overflow && <React.Fragment>
-                    {
-                        units.map((key, index) => <span key={key}
-                            className={styles.unit}
-                            style={{
-                                animationDelay: `-${(1 - index) * nameShowDuration}s`,
-                                animationDuration: `${nameShowDuration * 2}s`,
-                            }}
-                        >{roomName}</span>)}
-                </React.Fragment>
-            }
-        </div>
+            <SignalIcon color={styleConf.highLightColor} size={signalIconSize} />
+            <div ref={containerRef} className={bindClass(styles.nameBox, isMobile && styles.mobile)}>
+                {
+                    status === Status.initial && roomName
+                }
+                {
+                    status === Status.notOverlofw && <div className={styles.unitBase}>{roomName}</div>}
+                {
+                    status === Status.overflow && <React.Fragment>
+                        {
+                            units.map((key, index) => <span key={key}
+                                className={styles.unit}
+                                style={{
+                                    animationDelay: `-${(1 - index) * nameShowDuration}s`,
+                                    animationDuration: `${nameShowDuration * 2}s`,
+                                }}
+                            >{roomName}</span>)}
+                    </React.Fragment>
+                }
+            </div>
         </div>
         {
-            isMobile && nowRoomInfo && <div className={styles.bottomLine}>
+            isMobile && nowRoomInfo && <div className={styles.bottomLine} 
+                style={{ marginLeft: `calc(${signalIconSize}px + ${signalIconMargin})` }}
+            >
                 <span>
-                {[nowRoomInfo.heat, nowRoomInfo.max].filter(v => v >= 0).join('/')}人在线
+                    {[nowRoomInfo.heat, nowRoomInfo.max].filter(v => v >= 0).join('/')}人在线
                 </span>
             </div>}
     </div>

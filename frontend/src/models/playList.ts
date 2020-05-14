@@ -4,7 +4,7 @@ import { Effect, Subscription } from 'dva'
 import socket from '@/services/socket'
 import { ServerListenSocketEvents, ClientListenSocketEvents, NowPlayingStatus } from '@global/common/enums'
 import { PlayListItem } from 'config/type.conf'
-import { checkReqRes } from '@/utils';
+import { checkReqRes, urlCompatible } from '@/utils';
 
 export interface NowPlayingInfo {
     id: string;
@@ -137,6 +137,10 @@ const PlayListModel: PlayListModelType = {
             const newData: NowPlayingInfo = payload.nowPlaying
             let newState = state
             if (!newData || !oldData || newData.timestamp >= oldData.timestamp) {
+                if (newData) {
+                    newData.src = urlCompatible(newData.src)
+                    newData.pic = urlCompatible(newData.pic)
+                }
                 newState = {
                     ...state,
                     nowPlaying: newData

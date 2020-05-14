@@ -1,0 +1,86 @@
+name: docker release
+
+on:
+    push:
+        branches: master
+        paths:
+            - "common/**"
+            - "frontend/**"
+            - "backend/**"
+            - "Dockerfile"
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        defaults:
+            run:
+                shell: bash
+                working-directory: backend
+        services:
+            redis:
+                image: redis
+                ports:
+                    - 6379:6379
+            neteaseapi:
+                image: binaryify/netease_cloud_music_api
+                ports:
+                    - 3000:3000
+        strategy:
+            matrix:
+                node-version: [12.x, 14.x]
+
+        steps:
+            - uses: actions/checkout@v2
+            - 
+                name: Use Node.js ${{ matrix.node-version }}
+                uses: actions/setup-node@v1
+                with:
+                    node-version: ${{ matrix.node-version }}
+            - run: npm ci
+            - 
+                name: run test
+                run: npm test
+                env:
+                    REDIS_URL: redis://localhost:6379
+                    NETEASE_API_URL: http://localhost:3000
+    release:
+        runs-on: ubuntu-latest
+        needs: test
+        steps:
+            - uses: actions/checkout@v2
+            - 
+                name: docker login
+                env:
+                    DOCKER_USERNAME: ${{secrets.DOCKER_USERNAME}}
+                    DOCKER_PASSWORD: ${{secrets.DOCKER_PASSWORD}}
+                run: |
+                    echo "${DOCKER_PASSWORD}" | docker login --username ${DOCKER_USERNAME} --password-stdin
+            - 
+                name: Set up Docker Buildx
+                id: buildx
+                uses: crazy-max/ghaction-docker-buildx@v1
+                with:
+                    buildx-version: latest
+            -
+                name: Build dockerfile (with push)
+                env:
+                    DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+                run: |
+                    docker buildx build \
+                    --platform=linux/amd64 \
+                    --output "type=image,push=true" \
+                    --file ./Dockerfile . \
+                    --tag $(echo "${DOCKER_USERNAME}" | tr '[:upper:]' '[:lower:]')/music_radio:latest \
+                    --tag $(echo "${DOCKER_USERNAME}" | tr '[:upper:]' '[:lower:]')/music_radio:$(git rev-parse --short $GITHUB_SHA)
+    deployment:  
+      needs: release
+      runs-on: ubuntu-latest
+      steps:
+        - 
+          name: Repository Dispatch
+          uses: peter-evans/repository-dispatch@v1.1.0
+          with:
+            event-type: deployment
+            token: ${{secrets.REPO_ACCESS_TOKEN}}
+            client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+                    

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useImperativeHandle, forwardRef } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useImperativeHandle, forwardRef } from 'react'
 import bindclass from 'classnames'
 import { useSwipeable, Swipeable } from 'react-swipeable'
 import { useMediaQuery } from 'react-responsive';
@@ -26,6 +26,7 @@ const ScrollWrapper: React.FC<Props> = function ScrollWrapper (props) {
     const boxRef = useRef<HTMLDivElement>(null)
     const isMobile = useMediaQuery({query: configs.mobileMediaQuery})
 
+    const isInitial = !boxRef.current
     useEffect(() => {
         getPageHeight()
         window.addEventListener('resize', throttle(getPageHeight, 300, true))
@@ -38,7 +39,9 @@ const ScrollWrapper: React.FC<Props> = function ScrollWrapper (props) {
     }, [])
 
     useEffect(() => {
-        props.onPageChange && props.onPageChange(focusPageIndex)
+        if (!isInitial) {
+            props.onPageChange && props.onPageChange(focusPageIndex)
+        }
     }, [focusPageIndex])
 
     const getPageHeight = () => {
@@ -50,27 +53,23 @@ const ScrollWrapper: React.FC<Props> = function ScrollWrapper (props) {
         })
     }
 
-    const toPreviousPage = useMemo(() => {
-        return throttle((e) => {
-            setFocusPageIndex((prevValue) => {
-                if (prevValue === 0) {
-                    return prevValue
-                }
-                return prevValue - 1
-            })
-        }, 900)
-    }, [])
-    const toNextPage = useMemo(() => {
-        return throttle((e) => {
-            setFocusPageIndex((prevValue) => {
-                const childCount = React.Children.count(props.children)
-                if (prevValue === childCount - 1) {
-                    return prevValue
-                }
-                return prevValue + 1
-            })
-        }, 900)
-    }, [])
+    const toPreviousPage = useCallback(throttle(() => {
+        setFocusPageIndex((prevValue) => {
+            if (prevValue === 0) {
+                return prevValue
+            }
+            return prevValue - 1
+        })
+    }, 900), [])
+    const toNextPage = useCallback(throttle(() => {
+        setFocusPageIndex((prevValue) => {
+            const childCount = React.Children.count(props.children)
+            if (prevValue === childCount - 1) {
+                return prevValue
+            }
+            return prevValue + 1
+        })
+    }, 900), [])
     const handlers = useSwipeable({ onSwipedUp: toNextPage, onSwipedDown: toPreviousPage })
     useImperativeHandle(refObj, () => {
         return {

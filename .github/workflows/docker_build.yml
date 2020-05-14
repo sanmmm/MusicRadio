@@ -1,0 +1,39 @@
+name: docker build test
+
+on:
+  pull_request:
+    branches: master
+    paths:
+      - 'common/**'
+      - 'frontend/**'
+      - 'backend/**'
+      - 'Dockerfile'
+  push:
+    branches: master
+    paths:
+      - 'common/**'
+      - 'frontend/**'
+      - 'backend/**'
+      - 'Dockerfile'
+
+jobs:
+  docker_build:
+    runs-on: ubuntu-latest
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v2
+      -
+        name: Set up Docker Buildx
+        id: buildx
+        uses: crazy-max/ghaction-docker-buildx@v1
+        with:
+          buildx-version: latest
+          qemu-version: latest
+      -
+        name: Run Buildx
+        run: |
+          docker buildx build \
+            --platform linux/amd64 \
+            --output "type=image,push=false" \
+            --file ./Dockerfile .

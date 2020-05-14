@@ -54,7 +54,7 @@ const CreateRoom: React.FC<Props> = React.memo((props) => {
         }).then(res => {
             if (res && res.success) {
                 gotoRoomPage(res.roomToken)
-                
+
                 if (res.password) {
                     setDialogType(DialogTypes.createSuccess)
                     setRoomPassword(res.password)
@@ -70,15 +70,12 @@ const CreateRoom: React.FC<Props> = React.memo((props) => {
             <DialogTitle>创建房间</DialogTitle>
             <DialogContent>
                 <FormControl>
-                    <FocusInputWrapper>
-                        {
-                            (ref) => <TextField inputRef={ref} label="房间名" placeholder="长度在4~20个字符之间" value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            />}
-                    </FocusInputWrapper>
+                    <TextField label="房间名" placeholder="长度在4~20个字符之间" value={formData.name}
+                        onChange={e => setFormData({ ...formData, name: e.target.value })}
+                    />
                     <FormControl margin="normal">
                         <FormControlLabel
-                            control={<Switch value={formData.isPrivate} onChange={e => setFormData({ ...formData, isPrivate: e.target.checked,})} />}
+                            control={<Switch value={formData.isPrivate} onChange={e => setFormData({ ...formData, isPrivate: e.target.checked, })} />}
                             label="不开放"
                         />
                     </FormControl>
@@ -94,7 +91,7 @@ const CreateRoom: React.FC<Props> = React.memo((props) => {
                         formData.maxMemberCount > -1 && <TextField label="最大人数" type="number" placeholder="人数不能低于2人" value={formData.maxMemberCount}
                             onChange={e => {
                                 const value = e.target.value
-                                setFormData({ ...formData, maxMemberCount:  value ? Number(value) : null })
+                                setFormData({ ...formData, maxMemberCount: value ? Number(value) : null })
                             }}
                         />}
                     <FormControl margin="normal">
@@ -118,7 +115,7 @@ const CreateRoom: React.FC<Props> = React.memo((props) => {
     </React.Fragment>
 })
 
-export default connect(({center: {isMobile} }: ConnectState) => {
+export default connect(({ center: { isMobile } }: ConnectState) => {
     return {
         isMobile
     }

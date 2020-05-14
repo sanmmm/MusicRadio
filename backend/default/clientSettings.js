@@ -1,4 +1,5 @@
 module.exports = {
+    publicPath: '/static/',
     websiteName: 'Music Radio',
     socketServer: '', 
     httpServer: '',

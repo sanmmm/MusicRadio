@@ -4,7 +4,7 @@
   "description": "Inspired by [SyncMusic](https://github.com/kasuganosoras/SyncMusic)",
   "scripts": {
     "dev": "cross-env NODE_ENV=development SESSION_TYPE=token nodemon -e js,mjs,json,ts",
-    "debug": "node --inspect -r tsconfig-paths/register -r ts-node/register app.ts",
+    "debug": "cross-env NODE_ENV=development SESSION_TYPE=token node --inspect -r tsconfig-paths/register -r ts-node/register app.ts",
     "start": "ts-node -r tsconfig-paths/register app.ts",
     "build": "tsc --build tsconfig.json",
     "test": "jest -i --coverage --forceExit",

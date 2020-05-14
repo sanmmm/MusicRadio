@@ -1,10 +1,9 @@
 .history
 .vscode
-.github
 api
 netease
 build
-node_modules
+**/node_modules
 common/settings.ts
 backend/settings.ts
 backend/prepare/*.json
@@ -12,3 +11,4 @@ backend/static/*
 backend/build
 backend/config/*
 backend/coverage
+backend/**/.env

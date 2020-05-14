@@ -20,7 +20,7 @@ import Handler from 'root/lib/handler'
 import settings from 'root/getSettings'
 import globalConfigs from 'global/common/config'
 import { SessionTypes } from 'root/type'
-import {cookieMiddleware, dispatchClientSettings} from 'root/lib/middlewares'
+import {cookieMiddleware, dispatchClientSettings, umiFileHandler} from 'root/lib/middlewares'
 
 global.hallRoomId = globalConfigs.hallRoomId
 const sessionType = SessionTypes[injectedConfigs.sessionType] as SessionTypes
@@ -60,6 +60,7 @@ if (!injectedConfigs.isProductionMode) {
 }
 // 放在sesion中间件前面
 app.get('/client/settings', dispatchClientSettings)
+app.get(/^\/umi\..+\.(js|css)/, umiFileHandler)
 app.use(session(sessionType))
 
 const server = new http.Server(app)

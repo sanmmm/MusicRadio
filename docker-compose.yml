@@ -1,12 +1,13 @@
 version: '3.4'
 
 services:
-  syncmusic:
-    image: syncmusic
+  music_radio:
+    image: sanmmmm/music_radio:${MUSIC_RADIO_TAG:-latest}
     ports:
       - 3001:3001
     volumes: 
       - server-log:/data
+      - ${CONFIG_DIR:-server-config}:/app/backend/build/backend/config
     restart: always
     depends_on: 
       - redis
@@ -24,3 +25,4 @@ services:
 volumes: 
   redis-data:
   server-log:
+  server-config:

@@ -1,0 +1,16 @@
+name: 'deployment'
+description: 'deployment'
+inputs:
+  server:
+    required: true
+    description: 'deployment server address'
+  image_name:
+    required: true
+    description: 'image name'
+  access_token:
+    description: 'server access_token'
+    required: false
+    default: ''
+runs:
+  using: 'node12'
+  main: 'index.js'

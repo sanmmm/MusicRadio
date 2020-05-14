@@ -10,7 +10,7 @@ import FocusMobileInputWrapper from '@/components/focusMobileInput'
 import { ConnectState, ConnectProps, ChatListModelState, PlayListModelState, } from '@/models/connect'
 import { MediaTypes, searchMediaItem } from 'config/type.conf'
 import configs from 'config/base.conf'
-import { joinPath, isPathEqual } from '@/utils'
+import { joinPath, isPathEqual, urlCompatible } from '@/utils';
 import styles from './index.less'
 import CustomIcon from '@/components/CustomIcon';
 
@@ -95,6 +95,12 @@ const MusicSearchList: React.FC<Props> = React.memo((props) => {
         } else {
             hashRouter.push(joinPath(baseHashPath, '/step2'))
             dispatch({
+                type: 'chatList/saveData',
+                payload: {
+                    searchMediaDetail: []
+                }
+            })
+            dispatch({
                 type: 'chatList/searchMediaDetail',
                 payload: {
                     id: item.id
@@ -122,7 +128,7 @@ const MusicSearchList: React.FC<Props> = React.memo((props) => {
                     {
                         !!i.pic &&
                         <div className={styles.left}>
-                            <img src={i.pic} />
+                            <img src={urlCompatible(i.pic)} />
                         </div>
                     }
                     <div className={styles.right}>

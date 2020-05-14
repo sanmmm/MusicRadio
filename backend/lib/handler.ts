@@ -44,7 +44,7 @@ async function beforeStart() {
     if (isInitial) {
         await UtilFuncs.startRoomRoutineTasks(hallRoom)
     }
-    await RoomIpActionDataRecord.start(settings.coordDataCalcDuration, settings.coordDataCalcIncMode)
+    await RoomIpActionDataRecord.start(settings.coordDataCalcDuration, settings.coordDataResetDuration)
 }
 
 const UserToSocketIdMap: {
@@ -117,11 +117,10 @@ namespace ListenSocket {
                             return
                         }
                     }
-
+                    prevFunc(socket, data, ackFunc)
                 } catch (e) {
                     console.error(e)
                 }
-                prevFunc(socket, data, ackFunc)
             }
             funcSet.add(newFunc)
             descriptor.value = newFunc
@@ -547,6 +546,7 @@ namespace RoomIpActionDataRecord {
     const resolvedIps = new Set<string>()
     const ipToDataHashKey = 'musicradio:ipToDataHash'
     const roomCoordDataCacheKey = 'musicradio:roomCoordDataCache'
+    const roomCoordDataResetExpireKey = 'musicradio:roomCoordDataResetExpire'
     const queryApiLimitPerSecond = 40
     const vars = {
         isStarted: false,
@@ -754,7 +754,12 @@ namespace RoomIpActionDataRecord {
     }
 
     // 数据计算整理分析
-    async function calcIpData(expire: number, inc = false) {
+    /**
+     * 
+     * @param refreshDuration 刷新周期（在之前的数据基础之上） 单位 秒
+     * @param resetDuration 数据清零重置周期 单位 秒
+     */
+    async function calcIpData(refreshDuration: number, resetDuration: number) {
         let map = new Map<string, CalculatedCoordData>()
         Array.from(resolvedIps).forEach(ip => {
             const ipData = ipDataMap.get(ip)
@@ -783,9 +788,10 @@ namespace RoomIpActionDataRecord {
         })
         const arrayData = Array.from(map.keys()).map(key => map.get(key))
         vars.roomCoordData = arrayData
-        await redisCli.set(roomCoordDataCacheKey, JSON.stringify(arrayData), 'EX', expire)
-        if (!inc) {
-            // 非增量更新，清除数据
+        await redisCli.set(roomCoordDataCacheKey, JSON.stringify(arrayData), 'EX', refreshDuration)
+        if (!await redisCli.exists(roomCoordDataResetExpireKey)) {
+            await redisCli.set(roomCoordDataResetExpireKey, 'not expired', 'EX', resetDuration)
+            // 清除之前累积的数据
             let pipe = redisCli.pipeline();
             let count = 0, resArr = []
             const ipArr = [...resolvedIps]
@@ -816,8 +822,8 @@ namespace RoomIpActionDataRecord {
         static async handleIpDataCrontTaskArrived(data: IpDataCronTaskManage.IpDataCronTaskData) {
             const { subTaskType } = data
             if (subTaskType === SubCronTaskTypes.calcData) {
-                const { extra } = data
-                await calcIpData(extra.expire, extra.inc)
+                const { extra: {refreshDuration, resetDuration} } = data
+                await calcIpData(refreshDuration, resetDuration)
             } else if (subTaskType === SubCronTaskTypes.refreshIpReqCounter) {
                 await IpDataApiManage.handleRefreshApiReqCounter()
             }
@@ -874,8 +880,8 @@ namespace RoomIpActionDataRecord {
          * @param inc 是否为增量更新 
          */
         @catchError()
-        static async start(refreshDuration: number, inc = false) {
-            const args = [refreshDuration, inc]
+        static async start(refreshDuration: number, resetDuration: number) {
+            const args = [refreshDuration, resetDuration]
             if (await UtilFuncs.recordFuctionArguments('startcalcipdata', args)) {
                 await stop()
             } else {
@@ -885,14 +891,15 @@ namespace RoomIpActionDataRecord {
             }
             await loadDataFromRedis()
             await IpDataCronTaskManage.startTask(SubCronTaskTypes.calcData, refreshDuration, {
-                expire: refreshDuration,
-                inc,
+                refreshDuration,
+                resetDuration,
             })
             await IpDataCronTaskManage.startTask(SubCronTaskTypes.refreshIpReqCounter, 60)
             vars.isStarted = true
         }
         @catchError()
         static async stop() {
+            await redisCli.del(roomCoordDataResetExpireKey)
             await IpDataCronTaskManage.stopTask(SubCronTaskTypes.calcData)
             await IpDataCronTaskManage.stopTask(SubCronTaskTypes.refreshIpReqCounter)
             vars.isStarted = false
@@ -1009,8 +1016,14 @@ namespace RoomRoutineLoopTasks {
         static async main(data: CronData) {
             const taskType = data.routineTaskType
             const cb = taskCbMap.get(taskType)
+            const room = await Room.findOne(data.roomId)
+            if (!room) {
+                throw new Error(`room routine task error: invalid room!
+                    data: ${JSON.stringify(data)}
+                `)
+            }
             if (cb) {
-                await cb(data)
+                await cb(data, room)
             }
             const taskId = await CronTask.pushCronTask(CronTaskTypes.roomRoutineTask, data, data.period)
             await redisCli.set(getTaskToCronJobIdKey(data.roomId, data.routineTaskType), taskId)
@@ -2849,6 +2862,7 @@ class Handler {
         await reqUser.save()
     }
     // express route handler
+    // index response
     @HandleHttpRoute.get(new RegExp(`^(/|/${globalConfigs.roomUrlPrefix}.*)$`))
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {

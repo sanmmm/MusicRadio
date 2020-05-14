@@ -20,7 +20,7 @@ export interface Settings {
     superAdminRegisterTokens: string[];
     openWordValidate: boolean; // 是否开启敏感词过滤
     coordDataCalcDuration: number ;// 房间热点数据整理计算刷新周期 单位s
-    coordDataCalcIncMode: boolean; // 【每个热点数据计算周期】不清空之前周期的数据而是合并数据
+    coordDataResetDuration: number; // 热点数据重置周期 单位s
     notAllowCreateRoom: boolean;// 是否允许创建房间
     // 以下仅在dev模式下有效
     openRandomIpMode: boolean; // 为用户随机分配所属ip地址

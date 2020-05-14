@@ -21,6 +21,7 @@
 **/secrets.dev.yaml
 **/values.dev.yaml
 **/node_modules
+**/.github
 backend/config
 backend/build
 backend/dist
@@ -28,4 +29,5 @@ backend/static
 backend/coverage
 frontend/dist
 frontend/static
+frontend/config/settings.ts
 README.md
