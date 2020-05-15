@@ -15,5 +15,6 @@ COPY ./backend/ ./backend/
 RUN  cd backend && npm run build
 ENV STATIC_PATH=/app/static NODE_ENV=production
 COPY runInDocker.sh .
+RUN chmod +x ./runInDocker.sh
 EXPOSE 3001
 CMD ["./runInDocker.sh"]
