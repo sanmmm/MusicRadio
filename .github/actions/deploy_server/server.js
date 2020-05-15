@@ -29,8 +29,8 @@ function findLocalImageInfo (imageName) {
     const output = shell.exec('docker image ls', {
         silent: true
     })
-    const items = output.stdout.split('\n').slice(1)
-    const findOneStr = items.find(item => {
+    const items = output.stdout.split('\n').slice(1).filter(i => !!i)
+    const findOneStr = items.filter(i => !!i).find(item => {
         const info = parseItemInfo(item)
         if (info.name === imageName) {
             return true
@@ -82,7 +82,7 @@ router.post('/updateImage', (req, res, next) => {
         }
         console.log(`inner update image: ${imageName}:${imageTag}`)
         const localImageInfo = findLocalImageInfo(imageName)
-        if (localImageInfo && localImageInfo.tag !== imageTag) {
+        if (!localImageInfo || localImageInfo.tag !== imageTag) {
             console.log(`fetch image: ${imageName}:${imageTag}`)
             setImmediate(() => {
                 try {

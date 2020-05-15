@@ -50,7 +50,7 @@ async function main() {
             timeout: 10000
         })
         if (res.body.code !== 0) {
-            throw new Error(`req update image failed: ${req.body.msg || '未知原因'}`)
+            throw new Error(`req update image failed: ${res.body.msg || '未知原因'}`)
         }
         let i = 0, isSuccess = false
         do {

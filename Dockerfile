@@ -14,5 +14,6 @@ ENV OUTPUT_PATH= ASYNC_SETTINGS=
 COPY ./backend/ ./backend/
 RUN  cd backend && npm run build
 ENV STATIC_PATH=/app/static NODE_ENV=production
+COPY runInDocker.sh .
 EXPOSE 3001
-CMD ["pm2", "start", "backend/build/backend/app.js", "--no-daemon"]
+CMD ["./runInDocker.sh"]
