@@ -2,6 +2,9 @@
 
 Inspired by [SyncMusic](https://github.com/kasuganosoras/SyncMusic)
 
+![test](https://github.com/sanmmm/MusicRadio/workflows/test/badge.svg?branch=master&event=push) 
+![docker release](https://github.com/sanmmm/MusicRadio/workflows/docker%20release/badge.svg?branch=master&event=push)
+
 ![screenshot](./assets/screenshot_hall.png)
 
 ## 简介
@@ -259,10 +262,10 @@ MusicRadio依赖的其他三方服务有：`redis`（用来存储数据）以及
 <span id="backend-settings-default-file"></span>
 
 
-**后端自定义配置存放文件夹：** `/backend/default/config/`
+**后端自定义配置存放文件夹：** `/backend/config/`
 <span id="custom-backend-settings-dir"></span>
 
-也可以通过[环境变量](#config-dir)添加`自定义配置文件夹`
+也可以通过[环境变量](#config-dir)添加`自定义配置文件夹`的位置
 
 该文件夹存放用户的自定义配置文件（可以覆盖同名默认配置文件的配置）
 

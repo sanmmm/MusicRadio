@@ -40,10 +40,11 @@ app.use(express.urlencoded({
 }))
 app.use(express.json())
 
-const needSetCors = settings.corsOrigin && settings.corsOrigin.length
+const needSetCors = !!(settings.corsOrigin && settings.corsOrigin.length)
 if (needSetCors) {
     app.use(cors({
         origin: settings.corsOrigin,
+        credentials: true,
     }))
 }
 app.set('views', path.join(__dirname, 'views'));
@@ -65,7 +66,13 @@ app.use(session(sessionType))
 
 const server = new http.Server(app)
 const io = socketIo(server, {
-    origins: needSetCors ? settings.corsOrigin : '*:*'
+    origins: needSetCors ? (settings.corsOrigin).map(url => {
+        if (url.startsWith('https') && !url.endsWith(':443')) {
+            const pureUrlStr = new URL(url).toString()
+            return pureUrlStr.replace(/\/$/, ':443')
+        }
+        return url
+    }) : '*:*'
 })
 io.use(session(sessionType))
 
