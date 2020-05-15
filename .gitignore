@@ -3,6 +3,7 @@
 api
 netease
 build
+nginx
 **/node_modules
 common/settings.ts
 backend/settings.ts

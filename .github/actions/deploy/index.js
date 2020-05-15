@@ -1,6 +1,7 @@
 const got = require('got')
 const core = require('@actions/core')
 const shell = require('@actions/exec')
+const github = require('@actions/github')
 
 function wait (time = 1000) {
     return new Promise((resolve, reject) => {
@@ -13,7 +14,8 @@ async function getInputArgs() {
     const accessToken = core.getInput('access_token')
     const imageName = core.getInput('image_name')
     let shellOut = '', shellErr = ''
-    await shell.exec(`git rev-parse --short ${process.env.GITHUB_SHA}`, [],
+    console.log(github.context.payload.sha)
+    await shell.exec(`git rev-parse --short ${github.context.payload.sha}`, [],
         {
             listeners: {
                 stdout: (data) => {
@@ -25,6 +27,7 @@ async function getInputArgs() {
             }
         }
     )
+  
     return {
         serverUrl,
         accessToken,
