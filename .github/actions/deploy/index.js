@@ -14,8 +14,8 @@ async function getInputArgs() {
     const accessToken = core.getInput('access_token')
     const imageName = core.getInput('image_name')
     let shellOut = '', shellErr = ''
-    console.log(github.context.payload.sha)
-    await shell.exec(`git rev-parse --short ${github.context.payload.sha}`, [],
+    console.log(github.context.payload.client_payload)
+    await shell.exec(`git rev-parse --short ${github.context.payload.client_payload.sha}`, [],
         {
             listeners: {
                 stdout: (data) => {
