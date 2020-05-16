@@ -2866,7 +2866,7 @@ class Handler {
     @HandleHttpRoute.get(new RegExp(`^(/|/${globalConfigs.roomUrlPrefix}.*)$`))
     @UtilFuncs.routeHandlerCatchError()
     static async renderIndex(req: Request, res: Response) {
-        res.sendFile(path.join(injectedConfigs.staticPath, './index.html'))
+        res.sendFile(path.join(injectedConfigs.staticPath, './index_server.html'))
     }
 
     // 前端初始化信息

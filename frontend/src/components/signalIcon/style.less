@@ -1,20 +1,21 @@
 .signalIcon {
     height: 1rem;
+    width: 20px;
     overflow: hidden;
     &.paused {
         > * {
             animation-play-state: paused;
         }
     }
-    > *{
-        line-height: 1rem;
-        display: inline-block;
-        vertical-align: bottom;
+    > * {
         animation: updown 2s ease-in-out infinite;
         width: 2px;
         height: 90%;
-        border-radius: 25%;
         margin: 0 1px; 
+        display: inline-block;
+        line-height: 1rem;
+        vertical-align: bottom;
+        border-radius: 25%;
     }
 }
 @keyframes updown {

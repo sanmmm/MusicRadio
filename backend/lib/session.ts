@@ -13,10 +13,11 @@ import globalConfigs from 'global/common/config'
 import {getRandomIp} from 'root/lib/utils'
 const {authTokenFeildName: authTokenKey} = globalConfigs
 
-const getIp = (str) => {
+const getIp = (req: http.IncomingMessage) => {
     if (!injectedConfigs.isProductionMode && settings.openRandomIpMode) {
         return getRandomIp()
     }
+    let str = req.headers['x-real-ip'] as string || req.headers['x-forwarded-for'] as string || req.socket.remoteAddress
     if (str.startsWith('::ffff:')) {
         str = str.replace('::ffff:', '')
     }
@@ -117,7 +118,7 @@ export default function session (type: SessionTypes = SessionTypes.cookie) {
         const next: Function = isSocketMode ? args[1] : args[2]
         try {
             let sessionId = ''
-            const ipAddress = getIp(req.socket.remoteAddress)
+            const ipAddress = getIp(req)
             if (type === SessionTypes.ip) {
                 sessionId = ipAddress
             }

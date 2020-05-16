@@ -5,6 +5,7 @@ import styles from './index.less'
 import SignalIcon from '@/components/signalIcon';
 import globalConfigs from '@global/common/config';
 import CustomIcon from '@/components/CustomIcon';
+import { urlCompatible } from '@/utils';
 
 interface Props {
     pic: string;
@@ -25,7 +26,7 @@ const RoomItemShow: React.FC<Props> = React.memo((props) => {
         <div className={styles.main}>
             <div className={styles.background}>
                 {
-                    !!pic ? <img src={pic}/> : <div className={styles.noData}>暂无播放</div>}
+                    !!pic ? <img src={urlCompatible(pic)}/> : <div className={styles.noData}>暂无播放</div>}
             </div>
             <div className={styles.heat}><CustomIcon>persons</CustomIcon><span>{heat}</span></div>
             {!!playing && <div className={styles.playing}>

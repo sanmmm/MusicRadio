@@ -58,3 +58,29 @@ export function getConfig<T = any> (options: GetConfigOptions) {
         ...config,
     }
 }
+
+export function fillVaraibleToFile (options: {
+    filePath: string;
+    exportTo: string;
+    vars: {
+        [variableName: string]: string;
+    }
+}) {
+    const {filePath, exportTo, vars} = options
+    const fileStr = fs.readFileSync(filePath, {
+        encoding: 'utf-8'
+    })
+    let isMatched = false
+    const filledFileStr = fileStr.replace(/{{!(\w+)}}/g, (matched, varName) => {
+        isMatched = true
+        return vars[varName]
+    })
+    
+    const exportToFileStr = fs.existsSync(exportTo) ? fs.readFileSync(exportTo, {
+        encoding: 'utf-8'
+    }) :  ''
+    if (isMatched && filledFileStr !== exportToFileStr) {
+        fs.writeFileSync(exportTo, filledFileStr)
+    }
+}
+

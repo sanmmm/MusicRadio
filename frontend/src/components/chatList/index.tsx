@@ -14,6 +14,7 @@ import configs from 'config/base.conf'
 import styles from './index.less'
 import bindclass from 'classnames';
 import CustomIcon from '@/components/CustomIcon';
+import { urlCompatible } from '@/utils';
 
 interface ChatListProps extends ConnectProps {
     unreadMessageIds: string[];
@@ -433,7 +434,7 @@ const ChatListItem = React.memo<{
             <div className={bindClass(styles.content, m.type === MessageTypes.advanced && styles.advanced,
                 m.type === MessageTypes.notice && styles.notice, m.type === MessageTypes.emoji && styles.emoji)}>
                 {
-                    m.type === MessageTypes.emoji ? <img src={m.content.img} title={m.content.title} onClick={handleClick.bind(null, m)} /> : <span onClick={handleClick.bind(null, m)}>{m.content.text}</span>}
+                    m.type === MessageTypes.emoji ? <img src={urlCompatible(m.content.img)} title={m.content.title} onClick={handleClick.bind(null, m)} /> : <span onClick={handleClick.bind(null, m)}>{m.content.text}</span>}
             </div>
         </div>
     }

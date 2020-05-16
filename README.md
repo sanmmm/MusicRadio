@@ -36,6 +36,7 @@ MusicRadio是一个使用nodejs开发的基于websocket的在线同步播放音�
     - 特殊消息悬浮提醒
     - 未读消息提醒
     - 弹幕
+    - 消息撤回
 4. :eyes: 搜索、点歌
     - 模糊搜索
     - 批量点歌
@@ -268,6 +269,17 @@ MusicRadio依赖的其他三方服务有：`redis`（用来存储数据）以及
 也可以通过[环境变量](#config-dir)添加`自定义配置文件夹`的位置
 
 该文件夹存放用户的自定义配置文件（可以覆盖同名默认配置文件的配置）
+
+
+### 超级管理员
+
+超级管理员的注册页面为 `yourhost/admin/register`
+
+注册时需要一个`注册码` 可以在[配置文件](#custom-backend-settings-dir)的`superAdminRegisterTokens`字段配置该码，该字段数据类型为字符串数组
+
+超级管理员的登录页面为 `yourhost/admin/login`
+
+
 
 
 

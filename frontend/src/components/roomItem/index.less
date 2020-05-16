@@ -1,6 +1,10 @@
 @import '~@/base.less';
+
+
+
+@baseIndex: 10;
+
 .roomItem {
-    // width: 100%;
     color: @themeColor;
 
     @mainContentPadding: 8px;
@@ -28,6 +32,7 @@
 
         > .background {
             position: absolute;
+            z-index: @baseIndex;
             top: 0;
             left: 0;
             width: 100%;
@@ -54,6 +59,7 @@
 
         > .heat {
             position: absolute;
+            z-index: @baseIndex;
             top: @mainContentPadding;
             right: @mainContentPadding;
             :global(.iconfont) {
@@ -68,6 +74,7 @@
         }
         > .playing {
             position: absolute;
+            z-index: @baseIndex + 1;
             left: 0;
             bottom: @mainContentPadding;
             width: 100%;
@@ -86,6 +93,7 @@
         }   
         > .playIcon {
             position: absolute;
+            z-index: @baseIndex;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);

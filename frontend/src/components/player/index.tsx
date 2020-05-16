@@ -8,7 +8,7 @@ import { SkipNext as NextIcon } from '@material-ui/icons'
 import { ConnectProps, ConnectState, PlayListModelState } from '@/models/connect'
 import { NowPlayingStatus, RoomMusicPlayMode, RoomPlayModeInfo } from '@global/common/enums';
 import { LocalStorageKeys } from 'config/type.conf'
-import { getLocalStorageData, setLocalStorageData, throttle, CustomAlert } from '@/utils';
+import { getLocalStorageData, setLocalStorageData, throttle, CustomAlert, urlCompatible } from '@/utils';
 import { VolumeSlider } from '@/utils/styleInject'
 import Lyric from './lyric'
 import SignalIcon from '@/components/signalIcon'
@@ -507,7 +507,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                                     const config = RoomPlayModeConfigs[nowRoomPlayMode]
                                     return !!config && (
                                         isRoomAdmin ? <CustomIcon title={config.title} className={styles.clickAble} onClick={this._showSwitchModeDialog.bind(this)}>{config.icon}</CustomIcon> :
-                                            <span>{config.title}中</span>
+                                            <span>{config.title}模式</span>
                                     )
                                 })()
                             }
@@ -536,7 +536,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
     renderPicNode(simpleMode: boolean) {
         const { isPaused, pic } = this.props
         return <div className={bindClass(!isPaused && styles.rotate, styles.picBox, simpleMode && styles.simpleMode)}>
-            {pic ? <img src={pic} /> : <div className={styles.noPic}>暂无封面</div>}
+            {pic ? <img src={urlCompatible(pic)} /> : <div className={styles.noPic}>暂无封面</div>}
         </div>
     }
 
@@ -568,7 +568,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
                         className={styles.content}>{renderCommentObj.content}</p>
                 }
                 <div className={styles.bottom} ref={ele => this.commentBotttomEle = ele}>
-                    <img src={renderCommentObj.avatarUrl || null} />
+                    <img src={urlCompatible(renderCommentObj.avatarUrl || null)} />
                     <span className={styles.nickName} title={`点击查看${renderCommentObj.nickName}的主页`}
                         onClick={_ => window.open(`https://music.163.com/#/user/home?id=${renderCommentObj.userId}`)}
                     >{renderCommentObj.nickName}</span>

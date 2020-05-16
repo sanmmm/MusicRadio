@@ -163,7 +163,7 @@ const MusicList: React.FC<MusicListProps> = React.memo(function (props) {
                         <span className={styles.name}>{item.name}</span>
                         {
                             blockItemIdSet.has(item.id) ? <CustomIcon>block</CustomIcon> :
-                            index === 0 && <SignalIcon />
+                            null
                         }
                     </div>,
                     width: '40%'
