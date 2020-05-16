@@ -151,6 +151,7 @@ const MusicList: React.FC<MusicListProps> = React.memo(function (props) {
             </div>)}
         </div>
         <List
+            itemHeight={42}
             loading={actionPending}
             className={styles.tableContainer}
             drag={isRoomAdmin ? {

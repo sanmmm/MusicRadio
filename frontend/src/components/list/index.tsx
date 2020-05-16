@@ -27,6 +27,7 @@ const CustomCheckbox = withStyles({
 })(Checkbox)
 
 export interface Props<T = any> {
+    itemHeight: number;
     loading?: boolean;
     className?: string;
     dataSource: T[];
@@ -48,8 +49,12 @@ export interface Props<T = any> {
 }
 
 const ListRender = React.memo<Props>(function (props) {
-    const { loading, dataSource, columns, rowKey, drag, rowSelection, rowClassName, className } = props
+    const { loading, dataSource, columns, rowKey, drag, rowSelection, rowClassName, className, itemHeight } = props
 
+    const [showRange, setShowRange] = useState({
+        min: 0,
+        max: 30
+    })
     const [getSyncState, setSyncState] = useSyncState({
         checkedKeys: new Set<string>(),
         dataSource: [],
@@ -108,14 +113,16 @@ const ListRender = React.memo<Props>(function (props) {
     }, [])
     const defaultColWidth = columns.length !== 0 ? `${(1 / columns.length).toFixed(2).slice(2)}%` : 0
 
+    const isVirtualMode = dataSource.length > 150
+  
     const table = <div className={bindClass(styles.table, className)}>
         <div className={styles.tableContent}>
             <div className={styles.header}>
                 <div className={styles.line}>
                     {
                         !!rowSelection &&
-                        <CustomCheckbox disabled={!dataSource.length} 
-                        checked={Boolean(rowSelection && dataSource.length && rowSelection.selectedRowKeys.length === dataSource.length)} onChange={handleCheckAll} />
+                        <CustomCheckbox disabled={!dataSource.length}
+                            checked={Boolean(rowSelection && dataSource.length && rowSelection.selectedRowKeys.length === dataSource.length)} onChange={handleCheckAll} />
                     }
                     {
                         columns.map((obj, index) => <div className={styles.cell} key={obj.dataKey ? obj.dataKey as string : index} style={{ width: obj.width || defaultColWidth }}>
@@ -123,19 +130,62 @@ const ListRender = React.memo<Props>(function (props) {
                         </div>)}
                 </div>
             </div>
-            <Scrollbar className={styles.body}>
-                {
-                    dataSource.map((rowItem, index) => {
-                        const key = rowKey(rowItem)
-                        return <TableRow
-                            key={key} keyName={key}
-                            item={rowItem} index={index} columns={columns}
-                            drag={drag} rowClassName={rowClassName}
-                            checkAble={!!rowSelection}
-                            checked={!!rowSelection && rowSelection.selectedRowKeys.includes(key)}
-                            onCheck={handleItemCheck}
-                        />
+            <Scrollbar className={styles.body}
+                onScrollY={ele => {
+                    requestAnimationFrame(() => {
+                        const scrollTop = ele.scrollTop
+                        const toTopIndex = Math.floor((scrollTop / itemHeight))
+                        const viewportRange = {
+                            min: toTopIndex,
+                            max: toTopIndex + 20,
+                        }
+                        const notNeedToRefresh = viewportRange.min > showRange.min && viewportRange.max < showRange.max
+                        if (!notNeedToRefresh) {
+                            const cutChunkCount = 30
+                            const newShowRange = {
+                                min: (toTopIndex - cutChunkCount) < 0 ? toTopIndex : toTopIndex - cutChunkCount,
+                                max: (toTopIndex + cutChunkCount)
+                            }
+                            setShowRange(newShowRange)
+                        }
                     })
+                }}
+            >
+                {
+                    isVirtualMode ? <div
+                        style={{
+                            height: itemHeight * dataSource.length
+                        }}
+                    >
+                        <div style={{
+                            transform: `translateY(${showRange.min * itemHeight}px)`
+                        }}>
+                            {
+                                dataSource.slice(showRange.min, showRange.max).map((rowItem, index) => {
+                                    const key = rowKey(rowItem)
+                                    return <TableRow
+                                        key={key} keyName={key}
+                                        item={rowItem} index={index} columns={columns}
+                                        drag={drag} rowClassName={rowClassName}
+                                        checkAble={!!rowSelection}
+                                        checked={!!rowSelection && rowSelection.selectedRowKeys.includes(key)}
+                                        onCheck={handleItemCheck}
+                                    />
+                                })
+                            }
+                        </div>
+                    </div> :
+                        dataSource.slice(showRange.min, showRange.max).map((rowItem, index) => {
+                            const key = rowKey(rowItem)
+                            return <TableRow
+                                key={key} keyName={key}
+                                item={rowItem} index={index} columns={columns}
+                                drag={drag} rowClassName={rowClassName}
+                                checkAble={!!rowSelection}
+                                checked={!!rowSelection && rowSelection.selectedRowKeys.includes(key)}
+                                onCheck={handleItemCheck}
+                            />
+                        })
                 }
                 {
                     !dataSource.length &&
@@ -150,6 +200,7 @@ const ListRender = React.memo<Props>(function (props) {
                 <CustomIcon className={styles.icon}>load</CustomIcon>
             </div>}
     </div>
+
     return drag ? <DndProvider backend={DragBackend}>
         {table}
     </DndProvider> : table

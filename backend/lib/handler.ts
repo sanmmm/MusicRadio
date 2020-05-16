@@ -1675,7 +1675,9 @@ class Handler {
         Actions.sendNowRoomPlayingInfo(room, [reqUser])
         Actions.updateRoomBaseInfo([reqUser], UtilFuncs.getRoomBaseInfo(room))
         Actions.addChatListMessages([reqUser], room.messageHistory)
-        Actions.addPlayListItems([reqUser], room.playList)
+        if (room.playModeInfo.mode !== RoomMusicPlayMode.auto) {
+            Actions.addPlayListItems([reqUser], room.playList)
+        }
         Actions.updateRoomCutMusicVoteInfo(room, [reqUser])
         if (UtilFuncs.isRoomAdmin(room, reqUser)) {
             Actions.addRoomAdminActionRecords([reqUser], room.adminActions)

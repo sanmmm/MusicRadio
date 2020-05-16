@@ -88,7 +88,9 @@ const ScrollWrapper: React.FC<Props> = function ScrollWrapper (props) {
                 }
             }}>
             <div ref={containerRef} className={styles.scrollContainer}
-                style={{ top: `${-1 * pageHeight * focusPageIndex}px` }}
+                style={{
+                    transform: `translateY(${-1 * pageHeight * focusPageIndex}px)`
+                }}
             >
                 {
                     React.Children.map(props.children, (child, index) => {

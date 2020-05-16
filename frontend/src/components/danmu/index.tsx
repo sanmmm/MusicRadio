@@ -149,7 +149,7 @@ const DanmuBox: React.FC<DanmuBoxProps> = React.memo(function (props) {
         {danmuQueue.slice(0, maxShowCount * 2).map(d => <div key={d.levelValue} className={styles.item}
             style={{
                 height: danmuContentHeight,
-                top: `${danmuContentHeight * 1.5 * (d.levelValue - refreshCounter)}px`,
+                transform: `translateY(${danmuContentHeight * 1.5 * (d.levelValue - refreshCounter)}px)`
             }}
         >
             {!isMobile && <div className={styles.placeholder} style={{ maxWidth: `${(d.offset * 100).toFixed(2)}%` }}></div>}
