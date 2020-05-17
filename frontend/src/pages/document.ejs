@@ -7,10 +7,6 @@
   <title></title>
   <link href="https://fonts.googleapis.com/css2?family=Long+Cang&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="//at.alicdn.com/t/font_1512906_6uy5pe24xx9.css">
-  <script type="text/javascript" src="//cdn.jsdelivr.net/npm/nprogress@0.1.6/nprogress.min.js"></script>
-  <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.css">
-  <script>
-  </script>
   <script>
     window.handleClientSettings = function (res) {
       if (res.code === 0) {
@@ -18,10 +14,23 @@
       }
     }
   </script>
-  <script id="prehook" type="text/javascript" src="{{!HTTP_SERVER}}/client/settings?callback=handleClientSettings"></script>
 </head>
-
 <body>
+  <script>
+    let loadedCount = 0
+    function handleNprogressOnLoad() {
+      loadedCount++
+      if (loadedCount === 2) {
+        console.log('onload')
+        NProgress.start()
+      }
+    }
+  </script>
+  <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/npm/nprogress@0.2.0/nprogress.css"
+    onload="handleNprogressOnLoad();" />
+  <script type="text/javascript" src="//cdn.jsdelivr.net/npm/nprogress@0.1.6/nprogress.min.js"
+    onload="handleNprogressOnLoad();"></script>
+  <script id="prehook" type="text/javascript" src="{{!HTTP_SERVER}}/client/settings?callback=handleClientSettings"></script>
   <script>
     window.publicPath = '/'
     if (window.clientSettings && clientSettings.publicPath) {
@@ -33,7 +42,6 @@
     icon.setAttribute('href', window.publicPath + 'icon.svg')
     document.head.appendChild(icon)
   </script>
-  <div id="root"></div>
   <script>
     function isUrl(value) {
       return /^(http:|https:)?\/\//.test(value)
@@ -81,6 +89,7 @@
       })
     }
   </script>
+  <div id="root"></div>
 </body>
 
 </html>

@@ -31,7 +31,7 @@ const config: IConfig = {
   },
   externals: getExternals(),
   outputPath: configInject.outPutPath,
-  headScripts: configInject.isProductionMode ? [
+  scripts: configInject.isProductionMode ? [
     '//cdn.jsdelivr.net/npm/react@16.12.0/umd/react.production.min.js',
     '//cdn.jsdelivr.net/npm/react-dom@16.13.1/umd/react-dom.production.min.js',
   ] : [],
