@@ -4,7 +4,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
-  <title></title>
+  <title>
+    <% if (context.config.define.loadSettingsFromServer) { %>
+      {{!WEBSITE_TITLE}}
+    <% } %>
+  </title>
   <link href="https://fonts.googleapis.com/css2?family=Long+Cang&display=swap" rel="stylesheet">
   <link rel="stylesheet" type="text/css" href="//at.alicdn.com/t/font_1512906_6uy5pe24xx9.css">
   <script>

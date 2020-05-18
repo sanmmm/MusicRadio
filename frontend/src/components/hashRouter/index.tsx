@@ -46,9 +46,7 @@ export const hashRouter = {
         history.back()
     },
     push (hash = '') {
-        const prevTitle = document.title
         location.hash = hash
-        document.title = prevTitle
     },
     replace (hash) {
         location.replace(`${location.origin}/#${hash}`)

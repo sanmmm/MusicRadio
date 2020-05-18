@@ -17,7 +17,7 @@ import cors from 'cors'
 
 import session from 'root/lib/session'
 import Handler from 'root/lib/handler'
-import settings from 'root/getSettings'
+import settings, {clientSettings} from 'root/getSettings'
 import globalConfigs from 'global/common/config'
 import { SessionTypes } from 'root/type'
 import {cookieMiddleware, dispatchClientSettings, umiFileHandler} from 'root/lib/middlewares'
@@ -30,7 +30,8 @@ fillVaraibleToFile({
     filePath: path.join(injectedConfigs.staticPath, 'index.html'),
     exportTo: path.join(injectedConfigs.staticPath, 'index_server.html'),
     vars: {
-        HTTP_SERVER: settings.httpServer.replace(/\/$/, '')
+        HTTP_SERVER: settings.httpServer.replace(/\/$/, ''),
+        WEBSITE_TITLE: clientSettings.websiteName,
     }
 })
 

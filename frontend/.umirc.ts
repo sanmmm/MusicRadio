@@ -25,10 +25,14 @@ function getExternals () {
 
 // ref: https://umijs.org/config/
 const config: IConfig = {
+  define: {
+    loadSettingsFromServer: configInject.loadSettingsFromServer,
+  },
   nodeModulesTransform: {
     type: 'none',
     exclude: [],
   },
+  title: false,
   externals: getExternals(),
   outputPath: configInject.outPutPath,
   scripts: configInject.isProductionMode ? [
