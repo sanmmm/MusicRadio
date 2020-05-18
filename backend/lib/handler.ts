@@ -38,6 +38,8 @@ async function beforeStart() {
     }
     // 加载所有房间id到内存
     await Room.loadAllMembers()
+    // 预加载随机播放曲库列表
+    await UtilFuncs.initRandomSelectedPlayMusicList()
     // 初始化定时任务程序
     await CronTask.init()
     // 开启大厅定时任务
@@ -489,6 +491,30 @@ namespace UtilFuncs {
             await redisCli.safeSet(redisKey, newArgs, 3600 * 24 * 356)
         }
         return isChanged
+    }
+
+    let randomMusicList: PlayListItem[] = []
+    export async function initRandomSelectedPlayMusicList () {
+        console.log('----- 预加载 随机播放 数据 -----')
+        const playTypes = ['流行', '民谣', '电子', '古风', '乡村', '摇滚', '轻音乐', '古典']
+        await Promise.all(
+            playTypes.map(async (type) => {
+                try {
+                    const listInfoArr =  await NetEaseApi.getHighQualityMusicList(type)
+                    const selected = getArrRandomItem(listInfoArr)
+                    const playItemList = await NetEaseApi.getPlayListInfo(selected.id)
+                    randomMusicList = randomMusicList.concat(playItemList.musicList)
+                } catch (e) {
+                    console.error(e)
+                }
+            })
+        )
+        
+        console.log('----- 预加载 随机播放 数据 结束 -----')
+    }
+
+    export function getRandomSelectedMusic () {
+        return getArrRandomItem(randomMusicList)
     }
 }
 
@@ -1183,7 +1209,17 @@ namespace ManageRoomPlaying {
             await removeNowPlaying(room)
             const leftPlayList = room.playList
             if (!leftPlayList.length) {
-                console.log(`房间: ${room.id}列表播放结束`)
+                if (room.id === hallRoomId) {
+                    const playItem = UtilFuncs.getRandomSelectedMusic()
+                    if (playItem) {
+                        room.playList = [playItem]
+                        await room.save()
+                        Actions.addPlayListItems(room.joiners, [playItem])
+                        await UtilFuncs.startPlayFromPlayListInOrder(room)
+                    }
+                } else {
+                    console.log(`房间: ${room.id}列表播放结束`)
+                }
                 return
             }
             await UtilFuncs.startPlayFromPlayListInOrder(room)

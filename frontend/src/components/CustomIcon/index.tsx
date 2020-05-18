@@ -6,7 +6,7 @@ import styles from './style.less'
 
 interface props extends IconProps{
     className?: string;
-    children: React.ReactText
+    children: React.ReactText;
 }
 
 export default function CustomIcon (props: props) {

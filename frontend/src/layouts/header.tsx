@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { connect } from 'dva'
-import { Select, Dialog, DialogContent, Button, ListItem, ListItemText, ListItemIcon, IconButton, MenuItem } from '@material-ui/core';
+import { Select, Dialog, DialogContent, Button, ListItem, ListItemText, ListItemIcon, IconButton, MenuItem, Icon } from '@material-ui/core';
 import { useMediaQuery } from 'react-responsive'
 import {
     Person as PersonIcon, ViewHeadline as HeadLineIcon, Delete as DeleteIcon, PlaylistAdd as CreateIcon, Cancel as CancelIcon,
@@ -13,6 +13,7 @@ import styles from './index.less';
 import { UserStatus, UserRoomRecordTypes } from 'config/type.conf';
 import CreateRoom from '@/components/createRoom'
 import RoomHotDataVisualization from '@/components/roomVisualization'
+import CustomIcon from '@/components/CustomIcon'
 import configs from 'config/base.conf'
 import { ConnectProps, ConnectState, PlayListModelState, CenterModelState } from '@/models/connect'
 import globalConfig from '@global/common/config';
@@ -49,6 +50,7 @@ enum ActionTypes {
     destoryRoom,
     quitRoom,
     showVisualization,
+    gotToGithub,
 }
 
 export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: ConnectState) => {
@@ -122,6 +124,7 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
             }
 
         }
+
     }
 
     const handleActionClick = (e) => {
@@ -228,6 +231,11 @@ export default connect(({ center: { nowRoomInfo, userInfo, isRoomAdmin } }: Conn
                                     <PersonIcon style={{ color: 'white', marginRight: '.5rem' }} /><span>{nowRoomInfo ? nowRoomInfo.heat : 0}</span>
                                 </div>
                                 {actionItemsContent}
+                                {
+                                    !!settings.githubUrl && !isMobile && <CustomIcon style={{fontSize: 28, cursor: 'pointer'}}
+                                        onClick={_ => window.open(settings.githubUrl)}
+                                    >github</CustomIcon>
+                                }
                             </React.Fragment>
                         }
                     </div>}

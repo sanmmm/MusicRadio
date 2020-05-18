@@ -9,4 +9,5 @@
     logoText: string;
     defaultMaskImg: string;
     notAllowCreateRoom: boolean, // 是否允许创建房间
+    githubUrl?: string; 
 }
