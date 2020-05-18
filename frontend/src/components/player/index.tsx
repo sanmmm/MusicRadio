@@ -626,7 +626,7 @@ class Player extends React.Component<PlayerProps, PlayerState> {
             preload="auto"
             onProgress={this._refreshMusicBuffered.bind(this)}
             onTimeUpdate={this._handleTimeUpdate}
-            onCanPlay={_ => {
+            onCanPlayThrough={_ => {
                 if (this.props.isPaused) {
                     return
                 }
