@@ -36,7 +36,7 @@
     "deep-equal": "^2.0.3",
     "express": "^4.17.1",
     "express-react-views": "^0.11.0",
-    "got": "^9.6.0",
+    "got": "^11.8.5",
     "ioredis": "^4.14.1",
     "jss": "^10.1.1",
     "jss-preset-default": "^10.1.1",
